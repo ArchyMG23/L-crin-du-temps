@@ -179,9 +179,11 @@ export async function decrementStock(productId: string, quantityToDeduct: number
         throw new Error(`Produit #${productId} introuvable`);
       }
       const currentStock = sfDoc.data().stock ?? 0;
+      const currentOrderCount = sfDoc.data().orderCount ?? 0;
       const newStock = Math.max(0, currentStock - quantityToDeduct);
       transaction.update(productRef, {
         stock: newStock,
+        orderCount: currentOrderCount + quantityToDeduct,
         updatedAt: new Date().toISOString()
       });
     });
@@ -191,3 +193,26 @@ export async function decrementStock(productId: string, quantityToDeduct: number
     return false;
   }
 }
+
+/**
+ * Decrement orderCount when an order is cancelled
+ */
+export async function decrementProductOrderCount(productId: string, quantityToRestore: number): Promise<void> {
+  try {
+    const productRef = doc(db, PRODUCTS_COLLECTION, productId);
+    await runTransaction(db, async (transaction) => {
+      const sfDoc = await transaction.get(productRef);
+      if (sfDoc.exists()) {
+        const currentOrderCount = sfDoc.data().orderCount ?? 0;
+        const newCount = Math.max(0, currentOrderCount - quantityToRestore);
+        transaction.update(productRef, {
+          orderCount: newCount,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    });
+  } catch (e) {
+    console.warn("Order count decrement notice:", e);
+  }
+}
+

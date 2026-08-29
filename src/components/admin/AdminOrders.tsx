@@ -25,7 +25,7 @@ import { Button } from '../ui/Button';
 
 interface AdminOrdersProps {
   orders: Order[];
-  settings: StoreSettings;
+  settings?: StoreSettings;
   onUpdateStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   onUpdatePaymentStatus: (orderId: string, paymentStatus: PaymentStatus) => Promise<void>;
 }
@@ -91,7 +91,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     const rawPhone = order.customer.phone.replace(/[^0-9]/g, '');
     let text = '';
 
-    const storeName = settings.name || 'Notre Maison Horlogère';
+    const storeName = settings?.storeName || settings?.name || 'Notre Maison Horlogère';
     const totalFormatted = `${order.total.toLocaleString('fr-FR')} ${order.currency}`;
 
     switch (type) {

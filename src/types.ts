@@ -49,6 +49,7 @@ export interface Product {
   lowStockThreshold: number;
   featured: boolean;
   active: boolean;
+  orderCount?: number; // Total validated orders for popularity ranking
   specifications?: WatchSpecifications;
   createdAt: string;
   updatedAt: string;
@@ -61,6 +62,20 @@ export interface Category {
   description?: string;
   image?: string;
   active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserProfile {
+  uid: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  city: string;
+  address: string;
+  role: 'customer' | 'admin' | 'owner';
+  ordersCount?: number;
+  totalSpent?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -86,6 +101,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   orderNumber: string;
+  customerId?: string; // Associated Firebase Auth customer account UID
   customer: CustomerInfo;
   items: OrderItem[];
   subtotal: number;

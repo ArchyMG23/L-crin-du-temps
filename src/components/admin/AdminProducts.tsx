@@ -23,7 +23,7 @@ import { Modal } from '../ui/Modal';
 interface AdminProductsProps {
   products: Product[];
   categories: Category[];
-  settings: StoreSettings;
+  settings?: StoreSettings;
   onOpenNewModal: () => void;
   onEditProduct: (product: Product) => void;
   onDuplicateProduct?: (product: Product) => Promise<void>;
@@ -51,7 +51,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const currency = settings.currency || '€';
+  const currency = settings?.currency || '€';
 
   // Filter logic
   const filteredProducts = products.filter((product) => {

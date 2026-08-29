@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   Truck,
@@ -10,13 +10,17 @@ import {
   FileText,
   AlertCircle,
   Clock,
-  Sparkles
+  Sparkles,
+  Lock,
+  UserCheck
 } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { CustomerInfo, Order, StoreSettings } from '../../types';
 import { createOrder, buildWhatsAppOrderUrl } from '../../services/orderService';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { AuthModal } from './AuthModal';
 
 interface CheckoutModalProps {
   isOpen?: boolean;
@@ -40,6 +44,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   onOrderCreated
 }) => {
   const { cart, isCheckoutOpen, setIsCheckoutOpen, subtotal, clearCart } = useCart();
+  const { userProfile, isCustomer } = useAuth();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const [customer, setCustomer] = useState<CustomerInfo>({
     name: '',
@@ -49,6 +55,20 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     address: '',
     notes: ''
   });
+
+  // Autofill customer profile when authenticated
+  useEffect(() => {
+    if (userProfile) {
+      setCustomer((prev) => ({
+        ...prev,
+        name: userProfile.fullName || prev.name,
+        phone: userProfile.phone || prev.phone,
+        email: userProfile.email || prev.email,
+        city: userProfile.city || prev.city,
+        address: userProfile.address || prev.address
+      }));
+    }
+  }, [userProfile]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -66,11 +86,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const total = subtotal + shippingFee;
   const currency = currencyProp || settings?.currency || '€';
   const whatsappNumber = whatsappProp || settings?.whatsappNumber || '+33600000000';
-  const storeName = storeNameProp || settings?.storeName || "L'ÉMINENCE HORLOGERIE";
+  const storeName = storeNameProp || settings?.storeName || "Maison Horlogère";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+
+    // Require Customer Account
+    if (!userProfile) {
+      setAuthModalOpen(true);
+      return;
+    }
 
     // Form Validations
     if (!customer.name.trim()) {
@@ -113,6 +139,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       });
 
       const newOrder = await createOrder({
+        customerId: userProfile.uid,
         customer,
         items: orderItems,
         subtotal,
@@ -175,6 +202,44 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <User className="w-4 h-4" />
               <span>Coordonnées du Client</span>
             </h4>
+
+            {/* Customer Authentication Status */}
+            {userProfile ? (
+              <div className="p-3 bg-emerald-950/40 border border-emerald-800/80 rounded-xl flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-200">
+                    Connecté en tant que <strong className="text-white">{userProfile.fullName}</strong>
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAuthModalOpen(true)}
+                  className="text-[11px] text-[#D4AF37] hover:underline"
+                >
+                  Changer
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 bg-[#D4AF37]/10 border border-[#D4AF37]/40 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#D4AF37]">
+                  <Lock className="w-4 h-4" />
+                  <span>Compte client requis pour commander</span>
+                </div>
+                <p className="text-xs text-white/70">
+                  Veuillez vous connecter ou créer votre compte client pour valider et suivre votre commande en toute sécurité.
+                </p>
+                <Button
+                  type="button"
+                  variant="gold"
+                  size="sm"
+                  onClick={() => setAuthModalOpen(true)}
+                  className="w-full mt-1"
+                >
+                  Se connecter / Créer un compte
+                </Button>
+              </div>
+            )}
 
             {/* Name */}
             <div>
@@ -356,6 +421,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </div>
         </div>
       </form>
+
+      {/* Embedded Customer Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        initialTab="register"
+        titleMessage="Connectez-vous ou créez votre compte pour enregistrer et sécuriser votre commande."
+        onSuccess={() => setAuthModalOpen(false)}
+      />
     </Modal>
   );
 };

@@ -5,6 +5,7 @@ import {
   Layers,
   Boxes,
   ShoppingBag,
+  Users,
   Settings,
   LogOut,
   ExternalLink,
@@ -72,6 +73,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       icon: ShoppingBag,
       badge: pendingOrdersCount > 0 ? `${pendingOrdersCount} nouv.` : null,
       badgeVariant: 'gold'
+    },
+    {
+      id: 'customers',
+      label: 'Répertoire Clients',
+      icon: Users,
+      badge: null
     },
     {
       id: 'settings',

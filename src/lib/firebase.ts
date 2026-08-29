@@ -33,11 +33,11 @@ const databaseId = config.firestoreDatabaseId && config.firestoreDatabaseId !== 
   ? config.firestoreDatabaseId
   : undefined;
 
-// Initialize Firestore with robust long-polling auto-detection for sandbox/iframe environments
+// Initialize Firestore with robust forced long-polling for sandbox/iframe environments to avoid 10s WebSocket connection timeout
 export const db = initializeFirestore(
   app,
   {
-    experimentalAutoDetectLongPolling: true,
+    experimentalForceLongPolling: true,
     ignoreUndefinedProperties: true
   },
   databaseId

@@ -26,7 +26,6 @@ service cloud.firestore {
 
     // Products collection:
     // Public can read active products. Admin has full management access.
-    // Visitors cannot modify products, prices, or stock.
     match /products/{productId} {
       allow get, list: if resource.data.active == true || isAdmin();
       allow create, update, delete: if isAdmin();
@@ -39,10 +38,25 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Users (Customer profiles) collection:
+    // Strict ABAC / PII Protection:
+    // - Customers can only get and update their own profile document (uid == userId).
+    // - Customers cannot self-assign or elevate role to 'admin' (locked to 'customer').
+    // - Only verified administrators can list all customer records.
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if (isSignedIn() && request.auth.uid == userId && request.resource.data.role == 'customer') || isAdmin();
+      allow update: if (isSignedIn() && request.auth.uid == userId && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // Orders collection:
-    // Anyone can create an order under strict field and pricing integrity validation.
-    // Status and paymentStatus are locked to 'pending'.
-    // Only authenticated admins can read, list, update, or delete orders (prevents customer data leakage).
+    // Strict ABAC and Pricing Integrity:
+    // - Valid orders can be created by authenticated customers (or guest checkout under strict format checks).
+    // - New order status and paymentStatus are strictly locked to 'pending'.
+    // - Customers can only view/list their own orders (customerId == request.auth.uid).
+    // - Only administrators can read all, update statuses, or delete orders.
     match /orders/{orderId} {
       allow create: if request.resource.data.orderNumber is string
                     && request.resource.data.orderNumber.matches('^CMD-[0-9]{4}-[0-9]{5,7}$')
@@ -69,7 +83,9 @@ service cloud.firestore {
                     && request.resource.data.shipping >= 0
                     && request.resource.data.total is number
                     && request.resource.data.total == request.resource.data.subtotal + request.resource.data.shipping;
-      allow read, update, delete: if isAdmin();
+      allow get: if isAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
 
     // Store settings:

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Sparkles, ArrowRight, MessageSquare, Award } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Sparkles, ArrowRight, MessageSquare, Award, Flame, TrendingUp } from 'lucide-react';
 import { Product, Category, StoreSettings } from '../../types';
 import { ProductCard } from './ProductCard';
 import { Button } from '../ui/Button';
@@ -19,8 +19,22 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onNavigate,
   onSelectProduct
 }) => {
-  const featuredProducts = products.filter(p => p.featured && p.active);
   const activeProducts = products.filter(p => p.active);
+  const featuredProducts = products.filter(p => p.featured && p.active);
+  
+  // Algorithmic Dynamic "Popular Products" based on genuine orderCount
+  const popularProducts = useMemo(() => {
+    return [...activeProducts]
+      .sort((a, b) => {
+        const countA = a.orderCount || 0;
+        const countB = b.orderCount || 0;
+        if (countB !== countA) return countB - countA;
+        // Secondary fallback to date if counts are equal
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+      .slice(0, 4);
+  }, [activeProducts]);
+
   const recentProducts = activeProducts.slice(0, 6);
 
   return (
@@ -84,6 +98,42 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Dynamic Popular Watches (À la une / Les Plus Populaires) */}
+      {popularProducts.length > 0 && (
+        <section className="space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/10 pb-4">
+            <div>
+              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-[#D4AF37] font-serif font-bold">
+                <Flame className="w-4 h-4 text-amber-400" />
+                <span>Rubrique Populaire • Les Plus Demandées</span>
+              </div>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#F5F5F0] mt-1">
+                Garde-temps à la Une
+              </h2>
+            </div>
+
+            <button
+              onClick={() => onNavigate('shop')}
+              className="text-xs uppercase tracking-[0.15em] font-semibold text-[#D4AF37] hover:text-[#B8962F] flex items-center gap-1.5 transition-colors"
+            >
+              <span>Explorer le catalogue</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {popularProducts.map((product, idx) => (
+              <div key={product.id} className="relative">
+                <ProductCard
+                  product={product}
+                  onSelect={onSelectProduct}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Featured Watches (Pièces Maîtresses) */}
       {featuredProducts.length > 0 && (

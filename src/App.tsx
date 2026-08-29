@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Product, Category, Order, StoreSettings, OrderStatus, PaymentStatus } from './types';
+import { Product, Category, Order, StoreSettings, OrderStatus, PaymentStatus, UserProfile } from './types';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 
@@ -27,6 +27,7 @@ import {
   getStoreSettings,
   updateStoreSettings
 } from './services/settingsService';
+import { getAllCustomers } from './services/userService';
 import { DEFAULT_SETTINGS } from './data/defaultData';
 
 // UI
@@ -37,6 +38,8 @@ import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { HomeView } from './components/public/HomeView';
 import { ShopView } from './components/public/ShopView';
+import { AccountView } from './components/public/AccountView';
+import { AuthModal } from './components/public/AuthModal';
 import { ProductDetailModal } from './components/public/ProductDetailModal';
 import { CartDrawer } from './components/public/CartDrawer';
 import { CheckoutModal } from './components/public/CheckoutModal';
@@ -52,15 +55,17 @@ import { AdminProductModal } from './components/admin/AdminProductModal';
 import { AdminCategories } from './components/admin/AdminCategories';
 import { AdminStock } from './components/admin/AdminStock';
 import { AdminOrders } from './components/admin/AdminOrders';
+import { AdminCustomers } from './components/admin/AdminCustomers';
 import { AdminSettings } from './components/admin/AdminSettings';
 
 const MainApp: React.FC = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, userProfile } = useAuth();
 
   // Core Data States
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [customers, setCustomers] = useState<UserProfile[]>([]);
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
 
@@ -77,7 +82,7 @@ const MainApp: React.FC = () => {
   };
 
   // Navigation State
-  const [currentView, setCurrentView] = useState<'home' | 'shop' | 'men' | 'women' | 'admin'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'shop' | 'men' | 'women' | 'account' | 'admin'>('home');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | undefined>(undefined);
   const [navbarSearchQuery, setNavbarSearchQuery] = useState<string>('');
   const [adminTab, setAdminTab] = useState<string>('dashboard');
@@ -86,6 +91,7 @@ const MainApp: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [completedWhatsAppUrl, setCompletedWhatsAppUrl] = useState<string | null>(null);
 
@@ -101,17 +107,19 @@ const MainApp: React.FC = () => {
         await seedInitialDataIfEmpty().catch(() => {});
       }
 
-      const [prodsData, catsData, settingsData, ordersData] = await Promise.all([
+      const [prodsData, catsData, settingsData, ordersData, customersData] = await Promise.all([
         getProducts(!adminMode),
         getCategories(!adminMode),
         getStoreSettings(),
-        adminMode ? getOrders() : Promise.resolve([])
+        adminMode ? getOrders() : Promise.resolve([]),
+        adminMode ? getAllCustomers() : Promise.resolve([])
       ]);
 
       setProducts(prodsData);
       setCategories(catsData);
       setSettings(settingsData);
       setOrders(ordersData);
+      setCustomers(customersData);
 
       // Check URL route on initial load once products are fetched
       handleRouteFromPath(window.location.pathname, prodsData, ordersData);
@@ -178,6 +186,11 @@ const MainApp: React.FC = () => {
       return;
     }
 
+    if (cleanPath === '/compte' || cleanPath === '/account') {
+      setCurrentView('account');
+      return;
+    }
+
     if (cleanPath === '/boutique') {
       setCurrentView('shop');
       return;
@@ -204,6 +217,17 @@ const MainApp: React.FC = () => {
       setCurrentView('admin');
       window.history.pushState(null, '', '/admin');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (view === 'account') {
+      if (!userProfile) {
+        setAuthModalOpen(true);
+      } else {
+        setCurrentView('account');
+        window.history.pushState(null, '', '/compte');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
       return;
     }
 
@@ -500,6 +524,15 @@ const MainApp: React.FC = () => {
     addToast('info', 'Données de démonstration réinitialisées.');
   };
 
+  const handleResetData = async () => {
+    setProducts([]);
+    setCategories([]);
+    setOrders([]);
+    setCustomers([]);
+    await loadData(isAdmin);
+    addToast('success', 'Réinitialisation de la boutique effectuée.');
+  };
+
   // Admin Pending Counts
   const pendingOrdersCount = orders.filter((o) => o.status === 'pending').length;
   const lowStockCount = products.filter(
@@ -596,11 +629,20 @@ const MainApp: React.FC = () => {
             />
           )}
 
+          {adminTab === 'customers' && (
+            <AdminCustomers
+              customers={customers}
+              orders={orders}
+              settings={settings}
+            />
+          )}
+
           {adminTab === 'settings' && (
             <AdminSettings
               settings={settings}
               onSaveSettings={handleSaveSettings}
               onReSeedDemoData={handleReSeedData}
+              onResetStore={handleResetData}
             />
           )}
 
@@ -685,6 +727,15 @@ const MainApp: React.FC = () => {
             onSelectProduct={handleSelectProduct}
           />
         )}
+
+        {currentView === 'account' && (
+          <AccountView
+            settings={settings}
+            onNavigate={handleNavigate}
+            onOpenAuthModal={() => setAuthModalOpen(true)}
+            onSelectProduct={handleSelectProduct}
+          />
+        )}
       </main>
 
       {/* Footer */}
@@ -719,6 +770,15 @@ const MainApp: React.FC = () => {
       </aside>
 
       {/* Public Modals & Drawers */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => {
+          setAuthModalOpen(false);
+          setCurrentView('account');
+        }}
+      />
+
       <ProductDetailModal
         product={selectedProduct}
         isOpen={Boolean(selectedProduct)}

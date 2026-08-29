@@ -25,23 +25,27 @@ import { StoreSettings } from '../../types';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { uploadImageFile } from '../../services/storageService';
+import { AdminResetModal } from './AdminResetModal';
 
 interface AdminSettingsProps {
   settings: StoreSettings;
   onSaveSettings: (newSettings: Partial<StoreSettings>) => Promise<void>;
   onReSeedDemoData: () => Promise<void>;
+  onResetStore?: () => Promise<void>;
 }
 
 export const AdminSettings: React.FC<AdminSettingsProps> = ({
   settings,
   onSaveSettings,
-  onReSeedDemoData
+  onReSeedDemoData,
+  onResetStore
 }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState<StoreSettings>(settings);
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -481,8 +485,34 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
           </div>
         </div>
 
-        {/* Save Button */}
-        <div className="flex items-center justify-between pt-2">
+        {/* Danger Zone & Reset Store */}
+        <div className="p-5 bg-rose-950/20 border border-rose-900/40 rounded-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <h4 className="text-xs font-bold text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Trash2 className="w-4 h-4 text-rose-400" />
+                <span>Zone de Réinitialisation (RESET)</span>
+              </h4>
+              <p className="text-[11px] text-stone-400">
+                Purger les commandes et le catalogue de test avant le lancement réel en production.
+              </p>
+            </div>
+
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={() => setResetModalOpen(true)}
+              icon={Trash2}
+              className="bg-rose-900/80 hover:bg-rose-800 text-rose-100 text-xs border border-rose-700"
+            >
+              RESET Boutique
+            </Button>
+          </div>
+        </div>
+
+        {/* Action Controls & Save */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
           <Button
             type="button"
             variant="outline"
@@ -490,9 +520,9 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
             onClick={handleSeed}
             loading={seeding}
             icon={RotateCcw}
-            className="text-stone-400 hover:text-amber-300 border-stone-800"
+            className="text-stone-400 hover:text-amber-300 border-stone-800 text-xs"
           >
-            Réinitialiser le catalogue de démo
+            Recharger le catalogue de démo
           </Button>
 
           <Button
@@ -507,6 +537,18 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
           </Button>
         </div>
       </form>
+
+      {/* Reset Confirmation Modal */}
+      <AdminResetModal
+        isOpen={resetModalOpen}
+        onClose={() => setResetModalOpen(false)}
+        onResetComplete={async () => {
+          if (onResetStore) {
+            await onResetStore();
+          }
+          setSuccessMsg('Boutique réinitialisée avec succès. Prête pour le lancement.');
+        }}
+      />
     </div>
   );
 };

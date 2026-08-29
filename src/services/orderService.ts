@@ -7,6 +7,7 @@ import {
   updateDoc,
   deleteDoc,
   query,
+  where,
   orderBy
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
@@ -81,6 +82,7 @@ export async function createOrder(
   const newOrder: Order = {
     id: docRef.id,
     orderNumber,
+    customerId: orderPayload.customerId ? sanitizeString(orderPayload.customerId, 100) : undefined,
     customer: sanitizedCustomer,
     items: sanitizedItems,
     subtotal: calculatedSubtotal,
@@ -270,4 +272,20 @@ export function buildWhatsAppAdminToClientUrl(order: Order, storeName: string): 
   ].join('\n');
 
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}
+
+/**
+ * Fetch orders for a specific authenticated customer (strict data isolation)
+ */
+export async function getCustomerOrders(customerId: string): Promise<Order[]> {
+  try {
+    const colRef = collection(db, ORDERS_COLLECTION);
+    const q = query(colRef, where('customerId', '==', customerId));
+    const snapshot = await getDocs(q);
+    const orders = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
+    return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch (error: any) {
+    console.warn('Error fetching customer orders:', error);
+    return [];
+  }
 }

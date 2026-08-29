@@ -16,7 +16,7 @@ import { Button } from '../ui/Button';
 
 interface AdminStockProps {
   products: Product[];
-  settings: StoreSettings;
+  settings?: StoreSettings;
   onUpdateStock: (productId: string, newStock: number) => Promise<void>;
 }
 

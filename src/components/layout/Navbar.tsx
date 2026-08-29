@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, ShieldCheck, Menu, X, User } from 'lucide-react';
+import { ShoppingBag, Search, ShieldCheck, Menu, X, User, UserCheck } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
+import { useAuth } from '../../context/AuthContext';
 import { StoreSettings } from '../../types';
 
 interface NavbarProps {
@@ -21,6 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenCart
 }) => {
   const { itemCount, setIsCartOpen } = useCart();
+  const { userProfile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSearchInput, setShowSearchInput] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery);
@@ -150,6 +152,34 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </div>
 
+            {/* Account / Customer Space Button */}
+            <button
+              id="navbar-account-btn"
+              onClick={() => onNavigate('account')}
+              className={`p-2.5 rounded-full transition-all flex items-center justify-center border text-xs gap-1.5 ${
+                userProfile
+                  ? 'bg-[#D4AF37]/15 border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/25'
+                  : 'bg-[#151515] hover:bg-[#202020] border-white/10 text-white/80 hover:text-[#D4AF37]'
+              }`}
+              title={userProfile ? `Compte: ${userProfile.fullName}` : 'Espace Client (Connexion / Inscription)'}
+            >
+              {userProfile ? (
+                <>
+                  <UserCheck className="w-4 h-4 text-[#D4AF37]" />
+                  <span className="hidden xl:inline text-[11px] font-medium tracking-wide max-w-[100px] truncate text-white">
+                    {userProfile.fullName.split(' ')[0]}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <User className="w-4 h-4" />
+                  <span className="hidden xl:inline text-[11px] uppercase tracking-wider font-semibold">
+                    Compte
+                  </span>
+                </>
+              )}
+            </button>
+
             {/* Cart Button with luxury badge */}
             <button
               id="navbar-cart-btn"
@@ -170,7 +200,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#111111] border-b border-white/10 px-6 pt-4 pb-6 space-y-4">
+        <div className="lg:hidden bg-[#111111] border-b border-white/10 px-6 pt-4 pb-6 space-y-3">
           <div className="mb-3">
             <div className="flex items-center bg-[#0A0A0A] border border-white/10 rounded-lg px-3.5 py-2">
               <Search className="w-4 h-4 text-white/40 mr-2" />
@@ -201,6 +231,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               {link.label}
             </button>
           ))}
+          <button
+            id="mobile-nav-account"
+            onClick={() => {
+              onNavigate('account');
+              setMobileMenuOpen(false);
+            }}
+            className={`block w-full text-left px-3 py-2.5 rounded-md text-xs font-semibold tracking-[0.2em] uppercase border-t border-white/10 pt-3 ${
+              currentView === 'account'
+                ? 'bg-[#D4AF37]/10 text-[#D4AF37] border-l-2 border-[#D4AF37]'
+                : 'text-[#D4AF37] hover:bg-white/5'
+            }`}
+          >
+            {userProfile ? `Mon Compte (${userProfile.fullName.split(' ')[0]})` : 'Espace Client (Connexion)'}
+          </button>
         </div>
       )}
     </header>

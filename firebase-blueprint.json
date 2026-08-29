@@ -44,6 +44,23 @@
       },
       "required": ["name", "slug", "active"]
     },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered customer or administrator profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "city": { "type": "string" },
+        "address": { "type": "string" },
+        "role": { "type": "string", "enum": ["customer", "admin"] },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "fullName", "email", "role"]
+    },
     "Order": {
       "title": "Order",
       "description": "Customer purchase order",
@@ -51,6 +68,7 @@
       "properties": {
         "id": { "type": "string" },
         "orderNumber": { "type": "string" },
+        "customerId": { "type": "string" },
         "customer": {
           "type": "object",
           "properties": {
@@ -137,6 +155,10 @@
     "/orders/{orderId}": {
       "schema": "Order",
       "description": "Customer purchase orders"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Customer accounts and profiles"
     },
     "/settings/{settingId}": {
       "schema": "StoreSettings",

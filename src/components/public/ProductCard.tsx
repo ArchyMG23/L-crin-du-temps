@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, Eye, Check, AlertTriangle, XCircle, Sparkles } from 'lucide-react';
+import { ShoppingBag, Eye, Check, AlertTriangle, XCircle, Sparkles, Flame } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
 import { Badge } from '../ui/Badge';
@@ -47,6 +47,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
 
         {/* Overlay Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+          {product.orderCount && product.orderCount > 0 ? (
+            <span className="bg-amber-500/90 text-black text-[9px] font-bold px-2 py-0.5 rounded shadow-md tracking-wider uppercase flex items-center gap-1">
+              <Flame className="w-3 h-3 text-black fill-current" />
+              <span>Populaire ({product.orderCount})</span>
+            </span>
+          ) : null}
           {product.featured && (
             <Badge variant="gold" className="shadow-md flex items-center gap-1 bg-[#D4AF37]/90 text-black font-bold uppercase tracking-widest text-[9px] py-1 px-2">
               <Sparkles className="w-3 h-3 text-black" />

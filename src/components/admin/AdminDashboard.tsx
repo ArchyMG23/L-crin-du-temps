@@ -20,7 +20,7 @@ import { buildWhatsAppAdminToClientUrl } from '../../services/orderService';
 interface AdminDashboardProps {
   products: Product[];
   orders: Order[];
-  settings: StoreSettings;
+  settings?: StoreSettings;
   onNavigateTab: (tab: string) => void;
   onOpenNewProductModal: () => void;
   onQuickRestock: (productId: string, addQty: number) => Promise<void>;
@@ -36,7 +36,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onQuickRestock,
   onUpdateOrderStatus
 }) => {
-  const currency = settings.currency || '€';
+  const currency = settings?.currency || '€';
+  const storeName = settings?.storeName || 'Horlogerie de Prestige';
 
   // Metrics Calculations
   const validOrders = orders.filter(o => o.status !== 'cancelled');
@@ -56,7 +57,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             Tableau de Bord Exécutif
           </span>
           <h2 className="font-serif text-2xl font-bold text-stone-100 mt-1">
-            Bienvenue dans votre gestionnaire {settings.storeName}
+            Bienvenue dans votre gestionnaire {storeName}
           </h2>
           <p className="text-xs text-stone-400 mt-1">
             Suivi des ventes, gestion des stocks en direct et traitement des commandes clients.
