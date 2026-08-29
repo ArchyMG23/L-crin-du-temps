@@ -102,6 +102,11 @@ service cloud.firestore {
       allow write: if isAdmin() || isValidStoreSettings(request.resource.data);
     }
 
+    // Health check test connection:
+    match /test/{testId} {
+      allow read: if true;
+    }
+
     // Admins registry:
     // Authenticated users can only read their own document; admins can list and manage all admin accounts.
     match /admins/{adminId} {

@@ -2,19 +2,11 @@ import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { DEFAULT_PRODUCTS, DEFAULT_CATEGORIES, DEFAULT_SETTINGS } from '../data/defaultData';
 
+/**
+ * Check function (does NOT automatically insert data into Firestore without user consent)
+ */
 export async function seedInitialDataIfEmpty(): Promise<boolean> {
-  try {
-    const productsSnap = await getDocs(collection(db, 'products'));
-    if (!productsSnap.empty) {
-      return false; // Already populated
-    }
-
-    await forceSeedData();
-    return true;
-  } catch (error) {
-    console.warn('Auto-seeding check error:', error);
-    return false;
-  }
+  return false;
 }
 
 export async function forceSeedData(): Promise<void> {

@@ -12,7 +12,6 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Product } from '../types';
-import { DEFAULT_PRODUCTS } from '../data/defaultData';
 
 const PRODUCTS_COLLECTION = 'products';
 
@@ -37,8 +36,7 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
     }
     
     if (snapshot.empty) {
-      // Fallback to default catalog if database is not yet seeded
-      return onlyActive ? DEFAULT_PRODUCTS.filter(p => p.active) : DEFAULT_PRODUCTS;
+      return [];
     }
 
     let products = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product));
@@ -53,8 +51,8 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
       return a.name.localeCompare(b.name);
     });
   } catch (error) {
-    console.warn('Firestore products fetch warning, using default catalog:', error);
-    return onlyActive ? DEFAULT_PRODUCTS.filter(p => p.active) : DEFAULT_PRODUCTS;
+    console.warn('Firestore products fetch error:', error);
+    return [];
   }
 }
 
@@ -72,12 +70,10 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       return { id: docData.id, ...docData.data() } as Product;
     }
 
-    const local = DEFAULT_PRODUCTS.find(p => p.slug === slug);
-    return local || null;
+    return null;
   } catch (error) {
     console.warn('Error fetching product by slug:', error);
-    const local = DEFAULT_PRODUCTS.find(p => p.slug === slug);
-    return local || null;
+    return null;
   }
 }
 
@@ -92,12 +88,10 @@ export async function getProductById(id: string): Promise<Product | null> {
     if (snap.exists()) {
       return { id: snap.id, ...snap.data() } as Product;
     }
-    const local = DEFAULT_PRODUCTS.find(p => p.id === id);
-    return local || null;
+    return null;
   } catch (error) {
     console.warn('Error fetching product by id:', error);
-    const local = DEFAULT_PRODUCTS.find(p => p.id === id);
-    return local || null;
+    return null;
   }
 }
 

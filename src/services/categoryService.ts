@@ -11,7 +11,6 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Category } from '../types';
-import { DEFAULT_CATEGORIES } from '../data/defaultData';
 
 const CATEGORIES_COLLECTION = 'categories';
 
@@ -35,7 +34,7 @@ export async function getCategories(onlyActive = true): Promise<Category[]> {
     }
 
     if (snapshot.empty) {
-      return onlyActive ? DEFAULT_CATEGORIES.filter(c => c.active) : DEFAULT_CATEGORIES;
+      return [];
     }
 
     let categories = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Category));
@@ -44,8 +43,8 @@ export async function getCategories(onlyActive = true): Promise<Category[]> {
     }
     return categories.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
-    console.warn('Categories fetch warning, using default categories:', error);
-    return onlyActive ? DEFAULT_CATEGORIES.filter(c => c.active) : DEFAULT_CATEGORIES;
+    console.warn('Categories fetch error:', error);
+    return [];
   }
 }
 
@@ -60,8 +59,7 @@ export async function getCategoryById(id: string): Promise<Category | null> {
     if (snap.exists()) {
       return { id: snap.id, ...snap.data() } as Category;
     }
-    const local = DEFAULT_CATEGORIES.find(c => c.id === id);
-    return local || null;
+    return null;
   } catch (error) {
     handleFirestoreError(error, OperationType.GET, path);
   }

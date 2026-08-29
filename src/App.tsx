@@ -108,13 +108,10 @@ const MainApp: React.FC = () => {
   const [adminProductModalOpen, setAdminProductModalOpen] = useState(false);
   const [editingAdminProduct, setEditingAdminProduct] = useState<Product | null>(null);
 
-  // Initial Load & Seeding
+  // Initial Load
   const loadData = async (adminMode = isAdmin) => {
     try {
       setLoading(true);
-      if (adminMode) {
-        await seedInitialDataIfEmpty().catch(() => {});
-      }
 
       const [prodsData, catsData, settingsData, ordersData, customersData] = await Promise.all([
         getProducts(!adminMode),

@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeFirestore, doc, getDoc } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
@@ -33,11 +33,11 @@ const databaseId = config.firestoreDatabaseId && config.firestoreDatabaseId !== 
   ? config.firestoreDatabaseId
   : undefined;
 
-// Initialize Firestore with robust forced long-polling for sandbox/iframe environments to avoid 10s WebSocket connection timeout
+// Initialize Firestore with auto-detect long polling for web/iframe resilience
 export const db = initializeFirestore(
   app,
   {
-    experimentalForceLongPolling: true,
+    experimentalAutoDetectLongPolling: true,
     ignoreUndefinedProperties: true
   },
   databaseId
@@ -97,17 +97,17 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 // Connection test on boot as required by the Firebase Integration Skill
 export async function testConnection(): Promise<boolean> {
   try {
-    await getDoc(doc(db, 'settings', 'store_config'));
+    await getDocFromServer(doc(db, 'test', 'connection'));
     return true;
-  } catch (error) {
-    if (error instanceof Error && (error.message.includes('offline') || error.message.includes('unavailable'))) {
-      console.warn('Firebase client operating with fallback / offline data.');
+  } catch (error: any) {
+    if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('offline') || error.message.includes('unavailable'))) {
+      console.warn('Firebase client notice: Network backend connection initializing or operating offline.');
     }
     return false;
   }
 }
 
-testConnection();
+testConnection().catch(() => {});
 
 export default app;
 
