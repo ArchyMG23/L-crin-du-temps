@@ -3,6 +3,7 @@ import { ShoppingBag, Search, ShieldCheck, Menu, X, User, UserCheck } from 'luci
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { StoreSettings } from '../../types';
+import { BrandLogo } from '../common/BrandLogo';
 
 interface NavbarProps {
   currentView: string;
@@ -78,14 +79,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="brand-logo-btn"
               onClick={() => onNavigate('home')}
-              className="text-left group flex flex-col"
+              className="text-left group flex items-center gap-3 transition-opacity hover:opacity-90"
+              aria-label="Retour à l'accueil"
             >
-              <span className="font-serif text-xl sm:text-2xl font-bold tracking-widest text-[#D4AF37] group-hover:text-[#F9E79F] transition-colors uppercase">
-                {storeTitle}
-              </span>
-              <span className="text-[9px] tracking-[0.3em] text-white/50 font-sans uppercase">
-                Haute Horlogerie & Prestige
-              </span>
+              {settings?.logo && settings.logo.startsWith('http') && !settings.logo.includes('unsplash') ? (
+                <img
+                  src={settings.logo}
+                  alt={storeTitle}
+                  className="h-10 w-auto object-contain"
+                />
+              ) : (
+                <BrandLogo variant="horizontal" theme="dark" size="md" />
+              )}
             </button>
           </div>
 

@@ -10,7 +10,7 @@ import {
   where,
   orderBy
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { UserProfile } from '../types';
 
 const USERS_COLLECTION = 'users';
@@ -41,6 +41,11 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
  * Create or initialize customer profile upon registration
  */
 export async function createUserProfile(profile: UserProfile): Promise<void> {
+  // Only attempt Firestore cloud write if authenticated matching UID
+  if (!auth.currentUser || (auth.currentUser.uid !== profile.uid && !auth.currentUser.email)) {
+    return;
+  }
+
   const path = `${USERS_COLLECTION}/${profile.uid}`;
   try {
     const docRef = doc(db, USERS_COLLECTION, profile.uid);
@@ -50,7 +55,11 @@ export async function createUserProfile(profile: UserProfile): Promise<void> {
       createdAt: profile.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'permission-denied' || String(error?.message).includes('insufficient permissions')) {
+      console.info('Profile cloud sync skipped: permission restricted.');
+      return;
+    }
     handleFirestoreError(error, OperationType.CREATE, path);
   }
 }
@@ -59,6 +68,10 @@ export async function createUserProfile(profile: UserProfile): Promise<void> {
  * Update user customer profile attributes
  */
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>): Promise<void> {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    return;
+  }
+
   const path = `${USERS_COLLECTION}/${uid}`;
   try {
     const docRef = doc(db, USERS_COLLECTION, uid);
@@ -66,7 +79,11 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
       ...data,
       updatedAt: new Date().toISOString()
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'permission-denied' || String(error?.message).includes('insufficient permissions')) {
+      console.info('Profile cloud update skipped: permission restricted.');
+      return;
+    }
     handleFirestoreError(error, OperationType.UPDATE, path);
   }
 }
@@ -82,7 +99,7 @@ export async function getAllCustomers(): Promise<UserProfile[]> {
       .map(d => ({ uid: d.id, ...d.data() } as UserProfile))
       .filter(u => u.role === 'customer' || !u.role);
   } catch (error: any) {
-    if (error?.code === 'permission-denied') {
+    if (error?.code === 'permission-denied' || String(error?.message).includes('insufficient permissions')) {
       return [];
     }
     console.warn('getAllCustomers notice:', error);
@@ -94,11 +111,15 @@ export async function getAllCustomers(): Promise<UserProfile[]> {
  * Delete a user profile (used by admin or during complete boutique reset)
  */
 export async function deleteUserProfile(uid: string): Promise<void> {
+  if (!auth.currentUser) return;
   const path = `${USERS_COLLECTION}/${uid}`;
   try {
     const docRef = doc(db, USERS_COLLECTION, uid);
     await deleteDoc(docRef);
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'permission-denied' || String(error?.message).includes('insufficient permissions')) {
+      return;
+    }
     handleFirestoreError(error, OperationType.DELETE, path);
   }
 }

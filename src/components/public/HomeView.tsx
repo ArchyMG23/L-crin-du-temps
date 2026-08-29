@@ -3,6 +3,7 @@ import { Sparkles, ArrowRight, MessageSquare, Award, Flame, TrendingUp } from 'l
 import { Product, Category, StoreSettings } from '../../types';
 import { ProductCard } from './ProductCard';
 import { Button } from '../ui/Button';
+import { BrandLogo } from '../common/BrandLogo';
 
 interface HomeViewProps {
   products: Product[];
@@ -54,12 +55,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
         {/* Hero Content */}
         <div className="relative z-10 max-w-3xl mx-auto space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-bold tracking-[0.25em] uppercase">
-            <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-            <span>Sélection Exclusive 2026</span>
+          <div className="flex justify-center pb-1">
+            <BrandLogo variant="full" theme="dark" size="lg" />
           </div>
 
-          <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-tight">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-bold tracking-[0.25em] uppercase">
+            <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+            <span>Maison d'Horlogerie & Conciergerie Privée</span>
+          </div>
+
+          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
             L'Excellence Horlogère à Portée de Main
           </h1>
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldCheck, Truck, Clock, MessageSquare, Instagram, Facebook, Phone, Mail, MapPin } from 'lucide-react';
 import { StoreSettings } from '../../types';
+import { BrandLogo } from '../common/BrandLogo';
 
 interface FooterProps {
   settings?: StoreSettings;
@@ -84,10 +85,13 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand Presentation */}
           <div className="space-y-4 md:col-span-1">
-            <h3 className="font-serif text-base font-bold tracking-widest text-[#D4AF37] uppercase">
-              {name}
-            </h3>
-            <p className="text-xs text-white/50 leading-relaxed">
+            <button
+              onClick={() => onNavigate('home')}
+              className="text-left hover:opacity-90 transition-opacity"
+            >
+              <BrandLogo variant="horizontal" theme="dark" size="sm" />
+            </button>
+            <p className="text-xs text-white/50 leading-relaxed font-sans">
               Sélection exclusive de pièces d'horlogerie d'exception. Alliance entre tradition mécanique, élégance intemporelle et service sur-mesure.
             </p>
             <div className="flex space-x-3 pt-2">

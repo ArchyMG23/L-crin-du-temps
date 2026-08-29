@@ -15,6 +15,7 @@ import {
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
+import { BrandLogo } from '../common/BrandLogo';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -162,6 +163,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       maxWidth="max-w-md"
     >
       <div className="space-y-5 text-[#F5F5F0]">
+        <div className="flex justify-center pb-1">
+          <BrandLogo variant="emblem" theme="dark" size="lg" />
+        </div>
+
         {titleMessage && (
           <div className="p-3 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-xl flex items-start gap-2 text-xs text-[#D4AF37]">
             <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />

@@ -17,6 +17,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { WatchEmblem } from '../common/BrandLogo';
 
 interface AdminLayoutProps {
   activeTab: string;
@@ -117,11 +118,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
             {mobileDrawerOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <div className="flex items-center gap-2">
-            <span className="p-1.5 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-lg text-[#D4AF37]">
-              <Watch className="w-4 h-4" />
-            </span>
+            <WatchEmblem size={24} theme="dark" />
             <span className="font-serif text-xs font-bold uppercase tracking-wider text-[#D4AF37]">
-              CMS Horlogerie
+              L'Écrin du Temps
             </span>
           </div>
         </div>
@@ -152,12 +151,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           {/* Admin Header / Brand */}
           <div className="p-6 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="p-2 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-lg text-[#D4AF37]">
-                <Watch className="w-5 h-5" />
-              </span>
+              <WatchEmblem size={36} theme="dark" />
               <div>
-                <h1 className="font-serif text-sm font-bold uppercase tracking-[0.15em] text-[#F5F5F0]">
-                  CMS Horlogerie
+                <h1 className="font-serif text-sm font-bold uppercase tracking-[0.12em] text-[#F5F5F0]">
+                  L'Écrin du Temps
                 </h1>
                 <span className="text-[10px] text-[#D4AF37] font-medium block uppercase tracking-wider">
                   Console Propriétaire

@@ -1,6 +1,6 @@
 {
-  "name": "Horlogerie Prestige - Boutique & CMS",
-  "description": "Boutique e-commerce de montres de luxe mono-vendeur avec commande WhatsApp, gestion des stocks et console d'administration complète.",
+  "name": "L'Écrin du Temps - Horlogerie d'Exception",
+  "description": "Boutique d'horlogerie d'exception et garde-temps de prestige avec conciergerie WhatsApp, gestion des comptes clients et console d'administration CMS.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

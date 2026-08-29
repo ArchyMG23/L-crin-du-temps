@@ -1,8 +1,8 @@
 import { Product, Category, StoreSettings } from '../types';
 
 export const DEFAULT_SETTINGS: StoreSettings = {
-  storeName: 'Maison Horlogère Prestige',
-  logo: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=300',
+  storeName: "L'Écrin du Temps",
+  logo: '/logo-dark.svg',
   whatsappNumber: '+33612345678', // Format international personnalisable dans l'admin
   currency: '€',
   defaultLowStockThreshold: 2,
@@ -10,12 +10,12 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   shippingFee: 0, // Offerte pour le prestige
   shippingMessage: 'Livraison sécurisée sous écrin avec certificat d\'authenticité et numéro de suivi remis en main propre.',
   socialLinks: {
-    instagram: 'https://instagram.com/prestige_horlogerie',
-    facebook: 'https://facebook.com/prestigehorlogerie',
-    tiktok: 'https://tiktok.com/@prestige_watches'
+    instagram: 'https://instagram.com/lecrindutemps_officiel',
+    facebook: 'https://facebook.com/lecrindutemps',
+    tiktok: 'https://tiktok.com/@lecrindutemps'
   },
   contactInformation: {
-    email: 'contact@horlogerie-prestige.com',
+    email: 'contact@lecrindutemps-horlogerie.com',
     phone: '+33 6 12 34 56 78',
     address: '8 Place Vendôme, 75001 Paris'
   }

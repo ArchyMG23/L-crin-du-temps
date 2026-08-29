@@ -26,6 +26,7 @@ import { Button } from '../ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { uploadImageFile } from '../../services/storageService';
 import { AdminResetModal } from './AdminResetModal';
+import { BrandLogo, WatchEmblem } from '../common/BrandLogo';
 
 interface AdminSettingsProps {
   settings: StoreSettings;
@@ -163,25 +164,47 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
             </div>
 
             {/* Logo Manager */}
-            <div className="space-y-2">
-              <label className="block text-xs text-stone-300 font-medium mb-1">
-                Logo de la Maison
+            <div className="space-y-3">
+              <label className="block text-xs text-stone-300 font-medium">
+                Identité Visuelle & Logo Officiel
               </label>
 
-              <div className="flex items-center gap-4 p-3 bg-stone-950 rounded-xl border border-stone-800">
-                <div className="w-16 h-16 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center overflow-hidden shrink-0">
-                  {formData.logo ? (
-                    <img src={formData.logo} alt="Logo" className="w-full h-full object-contain p-1" />
-                  ) : (
-                    <Watch className="w-8 h-8 text-[#D4AF37]" />
-                  )}
+              {/* Official Brand Logo Variants Preview */}
+              <div className="p-4 bg-stone-950 rounded-xl border border-stone-800 space-y-3">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-stone-800/80 pb-3">
+                  <div className="flex items-center gap-3">
+                    <WatchEmblem size={44} theme="dark" />
+                    <div>
+                      <div className="text-xs font-serif font-bold text-[#D4AF37] uppercase tracking-wider">
+                        L'Écrin du Temps
+                      </div>
+                      <div className="text-[10px] text-stone-400 font-serif tracking-[0.2em] uppercase">
+                        Horlogerie d'Exception
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] px-2.5 py-1 bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30 rounded-full font-medium">
+                    Logo Actif de la Maison
+                  </span>
                 </div>
 
-                <div className="space-y-1.5 flex-1 min-w-0">
+                {/* Custom Logo Override */}
+                <div className="flex items-center justify-between gap-4 pt-1">
+                  <div className="text-xs text-stone-400">
+                    {formData.logo && !formData.logo.includes('logo-dark') ? (
+                      <span className="text-emerald-400 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Logo personnalisé configuré
+                      </span>
+                    ) : (
+                      <span>Utilise l'emblème et la typographie vectorielle officielle.</span>
+                    )}
+                  </div>
+
                   <div className="flex items-center gap-2">
-                    <label className="cursor-pointer px-3 py-1.5 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 border border-[#D4AF37]/30 text-[#D4AF37] rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors">
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>{uploadingLogo ? 'Envoi...' : 'Changer le logo'}</span>
+                    <label className="cursor-pointer px-3 py-1.5 bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors">
+                      <Upload className="w-3.5 h-3.5 text-[#D4AF37]" />
+                      <span>{uploadingLogo ? 'Envoi...' : 'Importer un fichier'}</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -191,20 +214,17 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                       />
                     </label>
 
-                    {formData.logo && (
+                    {formData.logo && !formData.logo.includes('logo-dark') && (
                       <button
                         type="button"
-                        onClick={() => setFormData({ ...formData, logo: undefined })}
+                        onClick={() => setFormData({ ...formData, logo: '/logo-dark.svg' })}
                         className="p-1.5 text-stone-500 hover:text-rose-400 rounded-lg hover:bg-stone-900"
-                        title="Retirer le logo personnalisé"
+                        title="Rétablir le logo officiel"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
-                  <p className="text-[10px] text-stone-500">
-                    PNG transparent ou JPG recommandé.
-                  </p>
                 </div>
               </div>
             </div>

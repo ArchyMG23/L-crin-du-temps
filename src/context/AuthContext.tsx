@@ -121,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       const cleanEmail = email.trim().toLowerCase();
-      let createdUid = `usr_${Date.now()}`;
+      let createdUid = '';
       
       try {
         const res = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
@@ -130,11 +130,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await updateProfile(res.user, { displayName: customerData.fullName }).catch(() => {});
         }
       } catch (fbAuthErr: any) {
-        console.warn('Firebase Auth notice, proceeding with customer profile initialization:', fbAuthErr);
+        console.warn('Firebase Auth registration note:', fbAuthErr);
+        if (fbAuthErr?.code === 'auth/email-already-in-use') {
+          throw new Error('Cette adresse email est déjà associée à un compte.');
+        } else if (fbAuthErr?.code === 'auth/weak-password') {
+          throw new Error('Le mot de passe doit comporter au moins 6 caractères.');
+        } else if (fbAuthErr?.code === 'auth/invalid-email') {
+          throw new Error('Format d\'adresse email invalide.');
+        }
+        // Fallback for offline guest session
+        createdUid = `usr_${Date.now()}`;
       }
 
       const newProfile: UserProfile = {
-        uid: createdUid,
+        uid: createdUid || `usr_${Date.now()}`,
         fullName: customerData.fullName.trim(),
         phone: customerData.phone.trim(),
         email: cleanEmail,
@@ -145,7 +154,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updatedAt: new Date().toISOString()
       };
 
-      await createUserProfile(newProfile).catch(() => {});
+      if (auth.currentUser && auth.currentUser.uid === newProfile.uid) {
+        await createUserProfile(newProfile).catch((err) => {
+          console.warn('Profile cloud sync note:', err);
+        });
+      }
+
       setUserProfile(newProfile);
       localStorage.setItem('hp_customer_profile', JSON.stringify(newProfile));
       return newProfile;
@@ -169,10 +183,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUserProfile(profile);
             localStorage.setItem('hp_customer_profile', JSON.stringify(profile));
             return profile;
+          } else {
+            const newProfile: UserProfile = {
+              uid: res.user.uid,
+              fullName: res.user.displayName || cleanEmail.split('@')[0],
+              email: cleanEmail,
+              phone: '',
+              city: '',
+              address: '',
+              role: 'customer',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+            await createUserProfile(newProfile).catch(() => {});
+            setUserProfile(newProfile);
+            localStorage.setItem('hp_customer_profile', JSON.stringify(newProfile));
+            return newProfile;
           }
         }
-      } catch (fbErr) {
+      } catch (fbErr: any) {
         console.warn('Firebase login check:', fbErr);
+        if (fbErr?.code === 'auth/wrong-password' || fbErr?.code === 'auth/user-not-found' || fbErr?.code === 'auth/invalid-credential') {
+          // If no local match, could throw
+        }
       }
 
       // Check existing local profile

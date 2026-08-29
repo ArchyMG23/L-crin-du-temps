@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 320" width="100%" height="100%">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap');
+      .gold-text { font-family: 'Cinzel', serif; fill: #D4AF37; }
+      .gold-light-text { font-family: 'Cinzel', serif; fill: #E5C378; }
+      .sub-text { font-family: 'Cinzel', serif; fill: #D4AF37; letter-spacing: 0.35em; font-size: 16px; font-weight: 500; }
+    </style>
+  </defs>
+
+  <!-- L'E -->
+  <text x="75" y="145" class="gold-text" font-size="96" font-weight="600" letter-spacing="4">L'E</text>
+  
+  <!-- The 'C' Clock Emblem embedded -->
+  <g transform="translate(262, 102)">
+    <!-- Outer 'C' opening bezel in gold -->
+    <path d="M 32,-35 A 48,48 0 1,0 35,28" fill="none" stroke="#D4AF37" stroke-width="5.5" stroke-linecap="round" />
+    <circle cx="0" cy="0" r="42" fill="none" stroke="#D4AF37" stroke-width="1" opacity="0.6" />
+    
+    <!-- 12, 3, 6, 9 ticks -->
+    <line x1="0" y1="-42" x2="0" y2="-32" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" />
+    <line x1="42" y1="0" x2="32" y2="0" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" />
+    <line x1="0" y1="42" x2="0" y2="32" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" />
+    <line x1="-42" y1="0" x2="-32" y2="0" stroke="#D4AF37" stroke-width="1.8" stroke-linecap="round" />
+
+    <!-- Hands at 10:10 -->
+    <line x1="0" y1="0" x2="-16" y2="-19" stroke="#E5C378" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="0" y1="0" x2="22" y2="-8" stroke="#E5C378" stroke-width="2" stroke-linecap="round" />
+
+    <!-- Center pentagon pinion -->
+    <polygon points="0,-4 3.8,-1.2 2.4,3.5 -2.4,3.5 -3.8,-1.2" fill="#D4AF37" stroke="#0A0A0A" stroke-width="0.75" />
+    <circle cx="0" cy="0" r="1.2" fill="#0A0A0A" />
+  </g>
+
+  <!-- RIN -->
+  <text x="325" y="145" class="gold-text" font-size="96" font-weight="600" letter-spacing="4">RIN</text>
+
+  <!-- DU TEMPS -->
+  <text x="300" y="215" class="gold-text" text-anchor="middle" font-size="52" font-weight="500" letter-spacing="14">DU TEMPS</text>
+
+  <!-- Divider with Star ─── ✦ ─── -->
+  <g transform="translate(300, 246)">
+    <line x1="-120" y1="0" x2="-20" y2="0" stroke="#D4AF37" stroke-width="1.2" opacity="0.8" />
+    <!-- 4-point diamond star -->
+    <path d="M 0,-6 L 2.5,-1.5 L 7,0 L 2.5,1.5 L 0,6 L -2.5,1.5 L -7,0 L -2.5,-1.5 Z" fill="#D4AF37" />
+    <line x1="20" y1="0" x2="120" y2="0" stroke="#D4AF37" stroke-width="1.2" opacity="0.8" />
+  </g>
+
+  <!-- HORLOGERIE D'EXCEPTION -->
+  <text x="300" y="280" class="sub-text" text-anchor="middle">HORLOGERIE D'EXCEPTION</text>
+</svg>
