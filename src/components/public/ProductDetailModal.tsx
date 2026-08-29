@@ -1,0 +1,376 @@
+import React, { useState } from 'react';
+import {
+  ShoppingBag,
+  MessageSquare,
+  ShieldCheck,
+  Truck,
+  Clock,
+  Check,
+  AlertTriangle,
+  XCircle,
+  Share2,
+  Layers,
+  Sparkles,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+import { Product, StoreSettings } from '../../types';
+import { useCart } from '../../context/CartContext';
+import { Modal } from '../ui/Modal';
+import { Badge } from '../ui/Badge';
+import { Button } from '../ui/Button';
+
+interface ProductDetailModalProps {
+  product: Product | null;
+  isOpen?: boolean;
+  onClose: () => void;
+  settings?: StoreSettings;
+  currency?: string;
+  whatsappNumber?: string;
+}
+
+export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
+  product,
+  isOpen = true,
+  onClose,
+  settings,
+  currency: currencyProp,
+  whatsappNumber: whatsappProp
+}) => {
+  const { addToCart } = useCart();
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+
+  const activeCurrency = currencyProp || settings?.currency || product?.currency || '€';
+  const rawWhatsApp = whatsappProp || settings?.whatsappNumber || '+33600000000';
+
+  React.useEffect(() => {
+    if (product) {
+      document.title = `${product.name} | ${product.brand} - Haute Horlogerie`;
+      setSelectedImageIndex(0);
+      setQuantity(1);
+      setFeedbackMsg(null);
+    }
+  }, [product]);
+
+  if (!product || !isOpen) return null;
+
+  const isOutOfStock = product.stock <= 0;
+  const isLowStock = product.stock > 0 && product.stock <= (product.lowStockThreshold || 2);
+  const images = product.images && product.images.length > 0
+    ? product.images
+    : ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=1000'];
+
+  const hasPromo = product.promotionalPrice && product.promotionalPrice < product.price;
+  const effectivePrice = hasPromo ? product.promotionalPrice! : product.price;
+
+  const handleAddToCart = () => {
+    if (isOutOfStock) return;
+    const res = addToCart(product, quantity);
+    if (res.success) {
+      onClose();
+    } else if (res.message) {
+      setFeedbackMsg(res.message);
+    }
+  };
+
+  const handleDirectWhatsAppOrder = () => {
+    const cleanPhone = rawWhatsApp.replace(/[^0-9]/g, '');
+    const message = [
+      `👑 *DEMANDE D'INFORMATION & COMMANDE DIRECTE*`,
+      `━━━━━━━━━━━━━━━━━━━━━`,
+      `Bonjour ! Je souhaite commander ce garde-temps :`,
+      ``,
+      `▪ *Modèle :* ${product.name}`,
+      `▪ *Marque :* ${product.brand}`,
+      product.reference ? `▪ *Référence :* ${product.reference}` : null,
+      `▪ *Prix :* ${effectivePrice.toLocaleString('fr-FR')} ${activeCurrency}`,
+      `▪ *Quantité souhaitée :* ${quantity}`,
+      ``,
+      `Pouvez-vous me confirmer la disponibilité et les modalités de livraison svp ?`
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
+  const handlePrevImage = () => {
+    setSelectedImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setSelectedImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
+  return (
+    <Modal isOpen={Boolean(product)} onClose={onClose} maxWidth="4xl">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-[#F5F5F0]">
+        {/* Left Column: Image Gallery */}
+        <div className="lg:col-span-6 space-y-4">
+          <div className="relative aspect-square w-full bg-[#0D0D0D] rounded-xl overflow-hidden border border-white/10 flex items-center justify-center group">
+            <img
+              src={images[selectedImageIndex] || images[0]}
+              alt={product.name}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover object-center transition-all duration-300"
+            />
+
+            {images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={handlePrevImage}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white border border-white/10 transition-all opacity-80 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                  aria-label="Image précédente"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextImage}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white border border-white/10 transition-all opacity-80 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                  aria-label="Image suivante"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </>
+            )}
+
+            {product.featured && (
+              <div className="absolute top-3 left-3">
+                <Badge variant="gold" className="shadow-lg bg-[#D4AF37]/90 text-black font-bold uppercase tracking-widest text-[9px] py-1 px-2.5">
+                  <Sparkles className="w-3 h-3 mr-1 text-black" />
+                  Sélection Prestige
+                </Badge>
+              </div>
+            )}
+          </div>
+
+          {/* Thumbnails */}
+          {images.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {images.map((img, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setSelectedImageIndex(idx)}
+                  className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
+                    selectedImageIndex === idx
+                      ? 'border-[#D4AF37] scale-105 shadow-md shadow-[#D4AF37]/20'
+                      : 'border-white/10 opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={img}
+                    alt={`${product.name} vue ${idx + 1}`}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Luxury Reassurance Badges */}
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="p-3 bg-[#121212] border border-white/10 rounded-lg flex items-center gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-[#D4AF37] shrink-0" />
+              <span className="text-[11px] text-white/80 font-medium font-sans">Contrôle d'authenticité</span>
+            </div>
+            <div className="p-3 bg-[#121212] border border-white/10 rounded-lg flex items-center gap-2.5">
+              <Truck className="w-4 h-4 text-[#D4AF37] shrink-0" />
+              <span className="text-[11px] text-white/80 font-medium font-sans">Écrin de luxe offert</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Information, Specs & Actions */}
+        <div className="lg:col-span-6 flex flex-col justify-between">
+          <div className="space-y-4">
+            {/* Header: Brand & Gender */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <span className="text-xs uppercase tracking-[0.2em] text-[#D4AF37] font-serif font-bold">
+                  {product.brand}
+                </span>
+                {product.reference && (
+                  <span className="text-xs text-white/40 ml-2 font-mono">
+                    Réf. {product.reference}
+                  </span>
+                )}
+              </div>
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wider text-white/60 border-white/20">
+                Collection {product.gender}
+              </Badge>
+            </div>
+
+            {/* Title */}
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#F5F5F0] leading-tight">
+              {product.name}
+            </h2>
+
+            {/* Price & Stock Alert */}
+            <div className="flex items-center justify-between bg-[#121212] p-4 rounded-xl border border-white/10">
+              <div>
+                <span className="text-[10px] text-white/40 block uppercase tracking-[0.15em]">Prix public</span>
+                <div className="flex items-baseline gap-2">
+                  {hasPromo && (
+                    <span className="text-xs text-white/40 line-through">
+                      {product.price.toLocaleString('fr-FR')} {product.currency}
+                    </span>
+                  )}
+                  <span className="font-serif text-2xl font-bold text-[#D4AF37]">
+                    {effectivePrice.toLocaleString('fr-FR')} {product.currency}
+                  </span>
+                </div>
+              </div>
+
+              {/* Stock Status Badge */}
+              <div>
+                {isOutOfStock ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-black/80 border border-white/10 text-white/60 text-xs font-semibold rounded">
+                    <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Rupture de stock</span>
+                  </span>
+                ) : isLowStock ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-950/80 border border-amber-500/40 text-amber-300 text-xs font-semibold rounded">
+                    <AlertTriangle className="w-3.5 h-3.5 text-[#D4AF37]" />
+                    <span>Derniers ({product.stock})</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-black/70 border border-emerald-500/30 text-emerald-300 text-xs font-semibold rounded">
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>En stock ({product.stock} ex.)</span>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="text-xs sm:text-sm text-white/70 leading-relaxed font-sans space-y-2">
+              <p>{product.description}</p>
+            </div>
+
+            {/* Technical Specifications */}
+            {product.specifications && (
+              <div className="bg-[#0A0A0A] rounded-xl p-4 border border-white/10 space-y-2.5">
+                <div className="flex items-center gap-2 text-xs font-serif uppercase tracking-[0.2em] text-[#D4AF37] font-semibold mb-2">
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Fiche Technique Horlogère</span>
+                </div>
+                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs font-sans">
+                  {product.specifications.movement && (
+                    <div>
+                      <span className="text-white/40 block text-[11px]">Mouvement</span>
+                      <span className="text-white/90 font-medium">{product.specifications.movement}</span>
+                    </div>
+                  )}
+                  {product.specifications.caseDiameter && (
+                    <div>
+                      <span className="text-white/40 block text-[11px]">Diamètre</span>
+                      <span className="text-white/90 font-medium">{product.specifications.caseDiameter}</span>
+                    </div>
+                  )}
+                  {product.specifications.caseMaterial && (
+                    <div>
+                      <span className="text-white/40 block text-[11px]">Boîtier</span>
+                      <span className="text-white/90 font-medium">{product.specifications.caseMaterial}</span>
+                    </div>
+                  )}
+                  {product.specifications.waterResistance && (
+                    <div>
+                      <span className="text-white/40 block text-[11px]">Étanchéité</span>
+                      <span className="text-white/90 font-medium">{product.specifications.waterResistance}</span>
+                    </div>
+                  )}
+                  {product.specifications.glass && (
+                    <div>
+                      <span className="text-white/40 block text-[11px]">Verre</span>
+                      <span className="text-white/90 font-medium">{product.specifications.glass}</span>
+                    </div>
+                  )}
+                  {product.specifications.strapMaterial && (
+                    <div>
+                      <span className="text-white/40 block text-[11px]">Bracelet</span>
+                      <span className="text-white/90 font-medium">{product.specifications.strapMaterial}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Error / Warning Feedback */}
+            {feedbackMsg && (
+              <div className="p-3 bg-rose-950/80 border border-rose-700 text-rose-200 rounded-lg text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{feedbackMsg}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Action Zone */}
+          <div className="mt-6 pt-4 border-t border-white/10 space-y-3">
+            {/* Quantity Selector (if in stock) */}
+            {!isOutOfStock && (
+              <div className="flex items-center gap-4 mb-2">
+                <span className="text-xs text-white/50 uppercase tracking-wider">Quantité :</span>
+                <div className="flex items-center border border-white/15 rounded-lg bg-[#0A0A0A]">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="px-3 py-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                  >
+                    -
+                  </button>
+                  <span className="px-3 py-1 text-xs font-semibold text-white font-mono">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                    className="px-3 py-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+                <span className="text-[11px] text-white/40">
+                  Stock disponible : {product.stock}
+                </span>
+              </div>
+            )}
+
+            {/* Primary Action Buttons */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Button
+                variant="gold"
+                size="lg"
+                id="modal-add-to-cart-btn"
+                onClick={handleAddToCart}
+                disabled={isOutOfStock}
+                icon={ShoppingBag}
+                className="w-full uppercase tracking-wider text-xs font-bold py-3.5"
+              >
+                {isOutOfStock ? 'Rupture de Stock' : 'Ajouter au Panier'}
+              </Button>
+
+              <button
+                type="button"
+                id="modal-whatsapp-direct-btn"
+                onClick={handleDirectWhatsAppOrder}
+                className="w-full py-3.5 px-4 bg-[#25D366] hover:bg-[#20ba59] text-black font-bold rounded-lg text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/20 active:scale-[0.98] transition-all"
+              >
+                <MessageSquare className="w-4 h-4 fill-current" />
+                <span>Commander via WhatsApp</span>
+              </button>
+            </div>
+
+            <p className="text-[11px] text-center text-white/40 font-sans">
+              Commande confidentielle & personnalisée • Échange direct avec notre experte sans engagement.
+            </p>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+};

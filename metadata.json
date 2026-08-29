@@ -1,0 +1,6 @@
+{
+  "name": "Horlogerie Prestige - Boutique & CMS",
+  "description": "Boutique e-commerce de montres de luxe mono-vendeur avec commande WhatsApp, gestion des stocks et console d'administration complète.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
