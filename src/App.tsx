@@ -81,8 +81,17 @@ const MainApp: React.FC = () => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Navigation State
-  const [currentView, setCurrentView] = useState<'home' | 'shop' | 'men' | 'women' | 'account' | 'admin'>('home');
+  // Navigation State - parsed immediately from initial URL to support direct access and F5 refresh
+  const [currentView, setCurrentView] = useState<'home' | 'shop' | 'men' | 'women' | 'account' | 'admin'>(() => {
+    if (typeof window === 'undefined') return 'home';
+    const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
+    if (path === '/admin') return 'admin';
+    if (path === '/boutique/homme') return 'men';
+    if (path === '/boutique/femme') return 'women';
+    if (path === '/compte' || path === '/account') return 'account';
+    if (path === '/boutique' || path.startsWith('/produit/')) return 'shop';
+    return 'home';
+  });
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | undefined>(undefined);
   const [navbarSearchQuery, setNavbarSearchQuery] = useState<string>('');
   const [adminTab, setAdminTab] = useState<string>('dashboard');
@@ -529,8 +538,11 @@ const MainApp: React.FC = () => {
     setCategories([]);
     setOrders([]);
     setCustomers([]);
-    await loadData(isAdmin);
-    addToast('success', 'Réinitialisation de la boutique effectuée.');
+    await loadData(true);
+    setCurrentView('admin');
+    setAdminTab('dashboard');
+    window.history.replaceState(null, '', '/admin');
+    addToast('success', 'Réinitialisation terminée : catalogue et commandes purgés.');
   };
 
   // Admin Pending Counts
