@@ -11,6 +11,7 @@ interface NavbarProps {
   settings?: StoreSettings;
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
+  onOpenSearch?: () => void;
   onOpenCart?: () => void;
 }
 
@@ -20,20 +21,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   settings,
   searchQuery = '',
   onSearchChange,
+  onOpenSearch,
   onOpenCart
 }) => {
   const { itemCount, setIsCartOpen } = useCart();
   const { userProfile } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showSearchInput, setShowSearchInput] = useState(false);
-  const [localSearch, setLocalSearch] = useState(searchQuery);
-
-  const handleSearchInput = (val: string) => {
-    setLocalSearch(val);
-    if (onSearchChange) {
-      onSearchChange(val);
-    }
-  };
 
   const handleCartClick = () => {
     if (onOpenCart) {
@@ -46,56 +39,65 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navLinks = [
     { id: 'home', label: 'Accueil' },
     { id: 'shop', label: 'Boutique' },
-    { id: 'men', label: 'Hommes' },
-    { id: 'women', label: 'Femmes' },
+    { id: 'about', label: 'À propos' },
   ];
 
   const storeTitle = settings?.storeName || "L'ÉMINENCE HORLOGERIE";
 
   return (
     <header className="sticky top-0 z-40 bg-[#0A0A0A]/95 backdrop-blur-md border-b border-white/10 text-[#F5F5F0] transition-all">
-      {/* Top micro-bar */}
-      <div className="bg-[#0D0D0D] border-b border-white/5 py-1.5 px-4 text-center text-[10px] tracking-[0.25em] text-[#D4AF37]/90 flex items-center justify-center gap-2 uppercase">
-        <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF37]" />
-        <span>Authenticité Certifiée 100% • Conciergerie & Commande Directe WhatsApp</span>
+      {/* Top micro-bar: Super compact on mobile, elegant on desktop */}
+      <div className="bg-[#09090c] border-b border-white/5 py-1 px-3 sm:px-4 text-center text-[9px] sm:text-[10px] tracking-[0.2em] text-[#D4AF37] flex items-center justify-center gap-1.5 uppercase font-medium">
+        <ShieldCheck className="w-3 h-3 text-[#D4AF37] shrink-0" />
+        <span className="truncate">Authenticité 100% • Conciergerie WhatsApp</span>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
-        <div className="flex items-center justify-between h-20">
-          {/* Mobile menu button */}
+      <div className="max-w-[1720px] mx-auto px-3 sm:px-6 lg:px-12 2xl:px-16">
+        <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
+          {/* Mobile menu button (Left on mobile) */}
           <div className="flex items-center lg:hidden">
             <button
               id="mobile-menu-toggle-btn"
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 text-white/70 hover:text-white rounded-lg focus:outline-none"
+              className="p-2 -ml-1 text-white/80 hover:text-[#D4AF37] rounded-lg transition-colors focus:outline-none"
+              aria-label="Ouvrir le menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
 
-          {/* Brand Logo / Name */}
+          {/* Brand Logo / Name: Responsive and perfectly proportioned */}
           <div className="flex items-center">
             <button
               id="brand-logo-btn"
               onClick={() => onNavigate('home')}
-              className="text-left group flex items-center gap-3 transition-opacity hover:opacity-90"
+              className="text-left group flex items-center gap-2 sm:gap-3 transition-opacity hover:opacity-90 py-1"
               aria-label="Retour à l'accueil"
             >
               {settings?.logo && settings.logo.startsWith('http') && !settings.logo.includes('unsplash') ? (
                 <img
                   src={settings.logo}
                   alt={storeTitle}
-                  className="h-10 w-auto object-contain"
+                  className="h-7 sm:h-9 lg:h-10 w-auto object-contain"
                 />
               ) : (
-                <BrandLogo variant="horizontal" theme="dark" size="md" />
+                <>
+                  {/* Mobile optimized compact brand mark */}
+                  <div className="block sm:hidden">
+                    <BrandLogo variant="compact" theme="dark" size="xs" showSubtitle={false} />
+                  </div>
+                  {/* Desktop / Tablet fuller brand mark */}
+                  <div className="hidden sm:block">
+                    <BrandLogo variant="horizontal" theme="dark" size="md" showSubtitle={true} />
+                  </div>
+                </>
               )}
             </button>
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center space-x-10">
+          <nav className="hidden lg:flex items-center space-x-8 xl:space-x-10">
             {navLinks.map((link) => {
               const isActive = currentView === link.id;
               return (
@@ -118,66 +120,46 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </nav>
 
-          {/* Right Action Icons: Search, Cart, Admin Access */}
-          <div className="flex items-center space-x-4 sm:space-x-5">
-            {/* Search toggler / input */}
-            <div className="relative flex items-center">
-              {showSearchInput ? (
-                <div className="flex items-center bg-[#151515] border border-white/10 focus-within:border-[#D4AF37]/50 rounded-full px-3.5 py-1.5 w-44 sm:w-64 transition-all">
-                  <Search className="w-4 h-4 text-white/50 mr-2 shrink-0" />
-                  <input
-                    type="text"
-                    id="navbar-search-input"
-                    value={localSearch}
-                    onChange={(e) => handleSearchInput(e.target.value)}
-                    placeholder="Rechercher une montre..."
-                    className="bg-transparent text-xs text-white placeholder-white/40 focus:outline-none w-full"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowSearchInput(false);
-                      handleSearchInput('');
-                    }}
-                    className="text-white/40 hover:text-white p-0.5"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  id="navbar-search-toggle-btn"
-                  onClick={() => setShowSearchInput(true)}
-                  className="p-2 text-white/60 hover:text-[#D4AF37] transition-colors rounded-full hover:bg-white/5"
-                  title="Rechercher"
-                >
-                  <Search className="w-5 h-5" />
-                </button>
-              )}
-            </div>
+          {/* Right Action Icons: Search, Customer Account, Cart */}
+          <div className="flex items-center space-x-1.5 sm:space-x-3 lg:space-x-4">
+            {/* Search Button (Opens Search Modal) */}
+            <button
+              id="navbar-search-toggle-btn"
+              onClick={() => {
+                if (onOpenSearch) onOpenSearch();
+              }}
+              className="p-2 sm:p-2.5 text-white/70 hover:text-[#D4AF37] transition-colors rounded-full hover:bg-white/5 flex items-center gap-1.5"
+              title="Rechercher une montre (Échap)"
+              aria-label="Rechercher une montre"
+            >
+              <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden xl:inline text-[11px] uppercase tracking-widest text-white/50 hover:text-[#D4AF37]">
+                Recherche
+              </span>
+            </button>
 
             {/* Account / Customer Space Button */}
             <button
               id="navbar-account-btn"
               onClick={() => onNavigate('account')}
-              className={`p-2.5 rounded-full transition-all flex items-center justify-center border text-xs gap-1.5 ${
+              className={`p-2 sm:p-2.5 rounded-full transition-all flex items-center justify-center border text-xs gap-1.5 ${
                 userProfile
                   ? 'bg-[#D4AF37]/15 border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/25'
                   : 'bg-[#151515] hover:bg-[#202020] border-white/10 text-white/80 hover:text-[#D4AF37]'
               }`}
-              title={userProfile ? `Compte: ${userProfile.fullName}` : 'Espace Client (Connexion / Inscription)'}
+              title={userProfile ? `Compte: ${userProfile.fullName}` : 'Espace Client'}
+              aria-label="Espace Client"
             >
               {userProfile ? (
                 <>
-                  <UserCheck className="w-4 h-4 text-[#D4AF37]" />
-                  <span className="hidden xl:inline text-[11px] font-medium tracking-wide max-w-[100px] truncate text-white">
+                  <UserCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#D4AF37]" />
+                  <span className="hidden xl:inline text-[11px] font-medium tracking-wide max-w-[90px] truncate text-white">
                     {userProfile.fullName.split(' ')[0]}
                   </span>
                 </>
               ) : (
                 <>
-                  <User className="w-4 h-4" />
+                  <User className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <span className="hidden xl:inline text-[11px] uppercase tracking-wider font-semibold">
                     Compte
                   </span>
@@ -189,12 +171,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               id="navbar-cart-btn"
               onClick={handleCartClick}
-              className="relative p-2.5 bg-[#151515] hover:bg-[#202020] border border-white/10 text-white/80 hover:text-[#D4AF37] rounded-full transition-all flex items-center justify-center group shadow-sm"
+              className="relative p-2 sm:p-2.5 bg-[#151515] hover:bg-[#202020] border border-white/10 text-white/80 hover:text-[#D4AF37] rounded-full transition-all flex items-center justify-center group shadow-sm"
               title="Mon Panier"
+              aria-label={`Panier (${itemCount} articles)`}
             >
-              <ShoppingBag className="w-5 h-5 transition-transform group-hover:scale-105" />
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 transition-transform group-hover:scale-105" />
               {itemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-[#D4AF37] text-black text-[10px] font-bold h-4.5 min-w-[18px] px-1 rounded-full flex items-center justify-center shadow-md">
+                <span className="absolute -top-1 -right-1 bg-[#D4AF37] text-black text-[9px] sm:text-[10px] font-bold h-4 min-w-[16px] sm:h-4.5 sm:min-w-[18px] px-1 rounded-full flex items-center justify-center shadow-md">
                   {itemCount}
                 </span>
               )}
@@ -205,20 +188,23 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#111111] border-b border-white/10 px-6 pt-4 pb-6 space-y-3">
-          <div className="mb-3">
-            <div className="flex items-center bg-[#0A0A0A] border border-white/10 rounded-lg px-3.5 py-2">
-              <Search className="w-4 h-4 text-white/40 mr-2" />
-              <input
-                type="text"
-                id="mobile-search-input"
-                value={localSearch}
-                onChange={(e) => handleSearchInput(e.target.value)}
-                placeholder="Rechercher une montre..."
-                className="bg-transparent text-sm text-white placeholder-white/40 focus:outline-none w-full"
-              />
-            </div>
+        <div className="lg:hidden bg-[#0f0f13] border-b border-white/10 px-5 pt-3 pb-5 space-y-2.5 animate-in slide-in-from-top-2 duration-200">
+          <div className="mb-2">
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (onOpenSearch) onOpenSearch();
+              }}
+              className="w-full flex items-center justify-between bg-[#07070a] border border-white/10 hover:border-[#D4AF37]/50 rounded-xl px-3.5 py-2.5 text-xs text-white/60"
+            >
+              <div className="flex items-center gap-2">
+                <Search className="w-3.5 h-3.5 text-[#D4AF37]" />
+                <span>Rechercher une montre...</span>
+              </div>
+              <span className="text-[10px] text-white/40 uppercase tracking-wider">Ouvrir</span>
+            </button>
           </div>
+
           {navLinks.map((link) => (
             <button
               key={link.id}
@@ -227,24 +213,25 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onNavigate(link.id);
                 setMobileMenuOpen(false);
               }}
-              className={`block w-full text-left px-3 py-2.5 rounded-md text-xs font-semibold tracking-[0.2em] uppercase ${
+              className={`block w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-[0.2em] uppercase transition-all ${
                 currentView === link.id
-                  ? 'bg-[#D4AF37]/10 text-[#D4AF37] border-l-2 border-[#D4AF37]'
-                  : 'text-white/70 hover:bg-white/5 hover:text-white'
+                  ? 'bg-[#D4AF37]/15 text-[#D4AF37] font-bold border-l-2 border-[#D4AF37]'
+                  : 'text-white/75 hover:bg-white/5 hover:text-white'
               }`}
             >
               {link.label}
             </button>
           ))}
+
           <button
             id="mobile-nav-account"
             onClick={() => {
               onNavigate('account');
               setMobileMenuOpen(false);
             }}
-            className={`block w-full text-left px-3 py-2.5 rounded-md text-xs font-semibold tracking-[0.2em] uppercase border-t border-white/10 pt-3 ${
+            className={`block w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-[0.2em] uppercase border-t border-white/10 pt-3 ${
               currentView === 'account'
-                ? 'bg-[#D4AF37]/10 text-[#D4AF37] border-l-2 border-[#D4AF37]'
+                ? 'bg-[#D4AF37]/15 text-[#D4AF37] border-l-2 border-[#D4AF37]'
                 : 'text-[#D4AF37] hover:bg-white/5'
             }`}
           >

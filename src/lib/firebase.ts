@@ -33,11 +33,11 @@ const databaseId = config.firestoreDatabaseId && config.firestoreDatabaseId !== 
   ? config.firestoreDatabaseId
   : undefined;
 
-// Initialize Firestore with auto-detect long polling for web/iframe resilience
+// Initialize Firestore with force long polling for reliable operation in web sandbox and iframe environments
 export const db = initializeFirestore(
   app,
   {
-    experimentalAutoDetectLongPolling: true,
+    experimentalForceLongPolling: true,
     ignoreUndefinedProperties: true
   },
   databaseId
@@ -99,9 +99,11 @@ export async function testConnection(): Promise<boolean> {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
     return true;
-  } catch (error: any) {
-    if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('offline') || error.message.includes('unavailable'))) {
-      console.warn('Firebase client notice: Network backend connection initializing or operating offline.');
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('offline') || msg.includes('unavailable') || msg.includes('backend')) {
+      // Expected notice when initializing or in restricted environment
+      return false;
     }
     return false;
   }

@@ -141,6 +141,26 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["email", "role"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "System and administrative action audit record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "action": { "type": "string" },
+        "performedBy": {
+          "type": "object",
+          "properties": {
+            "uid": { "type": "string" },
+            "email": { "type": "string" }
+          },
+          "required": ["uid", "email"]
+        },
+        "summary": { "type": "object" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["action", "performedBy", "timestamp"]
     }
   },
   "firestore": {
@@ -167,6 +187,10 @@
     "/admins/{adminId}": {
       "schema": "Admin",
       "description": "Administrator registry and roles"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Administrative actions audit log"
     }
   }
 }

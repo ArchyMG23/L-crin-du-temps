@@ -51,6 +51,7 @@ export interface Product {
   active: boolean;
   orderCount?: number; // Total validated orders for popularity ranking
   specifications?: WatchSpecifications;
+  isDemo?: boolean; // Tag identifying demo/seed fixture data
   createdAt: string;
   updatedAt: string;
 }
@@ -74,6 +75,7 @@ export interface UserProfile {
   city: string;
   address: string;
   role: 'customer' | 'admin' | 'owner';
+  isDemo?: boolean; // Tag identifying demo customer accounts
   ordersCount?: number;
   totalSpent?: number;
   createdAt: string;
@@ -113,8 +115,26 @@ export interface Order {
   paymentMethod: PaymentMethod;
   notes?: string;
   whatsappMessageSent?: boolean;
+  isDemo?: boolean; // Tag identifying demo orders
   createdAt: string;
   updatedAt: string;
+}
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  performedBy: {
+    uid: string;
+    email: string;
+  };
+  summary: {
+    deletedProductsCount: number;
+    deletedOrdersCount: number;
+    deletedCustomersCount: number;
+    timestamp: string;
+  };
+  preservedData: string[];
+  timestamp: string;
 }
 
 export interface SocialLinks {

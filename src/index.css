@@ -4,16 +4,124 @@
   :root {
     --font-serif: 'Cinzel', Georgia, serif;
     --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --ec-or: #c6a664;
+    --ec-or-clair: #e8d9ad;
+    --ec-noir: #07070a;
+    --ec-noir-2: #0d0e12;
   }
 
   body {
     font-family: var(--font-sans);
-    background-color: #0A0A0A;
+    background-color: #07070a;
     color: #F5F5F0;
   }
 
   h1, h2, h3, h4, h5, h6, .font-serif {
     font-family: var(--font-serif);
+  }
+}
+
+/* ==========================================================
+   L'ÉCRIN DU TEMPS — Système d'ambiance animée (global)
+   ========================================================== */
+
+#ec-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  contain: strict;
+}
+
+.ec-vignette {
+  position: absolute;
+  inset: -10%;
+  background:
+    radial-gradient(ellipse 60% 45% at 30% 25%, rgba(198, 166, 100, 0.10), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 75% 70%, rgba(198, 166, 100, 0.07), transparent 65%),
+    radial-gradient(ellipse 80% 80% at 50% 50%, var(--ec-noir-2), var(--ec-noir) 70%);
+  animation: ec-breathe 20s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+@keyframes ec-breathe {
+  0% { opacity: 0.85; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.04); }
+}
+
+.ec-movement {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1400px;
+  height: 1400px;
+  margin: -700px 0 0 -700px;
+  opacity: 0.05;
+  filter: blur(6px);
+  animation: ec-rotate 240s linear infinite;
+  will-change: transform;
+  transition: transform 0.5s ease-out;
+}
+
+@keyframes ec-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ec-gem-ghost {
+  position: absolute;
+  top: 20%;
+  left: 60%;
+  width: 900px;
+  height: 900px;
+  margin: -450px 0 0 -450px;
+  opacity: 0.06;
+  filter: blur(70px);
+  background: conic-gradient(from 0deg, var(--ec-or), transparent 25%, var(--ec-or), transparent 60%, var(--ec-or));
+  border-radius: 38% 62% 55% 45% / 45% 40% 60% 55%;
+  animation: ec-drift 46s ease-in-out infinite alternate;
+  will-change: transform;
+  transition: transform 0.5s ease-out;
+}
+
+@keyframes ec-drift {
+  0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  100% { transform: translate(-90px, 60px) rotate(25deg) scale(1.15); }
+}
+
+.ec-dust {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--ec-or-clair), var(--ec-or) 60%, transparent 75%);
+  will-change: transform, opacity;
+}
+
+.ec-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  mix-blend-mode: overlay;
+}
+
+/* Tablette : moins de flou, mécanisme plus discret */
+@media (max-width: 1024px) {
+  .ec-movement { filter: blur(4px); opacity: 0.045; }
+  .ec-gem-ghost { filter: blur(50px); opacity: 0.05; }
+}
+
+/* Mobile : ambiance allégée, pas de mécanisme (trop coûteux visuellement à petite échelle) */
+@media (max-width: 640px) {
+  .ec-movement { display: none; }
+  .ec-gem-ghost { width: 600px; height: 600px; margin: -300px 0 0 -300px; filter: blur(40px); opacity: 0.05; }
+  .ec-vignette { animation-duration: 26s; }
+}
+
+/* Respect strict de la préférence système */
+@media (prefers-reduced-motion: reduce) {
+  .ec-vignette, .ec-movement, .ec-gem-ghost, .ec-dust {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
@@ -38,7 +146,7 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0A0A0A;
+  background: #07070a;
 }
 ::-webkit-scrollbar-thumb {
   background: #262626;

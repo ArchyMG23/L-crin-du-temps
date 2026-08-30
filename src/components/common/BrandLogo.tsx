@@ -220,26 +220,26 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
   // 3. COMPACT & HORIZONTAL NAVBAR / HEADER VARIANT
   const titleSizes = {
-    xs: 'text-sm',
-    sm: 'text-base',
-    md: 'text-lg sm:text-xl',
-    lg: 'text-xl sm:text-2xl',
-    xl: 'text-2xl sm:text-3xl',
-    '2xl': 'text-3xl sm:text-4xl'
+    xs: 'text-xs sm:text-sm',
+    sm: 'text-sm sm:text-base',
+    md: 'text-base sm:text-lg lg:text-xl',
+    lg: 'text-lg sm:text-xl lg:text-2xl',
+    xl: 'text-xl sm:text-2xl lg:text-3xl',
+    '2xl': 'text-2xl sm:text-3xl lg:text-4xl'
   };
 
   const subtitleSizes = {
-    xs: 'text-[7px] tracking-[0.25em]',
-    sm: 'text-[8px] tracking-[0.28em]',
-    md: 'text-[9px] tracking-[0.32em]',
-    lg: 'text-[10px] tracking-[0.35em]',
-    xl: 'text-xs tracking-[0.38em]',
-    '2xl': 'text-sm tracking-[0.4em]'
+    xs: 'text-[7px] tracking-[0.2em]',
+    sm: 'text-[8px] tracking-[0.25em]',
+    md: 'text-[8px] sm:text-[9px] tracking-[0.3em]',
+    lg: 'text-[9px] sm:text-[10px] tracking-[0.35em]',
+    xl: 'text-[10px] sm:text-xs tracking-[0.38em]',
+    '2xl': 'text-xs sm:text-sm tracking-[0.4em]'
   };
 
   return (
     <div
-      className={`flex items-center gap-3 select-none ${className}`}
+      className={`flex items-center gap-2 sm:gap-3 select-none ${className}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
     >
@@ -247,16 +247,16 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       <WatchEmblem size={emblemSizes[size]} theme={theme} />
 
       {/* Brand Typography */}
-      <div className="flex flex-col text-left justify-center">
+      <div className="flex flex-col text-left justify-center min-w-0">
         <span
-          className={`font-serif font-bold tracking-[0.14em] uppercase leading-tight ${titleSizes[size]} ${goldColor}`}
+          className={`font-serif font-bold tracking-[0.12em] sm:tracking-[0.14em] uppercase leading-tight whitespace-nowrap ${titleSizes[size]} ${goldColor}`}
           style={{ fontFamily: "'Cinzel', Georgia, serif" }}
         >
           L'Écrin du Temps
         </span>
         {showSubtitle && (
           <span
-            className={`font-serif uppercase font-medium leading-none mt-0.5 ${subtitleSizes[size]} ${subtextColor}`}
+            className={`font-serif uppercase font-medium leading-none mt-0.5 whitespace-nowrap ${subtitleSizes[size]} ${subtextColor}`}
             style={{ fontFamily: "'Cinzel', Georgia, serif" }}
           >
             Horlogerie d'Exception

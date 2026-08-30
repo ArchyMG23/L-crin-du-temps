@@ -107,6 +107,11 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    // Audit logs (e.g. system resets, administrative actions):
+    match /audit_logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
     // Admins registry:
     // Authenticated users can only read their own document; admins can list and manage all admin accounts.
     match /admins/{adminId} {

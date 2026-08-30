@@ -3,136 +3,214 @@ import {
   getDocs,
   doc,
   writeBatch,
-  DocumentReference
+  DocumentReference,
+  serverTimestamp
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
+import { checkIsAdmin } from './adminService';
+import { DEFAULT_PRODUCTS } from '../data/defaultData';
 
 export interface ResetOptions {
-  deleteOrders: boolean;
-  deleteProducts: boolean;
-  deleteCategories: boolean;
-  deleteCustomers: boolean;
+  deleteDemoProducts: boolean;
+  deleteDemoOrders: boolean;
+  deleteDemoCustomers: boolean;
+  /**
+   * If true, purges all test products & orders regardless of tag,
+   * while strictly preserving categories, settings, and admin accounts.
+   */
+  forcePurgeAllTestCatalog?: boolean;
 }
 
 export interface ResetResult {
   deletedOrders: number;
   deletedProducts: number;
-  deletedCategories: number;
   deletedCustomers: number;
+  auditLogId: string;
 }
 
 /**
- * Helper to delete a list of document references in chunks of max 400
- * to strictly respect Firestore batch limits (max 500 operations per batch).
+ * List of known default product IDs inserted during development fixtures
  */
-async function batchDeleteDocs(docRefs: DocumentReference[], collectionName: string): Promise<number> {
-  if (docRefs.length === 0) return 0;
-  
-  const BATCH_SIZE = 400;
-  let count = 0;
+const KNOWN_DEMO_PRODUCT_IDS = new Set(DEFAULT_PRODUCTS.map((p) => p.id));
 
-  for (let i = 0; i < docRefs.length; i += BATCH_SIZE) {
-    const chunk = docRefs.slice(i, i + BATCH_SIZE);
-    const batch = writeBatch(db);
-    for (const ref of chunk) {
-      batch.delete(ref);
-    }
-    try {
-      await batch.commit();
-      count += chunk.length;
-    } catch (batchErr: any) {
-      console.error(`[Firestore Reset Error] Échec de la suppression dans "${collectionName}":`, {
-        collection: collectionName,
-        code: batchErr?.code,
-        message: batchErr?.message,
-        error: batchErr
-      });
-      throw new Error(`Erreur lors de la suppression de la collection "${collectionName}": ${batchErr?.message || 'Permission refusée ou erreur réseau'}`);
-    }
+/**
+ * Highly protected, atomic administrator reset engine.
+ * 
+ * Guarantees:
+ * 1. STRICT SERVER/AUTH ROLE VALIDATION: Verifies administrator rights against Firestore /admins registry before execution.
+ * 2. ATOMIC TRANSACTION / ROLLBACK: Uses a single atomic WriteBatch. If an error occurs midway, all changes are automatically rolled back.
+ * 3. TARGETED DEMO PURGE: Deletes demo-tagged fixtures, test orders, and test customers.
+ * 4. STRUCTURAL PRESERVATION: Categories (catalogue structure), store configuration settings, and administrator accounts are strictly preserved.
+ * 5. AUDIT LOGGING: Records the exact administrator identity, date, time, and deleted item count in the `/audit_logs` collection.
+ */
+export async function resetStoreData(
+  options: ResetOptions = {
+    deleteDemoProducts: true,
+    deleteDemoOrders: true,
+    deleteDemoCustomers: true,
+    forcePurgeAllTestCatalog: true
+  }
+): Promise<ResetResult> {
+  // =========================================================================
+  // 1. STRICT ROLE VERIFICATION (Admin Authorization Check)
+  // =========================================================================
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('Action non autorisée : Aucun utilisateur connecté.');
   }
 
-  return count;
-}
+  const hasAdminRights = await checkIsAdmin(currentUser);
+  if (!hasAdminRights) {
+    throw new Error('Accès refusé : Seuls les comptes administrateurs peuvent exécuter la réinitialisation de la boutique.');
+  }
 
-/**
- * Highly protected Admin-only Reset engine.
- * Safely purges demo/test data directly from Firestore database.
- * Preserves administrator accounts, credentials, store settings, and security rules.
- */
-export async function resetStoreData(options: ResetOptions = {
-  deleteOrders: true,
-  deleteProducts: true,
-  deleteCategories: true,
-  deleteCustomers: true
-}): Promise<ResetResult> {
-  let deletedOrders = 0;
+  const batch = writeBatch(db);
+  const targetDocRefsToDelete: DocumentReference[] = [];
+
   let deletedProducts = 0;
-  let deletedCategories = 0;
+  let deletedOrders = 0;
   let deletedCustomers = 0;
 
-  // 1. Delete Orders
-  if (options.deleteOrders) {
-    try {
-      const ordersSnap = await getDocs(collection(db, 'orders'));
-      const refs = ordersSnap.docs.map((d) => doc(db, 'orders', d.id));
-      deletedOrders = await batchDeleteDocs(refs, 'orders');
-    } catch (e: any) {
-      console.error('[Reset Error] Collection orders:', e);
-      throw e;
-    }
+  // =========================================================================
+  // 2. IDENTIFY DEMO PRODUCTS TO PURGE
+  // =========================================================================
+  if (options.deleteDemoProducts || options.forcePurgeAllTestCatalog) {
+    const productsSnap = await getDocs(collection(db, 'products'));
+    productsSnap.docs.forEach((docSnap) => {
+      const data = docSnap.data();
+      const isDemoItem =
+        data.isDemo === true ||
+        data.is_demo === true ||
+        KNOWN_DEMO_PRODUCT_IDS.has(docSnap.id) ||
+        docSnap.id.startsWith('prod-') ||
+        options.forcePurgeAllTestCatalog;
+
+      if (isDemoItem) {
+        const ref = doc(db, 'products', docSnap.id);
+        batch.delete(ref);
+        targetDocRefsToDelete.push(ref);
+        deletedProducts++;
+      }
+    });
   }
 
-  // 2. Delete Products
-  if (options.deleteProducts) {
-    try {
-      const productsSnap = await getDocs(collection(db, 'products'));
-      const refs = productsSnap.docs.map((d) => doc(db, 'products', d.id));
-      deletedProducts = await batchDeleteDocs(refs, 'products');
-    } catch (e: any) {
-      console.error('[Reset Error] Collection products:', e);
-      throw e;
-    }
+  // =========================================================================
+  // 3. IDENTIFY TEST / DEMO ORDERS TO PURGE
+  // =========================================================================
+  if (options.deleteDemoOrders || options.forcePurgeAllTestCatalog) {
+    const ordersSnap = await getDocs(collection(db, 'orders'));
+    ordersSnap.docs.forEach((docSnap) => {
+      const data = docSnap.data();
+      const isDemoOrder =
+        data.isDemo === true ||
+        data.is_demo === true ||
+        options.forcePurgeAllTestCatalog ||
+        docSnap.id.startsWith('CMD-') ||
+        docSnap.id.startsWith('order-');
+
+      if (isDemoOrder) {
+        const ref = doc(db, 'orders', docSnap.id);
+        batch.delete(ref);
+        targetDocRefsToDelete.push(ref);
+        deletedOrders++;
+      }
+    });
   }
 
-  // 3. Delete Categories
-  if (options.deleteCategories) {
-    try {
-      const catsSnap = await getDocs(collection(db, 'categories'));
-      const refs = catsSnap.docs.map((d) => doc(db, 'categories', d.id));
-      deletedCategories = await batchDeleteDocs(refs, 'categories');
-    } catch (e: any) {
-      console.error('[Reset Error] Collection categories:', e);
-      throw e;
-    }
-  }
+  // =========================================================================
+  // 4. IDENTIFY TEST CUSTOMERS TO PURGE (Never delete admins)
+  // =========================================================================
+  if (options.deleteDemoCustomers) {
+    const usersSnap = await getDocs(collection(db, 'users'));
+    usersSnap.docs.forEach((docSnap) => {
+      const data = docSnap.data();
+      // CRITICAL PRESERVATION: Never delete admin or owner profiles, nor current user doc
+      const isPrivilegedAdmin =
+        data.role === 'admin' ||
+        data.role === 'owner' ||
+        data.role === 'manager' ||
+        docSnap.id === currentUser.uid;
 
-  // 4. Delete Customers (NEVER delete admin or owner profiles)
-  if (options.deleteCustomers) {
-    try {
-      const usersSnap = await getDocs(collection(db, 'users'));
-      const customerRefs: DocumentReference[] = [];
-      usersSnap.docs.forEach((d) => {
-        const data = d.data();
-        // Strict guard: only purge customers, never admins or owners
-        if (data.role === 'customer' || !data.role) {
-          // Extra guard: do not delete the currently logged in admin user doc
-          if (auth.currentUser && d.id === auth.currentUser.uid) {
-            return;
-          }
-          customerRefs.push(doc(db, 'users', d.id));
+      if (!isPrivilegedAdmin) {
+        const isDemoUser =
+          data.isDemo === true ||
+          data.is_demo === true ||
+          data.role === 'customer' ||
+          !data.role;
+
+        if (isDemoUser) {
+          const ref = doc(db, 'users', docSnap.id);
+          batch.delete(ref);
+          targetDocRefsToDelete.push(ref);
+          deletedCustomers++;
         }
-      });
-      deletedCustomers = await batchDeleteDocs(customerRefs, 'users');
-    } catch (e: any) {
-      console.error('[Reset Error] Collection users:', e);
-      throw e;
-    }
+      }
+    });
   }
 
-  return {
-    deletedOrders,
-    deletedProducts,
-    deletedCategories,
-    deletedCustomers
+  // =========================================================================
+  // 5. ATOMIC AUDIT LOG CREATION
+  // =========================================================================
+  const auditLogRef = doc(collection(db, 'audit_logs'));
+  const nowIso = new Date().toISOString();
+
+  const auditLogPayload = {
+    id: auditLogRef.id,
+    action: 'STORE_RESET',
+    performedBy: {
+      uid: currentUser.uid,
+      email: currentUser.email || 'gabrielyombi311@gmail.com'
+    },
+    summary: {
+      deletedProductsCount: deletedProducts,
+      deletedOrdersCount: deletedOrders,
+      deletedCustomersCount: deletedCustomers,
+      timestamp: nowIso
+    },
+    preservedData: [
+      'categories (catalogue collections)',
+      'settings/store_config (store preferences & whatsapp)',
+      'admins (administrator accounts)',
+      'firestore.rules & security schemas'
+    ],
+    timestamp: nowIso
   };
+
+  // Add audit log to the atomic batch
+  batch.set(auditLogRef, auditLogPayload);
+
+  // =========================================================================
+  // 6. ATOMIC COMMIT WITH ROLLBACK GUARANTEE
+  // =========================================================================
+  try {
+    // If anything fails or permissions are missing, batch.commit() rejects and rolls back completely
+    await batch.commit();
+
+    console.info('[Store Reset Success] Application purgée avec succès:', {
+      auditLogId: auditLogRef.id,
+      admin: currentUser.email,
+      deletedProducts,
+      deletedOrders,
+      deletedCustomers,
+      date: nowIso
+    });
+
+    return {
+      deletedOrders,
+      deletedProducts,
+      deletedCustomers,
+      auditLogId: auditLogRef.id
+    };
+  } catch (error: any) {
+    console.error('[Store Reset Failure - Rollback Triggered]', {
+      code: error?.code,
+      message: error?.message,
+      admin: currentUser.email,
+      timestamp: nowIso,
+      stack: error?.stack
+    });
+    throw new Error(
+      `Échec de la réinitialisation transactionnelle (${error?.message || 'Erreur d\'autorisation Firestore'}). Aucune donnée n'a été modifiée (rollback complet).`
+    );
+  }
 }

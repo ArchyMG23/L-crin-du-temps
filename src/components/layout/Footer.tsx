@@ -19,7 +19,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
     <footer className="bg-[#080808] text-white/70 border-t border-white/10 mt-auto">
       {/* Reassurance Pillars */}
       <div className="border-b border-white/5 bg-[#0D0D0D] py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12">
+        <div className="max-w-[1720px] mx-auto px-4 sm:px-8 lg:px-12 2xl:px-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="flex items-start space-x-4">
               <div className="p-3.5 bg-[#D4AF37]/10 border border-[#D4AF37]/25 rounded-xl text-[#D4AF37] shrink-0">
@@ -81,7 +81,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
       </div>
 
       {/* Main Footer Links & Info */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 py-14">
+      <div className="max-w-[1720px] mx-auto px-4 sm:px-8 lg:px-12 2xl:px-16 py-14">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
           {/* Brand Presentation */}
           <div className="space-y-4 md:col-span-1">
@@ -121,7 +121,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
           {/* Quick Navigation */}
           <div>
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37] font-serif mb-4">
-              Collections
+              Navigation
             </h4>
             <ul className="space-y-2.5 text-xs">
               <li>
@@ -129,23 +129,31 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
                   onClick={() => onNavigate('shop')}
                   className="text-white/60 hover:text-[#D4AF37] transition-colors uppercase tracking-wider"
                 >
-                  Toutes les montres
+                  Boutique & Montres
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => onNavigate('men')}
+                  onClick={() => onNavigate('about')}
                   className="text-white/60 hover:text-[#D4AF37] transition-colors uppercase tracking-wider"
                 >
-                  Garde-temps Hommes
+                  À propos de la Maison
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => onNavigate('women')}
+                  onClick={() => onNavigate('search')}
                   className="text-white/60 hover:text-[#D4AF37] transition-colors uppercase tracking-wider"
                 >
-                  Garde-temps Femmes
+                  Recherche Rapide
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('account')}
+                  className="text-white/60 hover:text-[#D4AF37] transition-colors uppercase tracking-wider"
+                >
+                  Espace Client
                 </button>
               </li>
             </ul>

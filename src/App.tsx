@@ -34,16 +34,19 @@ import { DEFAULT_SETTINGS } from './data/defaultData';
 import { ToastContainer, ToastMessage } from './components/ui/Toast';
 
 // Public Components
+import { AtmosphereBackground } from './components/common/AtmosphereBackground';
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
 import { HomeView } from './components/public/HomeView';
 import { ShopView } from './components/public/ShopView';
+import { AboutView } from './components/public/AboutView';
 import { AccountView } from './components/public/AccountView';
 import { AuthModal } from './components/public/AuthModal';
 import { ProductDetailModal } from './components/public/ProductDetailModal';
 import { CartDrawer } from './components/public/CartDrawer';
 import { CheckoutModal } from './components/public/CheckoutModal';
 import { OrderSuccessModal } from './components/public/OrderSuccessModal';
+import { SearchModal } from './components/public/SearchModal';
 import { MessageSquare } from 'lucide-react';
 
 // Admin Components
@@ -82,12 +85,13 @@ const MainApp: React.FC = () => {
   };
 
   // Navigation State - parsed immediately from initial URL to support direct access and F5 refresh
-  const [currentView, setCurrentView] = useState<'home' | 'shop' | 'men' | 'women' | 'account' | 'admin'>(() => {
+  const [currentView, setCurrentView] = useState<'home' | 'shop' | 'men' | 'women' | 'about' | 'account' | 'admin'>(() => {
     if (typeof window === 'undefined') return 'home';
     const path = window.location.pathname.toLowerCase().replace(/\/$/, '') || '/';
     if (path === '/admin') return 'admin';
     if (path === '/boutique/homme') return 'men';
     if (path === '/boutique/femme') return 'women';
+    if (path === '/a-propos' || path === '/about') return 'about';
     if (path === '/compte' || path === '/account') return 'account';
     if (path === '/boutique' || path.startsWith('/produit/')) return 'shop';
     return 'home';
@@ -101,6 +105,7 @@ const MainApp: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<Order | null>(null);
   const [completedWhatsAppUrl, setCompletedWhatsAppUrl] = useState<string | null>(null);
 
@@ -192,6 +197,11 @@ const MainApp: React.FC = () => {
       return;
     }
 
+    if (cleanPath === '/a-propos' || cleanPath === '/about') {
+      setCurrentView('about');
+      return;
+    }
+
     if (cleanPath === '/compte' || cleanPath === '/account') {
       setCurrentView('account');
       return;
@@ -237,12 +247,18 @@ const MainApp: React.FC = () => {
       return;
     }
 
+    if (view === 'search') {
+      setSearchModalOpen(true);
+      return;
+    }
+
     let nextPath = '/';
     if (view === 'shop') nextPath = '/boutique';
     else if (view === 'men') nextPath = '/boutique/homme';
     else if (view === 'women') nextPath = '/boutique/femme';
+    else if (view === 'about') nextPath = '/a-propos';
 
-    if (view === 'home' || view === 'shop' || view === 'men' || view === 'women') {
+    if (view === 'home' || view === 'shop' || view === 'men' || view === 'women' || view === 'about') {
       setCurrentView(view as any);
       setSelectedCategoryFilter(categorySlug);
       window.history.pushState(null, '', nextPath);
@@ -532,14 +548,14 @@ const MainApp: React.FC = () => {
 
   const handleResetData = async () => {
     setProducts([]);
-    setCategories([]);
     setOrders([]);
     setCustomers([]);
+    // Reload fresh state from Firestore
     await loadData(true);
     setCurrentView('admin');
     setAdminTab('dashboard');
     window.history.replaceState(null, '', '/admin');
-    addToast('success', 'Réinitialisation terminée : catalogue et commandes purgés.');
+    addToast('success', 'Application réinitialisée : données de démo purgées. Prêt pour vos vraies données.');
   };
 
   // Admin Pending Counts
@@ -676,7 +692,7 @@ const MainApp: React.FC = () => {
   const cleanWhatsApp = settings.whatsappNumber.replace(/[^0-9]/g, '');
 
   return (
-    <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col font-sans selection:bg-amber-500 selection:text-stone-950 relative">
+    <div className="min-h-screen bg-[#07070a] text-stone-100 flex flex-col font-sans selection:bg-[#c6a664] selection:text-stone-950 relative z-10">
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
 
       {/* Top Navigation */}
@@ -686,11 +702,12 @@ const MainApp: React.FC = () => {
         settings={settings}
         searchQuery={navbarSearchQuery}
         onSearchChange={handleNavbarSearch}
+        onOpenSearch={() => setSearchModalOpen(true)}
         onOpenCart={handleOpenCart}
       />
 
       {/* Main Public Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <main className="flex-1 max-w-[1720px] w-full mx-auto px-3 sm:px-6 lg:px-8 2xl:px-12 py-6 sm:py-10 2xl:py-16 pb-16 sm:pb-12">
         {currentView === 'home' && (
           <HomeView
             products={products}
@@ -737,6 +754,13 @@ const MainApp: React.FC = () => {
           />
         )}
 
+        {currentView === 'about' && (
+          <AboutView
+            settings={settings}
+            onNavigate={handleNavigate}
+          />
+        )}
+
         {currentView === 'account' && (
           <AccountView
             settings={settings}
@@ -756,7 +780,7 @@ const MainApp: React.FC = () => {
       />
 
       {/* Floating WhatsApp Concierge Badge */}
-      <aside aria-label="Conciergerie WhatsApp" className="fixed bottom-6 right-6 z-30 group">
+      <aside aria-label="Conciergerie WhatsApp" className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30 group">
         <a
           id="floating-whatsapp-btn"
           href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
@@ -765,13 +789,13 @@ const MainApp: React.FC = () => {
           target="_blank"
           rel="noreferrer"
           aria-label="Contacter la conciergerie WhatsApp"
-          className="flex items-center gap-3 bg-[#25D366] hover:bg-[#20ba59] text-black font-bold py-3.5 px-4 rounded-full shadow-2xl shadow-[#25D366]/30 border-2 border-white/20 transition-all hover:scale-105 active:scale-95"
+          className="flex items-center justify-center gap-2 sm:gap-3 bg-[#25D366] hover:bg-[#20ba59] text-black font-bold h-11 w-11 sm:h-auto sm:w-auto sm:py-3.5 sm:px-4.5 rounded-full shadow-2xl shadow-[#25D366]/30 border-2 border-white/20 transition-all hover:scale-105 active:scale-95"
         >
-          <span className="relative flex h-3 w-3">
+          <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-40"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-black"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-black"></span>
           </span>
-          <MessageSquare className="w-5 h-5 fill-current" />
+          <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
           <span className="text-xs uppercase tracking-wider hidden sm:inline-block font-sans font-extrabold">
             Conciergerie WhatsApp
           </span>
@@ -779,6 +803,19 @@ const MainApp: React.FC = () => {
       </aside>
 
       {/* Public Modals & Drawers */}
+      <SearchModal
+        isOpen={searchModalOpen}
+        onClose={() => setSearchModalOpen(false)}
+        products={products}
+        categories={categories}
+        settings={settings}
+        onSelectProduct={handleSelectProduct}
+        onNavigateToShop={(query, categoryId) => {
+          if (query) setNavbarSearchQuery(query);
+          handleNavigate('shop', categoryId);
+        }}
+      />
+
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
@@ -829,6 +866,8 @@ export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
+        {/* 38-40: Global Atmospheric Background - mounted once at root, persists seamlessly */}
+        <AtmosphereBackground />
         <MainApp />
       </CartProvider>
     </AuthProvider>

@@ -87,6 +87,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     lowStockThreshold: 2,
     featured: true,
     active: true,
+    isDemo: true,
     specifications: {
       movement: 'Automatique Calibre VG-2100 (28 800 alt/h)',
       caseDiameter: '42 mm',
@@ -119,6 +120,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     lowStockThreshold: 3,
     featured: true,
     active: true,
+    isDemo: true,
     specifications: {
       movement: 'Automatique à rotor bidirectionnel 42h',
       caseDiameter: '41 mm',
@@ -151,6 +153,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     lowStockThreshold: 2,
     featured: true,
     active: true,
+    isDemo: true,
     specifications: {
       movement: 'Mouvement manufacture ultra-plat à quartz haute fréquence',
       caseDiameter: '34 mm',
@@ -183,6 +186,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     lowStockThreshold: 2,
     featured: true,
     active: true,
+    isDemo: true,
     specifications: {
       movement: 'Mouvement mécanique à remontage manuel squelette 60h',
       caseDiameter: '43 mm',
@@ -215,6 +219,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     lowStockThreshold: 2,
     featured: false,
     active: true,
+    isDemo: true,
     specifications: {
       movement: 'Quartz suisse de haute précision',
       caseDiameter: '28 x 36 mm',
@@ -247,6 +252,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     lowStockThreshold: 2,
     featured: false,
     active: true,
+    isDemo: true,
     specifications: {
       movement: 'Mécanique automatique chronographe roue à colonnes',
       caseDiameter: '40 mm',
