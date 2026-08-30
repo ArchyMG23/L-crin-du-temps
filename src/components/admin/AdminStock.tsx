@@ -73,32 +73,32 @@ export const AdminStock: React.FC<AdminStockProps> = ({
       {/* Header & Quick stats */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-xl font-bold text-stone-100">
-            Contrôle & Ajustement Rapide des Stocks
+          <h2 className="font-serif text-xl sm:text-2xl font-bold text-white tracking-wide">
+            Contrôle & Ajustement des Stocks
           </h2>
-          <p className="text-xs text-stone-400 mt-0.5">
-            Mettez à jour vos quantités en stock en 1 clic pour éviter toute déception client lors des commandes.
+          <p className="text-xs sm:text-sm text-zinc-300 mt-1">
+            Mettez à jour vos quantités en stock en 1 clic pour éviter toute rupture lors des commandes clients.
           </p>
         </div>
 
         {/* Quick status tabs */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+            className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
               statusFilter === 'all'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                : 'bg-stone-900 text-stone-400 hover:text-stone-200'
+                ? 'bg-amber-500/20 text-[#E5C058] border border-amber-500/50 shadow-xs'
+                : 'bg-[#151722] text-zinc-300 border border-zinc-700 hover:text-white hover:bg-zinc-800'
             }`}
           >
             Tous ({products.length})
           </button>
           <button
             onClick={() => setStatusFilter('low')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               statusFilter === 'low'
-                ? 'bg-amber-950 text-amber-300 border border-amber-600'
-                : 'bg-stone-900 text-stone-400 hover:text-stone-200'
+                ? 'bg-amber-950 text-amber-200 border border-amber-600 shadow-xs'
+                : 'bg-[#151722] text-zinc-300 border border-zinc-700 hover:text-white hover:bg-zinc-800'
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
@@ -106,10 +106,10 @@ export const AdminStock: React.FC<AdminStockProps> = ({
           </button>
           <button
             onClick={() => setStatusFilter('out')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               statusFilter === 'out'
-                ? 'bg-rose-950 text-rose-300 border border-rose-600'
-                : 'bg-stone-900 text-stone-400 hover:text-stone-200'
+                ? 'bg-rose-950 text-rose-200 border border-rose-600 shadow-xs'
+                : 'bg-[#151722] text-zinc-300 border border-zinc-700 hover:text-white hover:bg-zinc-800'
             }`}
           >
             <XCircle className="w-3.5 h-3.5 text-rose-400" />
@@ -120,13 +120,13 @@ export const AdminStock: React.FC<AdminStockProps> = ({
 
       {/* Search bar */}
       <div className="relative max-w-md">
-        <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+        <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Filtrer une référence ou une montre..."
-          className="w-full bg-stone-900 border border-stone-800 focus:border-amber-400 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none"
+          className="w-full bg-[#151722] border border-zinc-700 focus:border-[#E5C058] rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-400 focus:outline-none shadow-xs"
         />
       </div>
 
@@ -144,10 +144,10 @@ export const AdminStock: React.FC<AdminStockProps> = ({
           return (
             <div
               key={product.id}
-              className={`p-4 bg-stone-900/60 rounded-xl border transition-all flex flex-col justify-between ${
+              className={`p-4 sm:p-5 bg-[#151722] rounded-2xl border transition-all flex flex-col justify-between shadow-sm ${
                 isDirty
-                  ? 'border-amber-500/80 shadow-lg shadow-amber-950/20'
-                  : 'border-stone-800/80'
+                  ? 'border-amber-500 shadow-lg shadow-amber-500/10'
+                  : 'border-zinc-700/80 hover:border-zinc-600'
               }`}
             >
               <div>
@@ -158,24 +158,24 @@ export const AdminStock: React.FC<AdminStockProps> = ({
                       'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=200'
                     }
                     alt={product.name}
-                    className="w-14 h-14 rounded-lg object-cover bg-stone-950 border border-stone-800 shrink-0"
+                    className="w-14 h-14 rounded-xl object-cover bg-zinc-900 border border-zinc-700 shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <span className="text-[10px] text-amber-400 font-serif uppercase tracking-wider block font-bold">
+                    <span className="text-[10px] text-[#E5C058] font-serif uppercase tracking-wider block font-bold">
                       {product.brand}
                     </span>
-                    <h3 className="font-serif text-sm font-semibold text-stone-100 truncate">
+                    <h3 className="font-serif text-sm font-bold text-white truncate">
                       {product.name}
                     </h3>
-                    <div className="text-[11px] text-stone-400 mt-0.5">
+                    <div className="text-[11px] text-zinc-400 mt-0.5 font-medium">
                       Réf: {product.reference || 'Non spécifiée'}
                     </div>
                   </div>
                 </div>
 
                 {/* Status indicator */}
-                <div className="mt-3 flex items-center justify-between text-xs">
-                  <span className="text-stone-400">Statut disponibilité :</span>
+                <div className="mt-3.5 flex items-center justify-between text-xs">
+                  <span className="text-zinc-300 font-medium">Disponibilité :</span>
                   {isOut ? (
                     <Badge variant="danger">Rupture de Stock</Badge>
                   ) : isLow ? (
@@ -187,17 +187,17 @@ export const AdminStock: React.FC<AdminStockProps> = ({
               </div>
 
               {/* Counter Controls */}
-              <div className="mt-4 pt-3 border-t border-stone-800 space-y-2">
+              <div className="mt-4 pt-3.5 border-t border-zinc-800 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-stone-300 font-medium">
+                  <span className="text-xs text-zinc-200 font-bold">
                     Quantité en stock :
                   </span>
 
-                  <div className="flex items-center bg-stone-950 border border-stone-700 rounded-lg overflow-hidden">
+                  <div className="flex items-center bg-[#1c1e2b] border border-zinc-700 rounded-xl overflow-hidden shadow-xs">
                     <button
                       type="button"
                       onClick={() => handleStockChange(product.id, product.stock, -1)}
-                      className="px-2.5 py-1 text-stone-300 hover:text-white hover:bg-stone-800 transition-colors"
+                      className="px-3 py-1.5 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
                       title="Diminuer"
                     >
                       <Minus className="w-3.5 h-3.5" />
@@ -213,13 +213,13 @@ export const AdminStock: React.FC<AdminStockProps> = ({
                           [product.id]: Math.max(0, parseInt(e.target.value) || 0)
                         }))
                       }
-                      className="w-12 text-center bg-transparent text-xs font-mono font-bold text-amber-400 focus:outline-none"
+                      className="w-12 text-center bg-transparent text-xs font-mono font-bold text-[#E5C058] focus:outline-none"
                     />
 
                     <button
                       type="button"
                       onClick={() => handleStockChange(product.id, product.stock, 1)}
-                      className="px-2.5 py-1 text-stone-300 hover:text-white hover:bg-stone-800 transition-colors"
+                      className="px-3 py-1.5 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
                       title="Augmenter"
                     >
                       <Plus className="w-3.5 h-3.5" />
@@ -235,7 +235,7 @@ export const AdminStock: React.FC<AdminStockProps> = ({
                     loading={savingId === product.id}
                     onClick={() => handleSaveSingle(product.id, product.stock)}
                     icon={Save}
-                    className="w-full mt-2"
+                    className="w-full mt-2 font-bold py-2 shadow-md"
                   >
                     Enregistrer le stock ({editedStock})
                   </Button>

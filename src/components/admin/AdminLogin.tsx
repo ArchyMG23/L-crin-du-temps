@@ -63,7 +63,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onBackToStore }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#070707] flex flex-col justify-center items-center p-4 sm:p-6 text-[#F5F5F0]">
+    <div className="min-h-screen bg-[#070707] flex flex-col justify-center items-center p-4 sm:p-6 text-[#F5F5F0] relative z-10 isolate">
       {/* Container */}
       <div className="w-full max-w-md bg-[#0C0C0C] border border-[#D4AF37]/25 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-black/95 space-y-6">
         

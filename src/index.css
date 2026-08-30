@@ -22,13 +22,13 @@
 }
 
 /* ==========================================================
-   L'ÉCRIN DU TEMPS — Système d'ambiance animée (global)
+   L'ÉCRIN DU TEMPS — Système d'ambiance animée (public uniquement)
    ========================================================== */
 
 #ec-atmosphere {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
   overflow: hidden;
   contain: strict;
@@ -36,18 +36,8 @@
 
 .ec-vignette {
   position: absolute;
-  inset: -10%;
-  background:
-    radial-gradient(ellipse 60% 45% at 30% 25%, rgba(198, 166, 100, 0.10), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 75% 70%, rgba(198, 166, 100, 0.07), transparent 65%),
-    radial-gradient(ellipse 80% 80% at 50% 50%, var(--ec-noir-2), var(--ec-noir) 70%);
-  animation: ec-breathe 20s ease-in-out infinite alternate;
-  will-change: transform, opacity;
-}
-
-@keyframes ec-breathe {
-  0% { opacity: 0.85; transform: scale(1); }
-  100% { opacity: 1; transform: scale(1.04); }
+  inset: 0;
+  pointer-events: none;
 }
 
 .ec-movement {
@@ -57,7 +47,7 @@
   width: 1400px;
   height: 1400px;
   margin: -700px 0 0 -700px;
-  opacity: 0.05;
+  opacity: 0.04;
   filter: blur(6px);
   animation: ec-rotate 240s linear infinite;
   will-change: transform;
@@ -76,7 +66,7 @@
   width: 900px;
   height: 900px;
   margin: -450px 0 0 -450px;
-  opacity: 0.06;
+  opacity: 0.05;
   filter: blur(70px);
   background: conic-gradient(from 0deg, var(--ec-or), transparent 25%, var(--ec-or), transparent 60%, var(--ec-or));
   border-radius: 38% 62% 55% 45% / 45% 40% 60% 55%;
@@ -100,8 +90,8 @@
 .ec-grain {
   position: absolute;
   inset: 0;
-  opacity: 0.03;
-  mix-blend-mode: overlay;
+  opacity: 0.015;
+  pointer-events: none;
 }
 
 /* Tablette : moins de flou, mécanisme plus discret */

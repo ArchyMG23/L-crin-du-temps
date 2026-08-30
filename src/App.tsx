@@ -692,7 +692,10 @@ const MainApp: React.FC = () => {
   const cleanWhatsApp = settings.whatsappNumber.replace(/[^0-9]/g, '');
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-stone-100 flex flex-col font-sans selection:bg-[#c6a664] selection:text-stone-950 relative z-10">
+    <div className="min-h-screen bg-[#07070a] text-stone-100 flex flex-col font-sans selection:bg-[#c6a664] selection:text-stone-950 relative z-10 isolate">
+      {/* Atmosphere Background strictly on public views */}
+      <AtmosphereBackground />
+
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
 
       {/* Top Navigation */}
@@ -866,8 +869,6 @@ export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        {/* 38-40: Global Atmospheric Background - mounted once at root, persists seamlessly */}
-        <AtmosphereBackground />
         <MainApp />
       </CartProvider>
     </AuthProvider>

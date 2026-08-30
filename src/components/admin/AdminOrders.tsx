@@ -134,28 +134,28 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-xl font-bold text-stone-100">
+          <h2 className="font-serif text-xl sm:text-2xl font-bold text-white tracking-wide">
             Commandes & Conciergerie WhatsApp ({orders.length})
           </h2>
-          <p className="text-xs text-stone-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-zinc-300 mt-1">
             Suivez les commandes passées par vos clients, mettez à jour les statuts et communiquez directement sur WhatsApp.
           </p>
         </div>
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="bg-stone-900/60 p-4 rounded-xl border border-stone-800 space-y-3">
+      <div className="bg-[#151722] p-4 sm:p-5 rounded-2xl border border-zinc-700/80 space-y-3 shadow-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search */}
           <div className="relative">
-            <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
             <input
               type="text"
               id="admin-order-search-input"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="N° commande, client, ville, tél..."
-              className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none"
+              className="w-full bg-[#1c1e2b] border border-zinc-700 focus:border-[#E5C058] rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-400 focus:outline-none shadow-xs"
             />
           </div>
 
@@ -164,7 +164,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+              className="w-full bg-[#1c1e2b] border border-zinc-700 focus:border-[#E5C058] rounded-xl px-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none shadow-xs"
             >
               <option value="all">Tous les statuts de commande</option>
               <option value="pending">🟡 En attente</option>
@@ -181,7 +181,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
-              className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+              className="w-full bg-[#1c1e2b] border border-zinc-700 focus:border-[#E5C058] rounded-xl px-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none shadow-xs"
             >
               <option value="all">Tous les règlements</option>
               <option value="pending">Règlement en attente</option>
@@ -197,7 +197,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+              className="w-full bg-[#1c1e2b] border border-zinc-700 focus:border-[#E5C058] rounded-xl px-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none shadow-xs"
             >
               <option value="newest">Plus récentes en premier</option>
               <option value="oldest">Plus anciennes en premier</option>
@@ -210,30 +210,30 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
 
       {/* Orders List */}
       {filteredOrders.length === 0 ? (
-        <div className="bg-stone-900/60 border border-stone-800 rounded-xl p-12 text-center text-xs text-stone-400 space-y-3">
-          <ShoppingBag className="w-8 h-8 text-stone-600 mx-auto" />
-          <p className="text-stone-300 font-medium">Aucune commande ne correspond à ces critères.</p>
+        <div className="bg-[#151722] border border-zinc-700/80 rounded-2xl p-12 text-center text-xs text-zinc-400 space-y-3 shadow-sm">
+          <ShoppingBag className="w-10 h-10 text-zinc-500 mx-auto" />
+          <p className="text-white font-semibold text-sm">Aucune commande ne correspond à ces critères.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {filteredOrders.map((order) => {
             const statusConfig = statusLabels[order.status] || { label: order.status, variant: 'secondary' };
-            const paymentConfig = paymentLabels[order.paymentStatus] || { label: order.paymentStatus, color: 'text-stone-400' };
+            const paymentConfig = paymentLabels[order.paymentStatus] || { label: order.paymentStatus, color: 'text-zinc-400' };
 
             return (
               <div
                 key={order.id}
-                className="bg-stone-900/60 rounded-xl border border-stone-800 p-4 sm:p-5 space-y-4 hover:border-[#D4AF37]/30 transition-all shadow-md"
+                className="bg-[#151722] rounded-2xl border border-zinc-700/80 p-4 sm:p-5 space-y-4 hover:border-[#E5C058]/50 transition-all shadow-sm"
               >
                 {/* Top row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-stone-800 gap-2">
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-sm font-bold text-[#D4AF37]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-zinc-800 gap-2">
+                  <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                    <span className="font-mono text-sm font-bold text-[#E5C058]">
                       #{order.orderNumber}
                     </span>
                     <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
-                    <span className="text-xs text-stone-400 flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
+                    <span className="text-xs text-zinc-300 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-zinc-400" />
                       <span>
                         {new Date(order.createdAt).toLocaleDateString('fr-FR')} à{' '}
                         {new Date(order.createdAt).toLocaleTimeString('fr-FR', {
@@ -244,9 +244,9 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-stone-400">Total :</span>
-                    <span className="font-serif text-lg font-bold text-stone-100 font-mono">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-xs text-zinc-300 font-medium">Total :</span>
+                    <span className="font-serif text-lg font-bold text-white font-mono">
                       {order.total.toLocaleString('fr-FR')} {order.currency}
                     </span>
                   </div>
@@ -255,20 +255,20 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                 {/* Middle info */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 text-xs">
                   {/* Customer column */}
-                  <div className="md:col-span-5 space-y-1.5 bg-stone-950/70 p-3 rounded-lg border border-stone-800/80">
-                    <div className="font-semibold text-stone-200 text-sm">
+                  <div className="md:col-span-5 space-y-2 bg-[#1c1e2b] p-3.5 rounded-xl border border-zinc-700/80">
+                    <div className="font-bold text-white text-sm">
                       {order.customer.name}
                     </div>
-                    <div className="text-stone-400 flex items-center gap-1.5">
-                      <Phone className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
+                    <div className="text-zinc-300 flex items-center gap-2 font-medium">
+                      <Phone className="w-3.5 h-3.5 text-[#E5C058] shrink-0" />
                       <span className="font-mono">{order.customer.phone}</span>
                     </div>
-                    <div className="text-stone-400 flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
+                    <div className="text-zinc-300 flex items-center gap-2 font-medium">
+                      <MapPin className="w-3.5 h-3.5 text-[#E5C058] shrink-0" />
                       <span>{order.customer.city} • {order.customer.address}</span>
                     </div>
                     {order.customer.notes && (
-                      <div className="text-amber-300/80 text-[11px] italic pt-1 border-t border-stone-900">
+                      <div className="text-amber-300 text-[11px] italic pt-1.5 border-t border-zinc-700">
                         Note: "{order.customer.notes}"
                       </div>
                     )}
@@ -276,23 +276,23 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
 
                   {/* Items preview */}
                   <div className="md:col-span-7 space-y-2">
-                    <span className="text-[11px] text-stone-400 uppercase tracking-wider font-semibold block">
+                    <span className="text-[11px] text-zinc-300 uppercase tracking-wider font-bold block">
                       Articles commandés ({order.items.length})
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {order.items.map((item, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center gap-2.5 p-2 bg-stone-950 rounded-lg border border-stone-800"
+                          className="flex items-center gap-2.5 p-2 bg-[#1c1e2b] rounded-xl border border-zinc-700/80"
                         >
                           <img
                             src={item.image || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=100'}
                             alt={item.name}
-                            className="w-10 h-10 rounded-md object-cover border border-stone-800 shrink-0"
+                            className="w-10 h-10 rounded-lg object-cover border border-zinc-700 shrink-0 bg-zinc-900"
                           />
                           <div className="min-w-0 flex-1">
-                            <h5 className="font-medium text-stone-200 truncate text-[11px]">{item.name}</h5>
-                            <div className="text-[10px] text-stone-400 font-mono">
+                            <h5 className="font-bold text-white truncate text-[11px]">{item.name}</h5>
+                            <div className="text-[10px] text-zinc-300 font-mono font-medium">
                               {item.quantity}x {item.price.toLocaleString('fr-FR')} {order.currency}
                             </div>
                           </div>
@@ -303,16 +303,16 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                 </div>
 
                 {/* Bottom Controls: Status Select + WhatsApp Quick Messages */}
-                <div className="pt-3 border-t border-stone-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="pt-3 border-t border-zinc-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-3">
                     {/* Status picker */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-stone-400">Statut :</span>
+                      <span className="text-xs text-zinc-300 font-semibold">Statut :</span>
                       <select
                         id={`order-status-select-${order.id}`}
                         value={order.status}
                         onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
-                        className="bg-stone-950 border border-stone-700 rounded-lg px-2.5 py-1 text-xs text-stone-100 font-medium focus:border-[#D4AF37] focus:outline-none"
+                        className="bg-[#1c1e2b] border border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:border-[#E5C058] focus:outline-none"
                       >
                         <option value="pending">🟡 En attente</option>
                         <option value="confirmed">🔵 Confirmée</option>
@@ -325,13 +325,13 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
 
                     {/* Payment picker */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-stone-400">Règlement :</span>
+                      <span className="text-xs text-zinc-300 font-semibold">Règlement :</span>
                       <select
                         value={order.paymentStatus}
                         onChange={(e) =>
                           onUpdatePaymentStatus(order.id, e.target.value as PaymentStatus)
                         }
-                        className="bg-stone-950 border border-stone-700 rounded-lg px-2.5 py-1 text-xs text-stone-100 focus:border-[#D4AF37] focus:outline-none"
+                        className="bg-[#1c1e2b] border border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-white font-medium focus:border-[#E5C058] focus:outline-none"
                       >
                         <option value="pending">En attente (WhatsApp)</option>
                         <option value="paid">Payé / Réglé</option>
@@ -349,7 +349,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                       href={generateWhatsAppUrl(order, 'default')}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow"
+                      className="px-3.5 py-2 bg-[#25D366] hover:bg-[#20ba59] text-black rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
                       title="Contacter sur WhatsApp"
                     >
                       <MessageSquare className="w-3.5 h-3.5 fill-current" />
@@ -361,10 +361,10 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                       href={generateWhatsAppUrl(order, 'confirm')}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-2.5 py-1.5 bg-stone-950 hover:bg-stone-800 border border-stone-800 text-[11px] text-stone-300 hover:text-white rounded-lg flex items-center gap-1"
+                      className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs text-white font-medium rounded-xl flex items-center gap-1.5"
                       title="Envoyer confirmation WhatsApp"
                     >
-                      <Send className="w-3 h-3 text-[#D4AF37]" />
+                      <Send className="w-3 h-3 text-[#E5C058]" />
                       <span>Confirmer</span>
                     </a>
 
@@ -373,10 +373,10 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                       href={generateWhatsAppUrl(order, 'shipped')}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-2.5 py-1.5 bg-stone-950 hover:bg-stone-800 border border-stone-800 text-[11px] text-stone-300 hover:text-white rounded-lg flex items-center gap-1"
+                      className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs text-white font-medium rounded-xl flex items-center gap-1.5"
                       title="Envoyer avis d'expédition WhatsApp"
                     >
-                      <Truck className="w-3 h-3 text-sky-400" />
+                      <Truck className="w-3.5 h-3.5 text-sky-400" />
                       <span>Expédié</span>
                     </a>
 
@@ -384,7 +384,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                     <button
                       type="button"
                       onClick={() => setSelectedOrder(order)}
-                      className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-800 rounded-lg transition-colors border border-stone-800"
+                      className="p-2 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-xl transition-colors border border-zinc-700"
                       title="Voir détails complets"
                     >
                       <Eye className="w-4 h-4" />
