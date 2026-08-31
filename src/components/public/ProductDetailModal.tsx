@@ -19,6 +19,7 @@ import { useCart } from '../../context/CartContext';
 import { Modal } from '../ui/Modal';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
+import { buildProductInquiryMessage, buildWhatsAppChatUrl } from '../../utils/whatsapp';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -43,7 +44,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   const activeCurrency = currencyProp || settings?.currency || product?.currency || '€';
-  const rawWhatsApp = whatsappProp || settings?.whatsappNumber || '+33600000000';
+  const rawWhatsApp = whatsappProp || settings?.whatsappNumber || '+237600000000';
+  const storeName = settings?.storeName || settings?.name || "L'Écrin du Temps";
+  const customIntro = settings?.whatsappDefaultMessage || settings?.contactInformation?.whatsappMessage;
 
   React.useEffect(() => {
     if (product) {
@@ -76,24 +79,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   };
 
   const handleDirectWhatsAppOrder = () => {
-    const cleanPhone = rawWhatsApp.replace(/[^0-9]/g, '');
-    const message = [
-      `👑 *DEMANDE D'INFORMATION & COMMANDE DIRECTE*`,
-      `━━━━━━━━━━━━━━━━━━━━━`,
-      `Bonjour ! Je souhaite commander ce garde-temps :`,
-      ``,
-      `▪ *Modèle :* ${product.name}`,
-      `▪ *Marque :* ${product.brand}`,
-      product.reference ? `▪ *Référence :* ${product.reference}` : null,
-      `▪ *Prix :* ${effectivePrice.toLocaleString('fr-FR')} ${activeCurrency}`,
-      `▪ *Quantité souhaitée :* ${quantity}`,
-      ``,
-      `Pouvez-vous me confirmer la disponibilité et les modalités de livraison svp ?`
-    ]
-      .filter(Boolean)
-      .join('\n');
-
-    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    const message = buildProductInquiryMessage(product, storeName, customIntro, quantity);
+    const url = buildWhatsAppChatUrl(rawWhatsApp, message);
     window.open(url, '_blank');
   };
 

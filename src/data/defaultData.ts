@@ -2,8 +2,13 @@ import { Product, Category, StoreSettings } from '../types';
 
 export const DEFAULT_SETTINGS: StoreSettings = {
   storeName: "L'Écrin du Temps",
+  name: "L'Écrin du Temps",
+  description: "Maison d'Horlogerie de Prestige & Garde-Temps d'Exception",
   logo: '/logo-dark.svg',
-  whatsappNumber: '+33612345678', // Format international personnalisable dans l'admin
+  logoUrl: '/logo-dark.svg',
+  faviconUrl: '/favicon.svg',
+  whatsappNumber: '+237600000000', // Modifiable dynamiquement par l'administratrice dans le CMS
+  whatsappDefaultMessage: 'Bonjour, je souhaite obtenir des informations sur cette montre d\'exception.',
   currency: '€',
   defaultLowStockThreshold: 2,
   shippingEnabled: true,
@@ -16,8 +21,9 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   },
   contactInformation: {
     email: 'contact@lecrindutemps-horlogerie.com',
-    phone: '+33 6 12 34 56 78',
-    address: '8 Place Vendôme, 75001 Paris'
+    phone: '+237 6 00 00 00 00',
+    address: '8 Place Vendôme, 75001 Paris',
+    whatsappMessage: 'Bonjour, je souhaite obtenir des informations sur cette montre d\'exception.'
   }
 };
 

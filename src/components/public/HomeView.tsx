@@ -19,6 +19,11 @@ import {
 import { Product, Category, StoreSettings } from '../../types';
 import { ProductCard } from './ProductCard';
 import { Button } from '../ui/Button';
+import {
+  normalizeWhatsAppNumber,
+  buildWhatsAppChatUrl,
+  buildProductInquiryMessage
+} from '../../utils/whatsapp';
 
 interface HomeViewProps {
   products: Product[];
@@ -36,8 +41,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onSelectProduct
 }) => {
   const currency = settings.currency || '€';
-  const whatsappNumber = settings.whatsappNumber || '+33600000000';
-  const cleanWhatsApp = whatsappNumber.replace(/[^0-9]/g, '');
+  const whatsappNumber = settings.whatsappNumber || '+237600000000';
+  const storeName = settings.storeName || settings.name || "L'Écrin du Temps";
+  const customIntro = settings.whatsappDefaultMessage || settings.contactInformation?.whatsappMessage;
+  const cleanWhatsApp = normalizeWhatsAppNumber(whatsappNumber);
 
   // 1. Filter valid and active products
   const activeProducts = useMemo(() => {
@@ -322,9 +329,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     </Button>
 
                     <a
-                      href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
-                        `Bonjour, je souhaite des détails sur la montre ${activeHeroProduct.brand} - ${activeHeroProduct.name}.`
-                      )}`}
+                      href={buildWhatsAppChatUrl(
+                        whatsappNumber,
+                        buildProductInquiryMessage(activeHeroProduct, storeName, customIntro)
+                      )}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/40 text-[#25D366] rounded-xl text-[11px] font-bold uppercase tracking-wider transition-all"
@@ -444,11 +452,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     </Button>
 
                     <a
-                      href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
-                        `Bonjour, je souhaite commander la montre ${activeHeroProduct.brand} - ${activeHeroProduct.name} au prix de ${formatPrice(
-                          activeHeroProduct.promotionalPrice || activeHeroProduct.price
-                        )}.`
-                      )}`}
+                      href={buildWhatsAppChatUrl(
+                        whatsappNumber,
+                        buildProductInquiryMessage(activeHeroProduct, storeName, customIntro)
+                      )}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center justify-center gap-2 px-5 py-4 bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/40 text-[#25D366] rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
@@ -1014,9 +1021,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
         <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 relative z-10 w-full sm:w-auto">
           <a
-            href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
-              "Bonjour ! J'aimerais des conseils sur votre collection de montres et les disponibilités."
-            )}`}
+            href={buildWhatsAppChatUrl(
+              whatsappNumber,
+              customIntro || "Bonjour ! J'aimerais des conseils sur votre collection de montres et les disponibilités."
+            )}
             target="_blank"
             rel="noreferrer"
             className="w-full sm:w-auto px-6 py-3.5 sm:py-4 bg-[#25D366] hover:bg-[#20ba59] text-black font-bold rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/20 active:scale-[0.98] transition-all"

@@ -85,8 +85,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const shippingFee = settings?.shippingEnabled ? (settings.shippingFee || 0) : 0;
   const total = subtotal + shippingFee;
   const currency = currencyProp || settings?.currency || '€';
-  const whatsappNumber = whatsappProp || settings?.whatsappNumber || '+33600000000';
-  const storeName = storeNameProp || settings?.storeName || "Maison Horlogère";
+  const whatsappNumber = whatsappProp || settings?.whatsappNumber || '+237600000000';
+  const storeName = storeNameProp || settings?.storeName || settings?.name || "L'Écrin du Temps";
+  const customIntro = settings?.whatsappDefaultMessage || settings?.contactInformation?.whatsappMessage;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,7 +153,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         notes: customer.notes
       });
 
-      const waUrl = buildWhatsAppOrderUrl(newOrder, whatsappNumber, storeName);
+      const waUrl = buildWhatsAppOrderUrl(newOrder, whatsappNumber, storeName, customIntro);
 
       // Clear cart
       clearCart();

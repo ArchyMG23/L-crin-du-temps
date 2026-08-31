@@ -210,49 +210,23 @@ export async function deleteOrder(id: string): Promise<void> {
   }
 }
 
+import {
+  normalizeWhatsAppNumber,
+  buildOrderWhatsAppMessage,
+  buildAdminFollowUpMessage
+} from '../utils/whatsapp';
+
 /**
  * Format the message for WhatsApp order transmission by client
  */
-export function buildWhatsAppOrderUrl(order: Order, whatsappNumber: string, storeName: string): string {
-  const cleanPhone = whatsappNumber.replace(/[^0-9]/g, '');
-
-  const itemsText = order.items
-    .map(
-      (item) =>
-        `▪ *${item.quantity}x* ${item.name}\n   Prix unitaire: ${item.price.toLocaleString('fr-FR')} ${order.currency} (Total: ${item.subtotal.toLocaleString('fr-FR')} ${order.currency})`
-    )
-    .join('\n\n');
-
-  const message = [
-    `👑 *NOUVELLE COMMANDE - ${storeName.toUpperCase()}*`,
-    `━━━━━━━━━━━━━━━━━━━━━`,
-    `📋 *N° Commande :* #${order.orderNumber}`,
-    `📅 *Date :* ${new Date(order.createdAt).toLocaleDateString('fr-FR')} à ${new Date(order.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`,
-    ``,
-    `🛍️ *ARTICLES COMMANDÉS :*`,
-    itemsText,
-    ``,
-    `━━━━━━━━━━━━━━━━━━━━━`,
-    `💵 *Sous-total :* ${order.subtotal.toLocaleString('fr-FR')} ${order.currency}`,
-    `📦 *Expédition :* ${order.shipping > 0 ? `${order.shipping.toLocaleString('fr-FR')} ${order.currency}` : 'Offerte (Sécurisée & Assurée)'}`,
-    `💎 *TOTAL À RÉGLER :* *${order.total.toLocaleString('fr-FR')} ${order.currency}*`,
-    `━━━━━━━━━━━━━━━━━━━━━`,
-    ``,
-    `👤 *COORDONNÉES CLIENT :*`,
-    `• *Nom :* ${order.customer.name}`,
-    `• *Téléphone :* ${order.customer.phone}`,
-    order.customer.email ? `• *Email :* ${order.customer.email}` : null,
-    `• *Ville :* ${order.customer.city}`,
-    `• *Adresse de livraison :* ${order.customer.address}`,
-    order.customer.notes ? `• *Instructions particulières :* ${order.customer.notes}` : null,
-    ``,
-    `💳 *Règlement :* Validation & Échange en direct sur WhatsApp`,
-    `━━━━━━━━━━━━━━━━━━━━━`,
-    `Bonjour ! Je viens de réserver ces garde-temps sur votre boutique en ligne et je souhaite finaliser la commande avec vous.`
-  ]
-    .filter(line => line !== null)
-    .join('\n');
-
+export function buildWhatsAppOrderUrl(
+  order: Order,
+  whatsappNumber: string,
+  storeName: string,
+  customDefaultMessage?: string
+): string {
+  const cleanPhone = normalizeWhatsAppNumber(whatsappNumber);
+  const message = buildOrderWhatsAppMessage(order, storeName, customDefaultMessage);
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }
 
@@ -260,17 +234,8 @@ export function buildWhatsAppOrderUrl(order: Order, whatsappNumber: string, stor
  * Format message for admin to follow up with customer on WhatsApp
  */
 export function buildWhatsAppAdminToClientUrl(order: Order, storeName: string): string {
-  const cleanPhone = order.customer.phone.replace(/[^0-9]/g, '');
-  const message = [
-    `Bonjour ${order.customer.name},`,
-    ``,
-    `C'est la Maison ${storeName} concernant votre commande *#${order.orderNumber}* d'un montant de *${order.total.toLocaleString('fr-FR')} ${order.currency}*.`,
-    ``,
-    `Statut actuel : *${order.status === 'confirmed' ? 'Confirmée' : order.status === 'preparing' ? 'En cours de préparation sous écrin de luxe' : order.status === 'shipped' ? 'Expédiée avec numéro de suivi sécurisé' : order.status === 'delivered' ? 'Livrée' : 'Reçue'}*.`,
-    ``,
-    `Nous restons à votre entière disposition pour tout renseignement ou précision horlogère.`
-  ].join('\n');
-
+  const cleanPhone = normalizeWhatsAppNumber(order.customer.phone);
+  const message = buildAdminFollowUpMessage(order, storeName);
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }
 

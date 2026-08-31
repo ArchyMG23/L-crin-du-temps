@@ -149,12 +149,18 @@ export interface ContactInformation {
   phone?: string;
   address?: string;
   openingHours?: string;
+  whatsappMessage?: string;
 }
 
 export interface StoreSettings {
   storeName: string;
+  name?: string;
+  description?: string;
   logo?: string;
-  whatsappNumber: string; // Ex: +33612345678 or international without spaces
+  logoUrl?: string;
+  faviconUrl?: string;
+  whatsappNumber: string; // Numéro WhatsApp professionnel international (Ex: +237XXXXXXXXX, +33612345678)
+  whatsappDefaultMessage?: string; // Message WhatsApp par défaut personnalisable
   currency: string;
   defaultLowStockThreshold: number;
   shippingEnabled: boolean;

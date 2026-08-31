@@ -2,6 +2,7 @@ import React from 'react';
 import { ShieldCheck, Truck, Clock, MessageSquare, Instagram, Facebook, Phone, Mail, MapPin } from 'lucide-react';
 import { StoreSettings } from '../../types';
 import { BrandLogo } from '../common/BrandLogo';
+import { normalizeWhatsAppNumber, buildWhatsAppChatUrl } from '../../utils/whatsapp';
 
 interface FooterProps {
   settings?: StoreSettings;
@@ -11,9 +12,9 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNumber, onNavigate }) => {
-  const name = storeName || settings?.storeName || "L'ÉMINENCE HORLOGERIE";
-  const phone = whatsappNumber || settings?.whatsappNumber || '+33600000000';
-  const cleanPhone = phone.replace(/[^0-9]/g, '');
+  const name = storeName || settings?.storeName || settings?.name || "L'ÉCRIN DU TEMPS";
+  const rawWhatsApp = whatsappNumber || settings?.whatsappNumber || '+237600000000';
+  const customIntro = settings?.whatsappDefaultMessage || settings?.contactInformation?.whatsappMessage || "Bonjour ! J'aimerais échanger avec votre conciergerie WhatsApp.";
 
   return (
     <footer className="bg-[#080808] text-white/70 border-t border-white/10 mt-auto">
@@ -185,7 +186,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
               )}
               <li className="pt-2">
                 <a
-                  href={`https://wa.me/${cleanPhone}`}
+                  href={buildWhatsAppChatUrl(rawWhatsApp, customIntro)}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 text-xs text-[#25D366] hover:text-[#3ce680] font-medium"

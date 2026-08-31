@@ -29,6 +29,7 @@ import {
 } from './services/settingsService';
 import { getAllCustomers } from './services/userService';
 import { DEFAULT_SETTINGS } from './data/defaultData';
+import { normalizeWhatsAppNumber, buildWhatsAppChatUrl } from './utils/whatsapp';
 
 // UI
 import { ToastContainer, ToastMessage } from './components/ui/Toast';
@@ -786,9 +787,12 @@ const MainApp: React.FC = () => {
       <aside aria-label="Conciergerie WhatsApp" className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30 group">
         <a
           id="floating-whatsapp-btn"
-          href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
-            `Bonjour ${settings.storeName} ! J'aimerais des conseils sur votre collection de montres.`
-          )}`}
+          href={buildWhatsAppChatUrl(
+            settings.whatsappNumber,
+            settings.whatsappDefaultMessage ||
+              settings.contactInformation?.whatsappMessage ||
+              `Bonjour ${settings.storeName || settings.name || "L'Écrin du Temps"} ! J'aimerais des conseils sur votre collection de montres.`
+          )}
           target="_blank"
           rel="noreferrer"
           aria-label="Contacter la conciergerie WhatsApp"
