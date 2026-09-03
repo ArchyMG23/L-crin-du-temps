@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Category } from '../types';
+import { DEFAULT_CATEGORIES } from '../data/defaultData';
 
 const CATEGORIES_COLLECTION = 'categories';
 
@@ -34,17 +35,20 @@ export async function getCategories(onlyActive = true): Promise<Category[]> {
     }
 
     if (snapshot.empty) {
-      return [];
+      return DEFAULT_CATEGORIES;
     }
 
     let categories = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Category));
     if (onlyActive) {
       categories = categories.filter(c => c.active);
     }
+    if (categories.length === 0) {
+      return DEFAULT_CATEGORIES;
+    }
     return categories.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
     console.warn('Categories fetch error:', error);
-    return [];
+    return DEFAULT_CATEGORIES;
   }
 }
 

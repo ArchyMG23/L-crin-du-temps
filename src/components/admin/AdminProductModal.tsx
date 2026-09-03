@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Upload, Loader2 } from 'lucide-react';
 import { Product, Category, Gender, StoreSettings } from '../../types';
+import { DEFAULT_CATEGORIES } from '../../data/defaultData';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { uploadImageFile } from '../../services/storageService';
@@ -22,6 +23,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   settings,
   onSave
 }) => {
+  const availableCategories = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -55,13 +58,15 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    const defaultCatId = (categories && categories.length > 0 ? categories[0]?.id : DEFAULT_CATEGORIES[0]?.id) || '';
+
     if (product) {
       setFormData({
         name: product.name || '',
         slug: product.slug || '',
         brand: product.brand || '',
         reference: product.reference || '',
-        categoryId: product.categoryId || (categories[0]?.id || ''),
+        categoryId: product.categoryId || defaultCatId,
         gender: product.gender || 'homme',
         price: product.price || 0,
         promotionalPrice: product.promotionalPrice ?? '',
@@ -88,7 +93,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         slug: '',
         brand: '',
         reference: '',
-        categoryId: categories[0]?.id || '',
+        categoryId: defaultCatId,
         gender: 'homme',
         price: 950,
         promotionalPrice: '',
@@ -212,7 +217,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       return;
     }
 
-    if (!formData.categoryId) {
+    const chosenCategoryId = formData.categoryId || availableCategories[0]?.id || '';
+    if (!chosenCategoryId) {
       setError('Veuillez sélectionner une collection.');
       return;
     }
@@ -225,20 +231,22 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     try {
       setLoading(true);
 
+      const descText = formData.shortDescription.trim() || formData.description.trim() || '';
+
       const payload: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
         name: formData.name.trim(),
         slug: formData.slug.trim() || generateSlug(formData.name),
         brand: formData.brand.trim() || 'Maison Horlogère',
-        reference: formData.reference.trim(),
-        categoryId: formData.categoryId || categories[0]?.id || 'cat-general',
+        reference: formData.reference ? formData.reference.trim() : '',
+        categoryId: chosenCategoryId,
         gender: formData.gender,
         price: Number(formData.price),
         promotionalPrice: promoNum,
         currency: formData.currency,
         stock: Number(formData.stock),
         lowStockThreshold: Number(formData.lowStockThreshold),
-        shortDescription: formData.shortDescription.trim(),
-        description: formData.description.trim(),
+        shortDescription: descText,
+        description: descText,
         featured: formData.featured,
         active: formData.active,
         images: cleanImages,
@@ -278,8 +286,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         )}
 
         {/* Basic identification */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="sm:col-span-2">
+        <div className="space-y-4">
+          <div>
             <label className="block text-xs text-[var(--text)] font-semibold mb-1">
               Nom de la montre <span className="text-[var(--or)]">*</span>
             </label>
@@ -294,66 +302,56 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
             />
           </div>
 
-          <div>
-            <label className="block text-xs text-[var(--text)] font-medium mb-1">
-              Marque / Maison
-            </label>
-            <input
-              type="text"
-              id="admin-product-brand"
-              value={formData.brand}
-              onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-              placeholder="Ex: Vanguard Genève"
-              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
-            />
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-[var(--text)] font-medium mb-1">
+                Marque / Maison
+              </label>
+              <input
+                type="text"
+                id="admin-product-brand"
+                value={formData.brand}
+                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                placeholder="Ex: Vanguard Genève"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs text-[var(--text)] font-medium mb-1">
-              Référence modèle
-            </label>
-            <input
-              type="text"
-              id="admin-product-reference"
-              value={formData.reference}
-              onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-              placeholder="Ex: VG-8840-BK"
-              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
-            />
-          </div>
+            <div>
+              <label className="block text-xs text-[var(--text)] font-semibold mb-1">
+                Collection / Catégorie <span className="text-[var(--or)]">*</span>
+              </label>
+              <select
+                id="admin-product-category"
+                required
+                value={formData.categoryId}
+                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs cursor-pointer"
+              >
+                <option value="">Sélectionner une collection</option>
+                {availableCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div>
-            <label className="block text-xs text-[var(--text)] font-medium mb-1">
-              Collection / Catégorie
-            </label>
-            <select
-              id="admin-product-category"
-              value={formData.categoryId}
-              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs"
-            >
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs text-[var(--text)] font-medium mb-1">
-              Genre
-            </label>
-            <select
-              id="admin-product-gender"
-              value={formData.gender}
-              onChange={(e) => setFormData({ ...formData, gender: e.target.value as Gender })}
-              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs"
-            >
-              <option value="homme">Homme</option>
-              <option value="femme">Femme</option>
-              <option value="mixte">Mixte / Unisexe</option>
-            </select>
+            <div>
+              <label className="block text-xs text-[var(--text)] font-medium mb-1">
+                Genre
+              </label>
+              <select
+                id="admin-product-gender"
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value as Gender })}
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs cursor-pointer"
+              >
+                <option value="homme">Homme</option>
+                <option value="femme">Femme</option>
+                <option value="mixte">Mixte / Unisexe</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -492,35 +490,19 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
           </div>
         </div>
 
-        {/* Descriptions */}
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs text-[var(--text)] font-semibold mb-1">
-              Description courte (accroche catalogue)
-            </label>
-            <input
-              type="text"
-              id="admin-product-short-desc"
-              value={formData.shortDescription}
-              onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
-              placeholder="Ex: Chronographe automatique en acier brossé avec cadran noir soleillé."
-              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs text-[var(--text)] font-semibold mb-1">
-              Description détaillée
-            </label>
-            <textarea
-              rows={3}
-              id="admin-product-desc"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Description complète, finitions, histoire et caractéristiques..."
-              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none resize-none shadow-xs"
-            />
-          </div>
+        {/* Description de la montre */}
+        <div>
+          <label className="block text-xs text-[var(--text)] font-semibold mb-1">
+            Description de la montre <span className="text-[var(--text-soft)] font-normal text-[11px]">(accroche & finitions)</span>
+          </label>
+          <textarea
+            rows={2}
+            id="admin-product-short-desc"
+            value={formData.shortDescription}
+            onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value, description: e.target.value })}
+            placeholder="Ex: Chronographe automatique en acier brossé avec cadran noir soleillé et bracelet en cuir véritable."
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none resize-none shadow-xs"
+          />
         </div>
 
         {/* Specifications Table */}

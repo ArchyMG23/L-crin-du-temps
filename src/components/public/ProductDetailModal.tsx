@@ -238,7 +238,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
             {/* Description */}
             <div className="text-xs sm:text-sm text-[var(--text-soft)] leading-relaxed font-sans space-y-2">
-              <p>{product.description}</p>
+              <p>{product.description || product.shortDescription}</p>
             </div>
 
             {/* Technical Specifications */}
