@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Upload, Loader2 } from 'lucide-react';
+import { 
+  X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Upload, Loader2,
+  Eye, Star, ZoomIn, ChevronLeft, ChevronRight, Link as LinkIcon, CheckCircle2
+} from 'lucide-react';
 import { Product, Category, Gender, StoreSettings } from '../../types';
 import { DEFAULT_CATEGORIES } from '../../data/defaultData';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { uploadImageFile } from '../../services/storageService';
+import { uploadImageFile, compressImageToDataUrl } from '../../services/storageService';
 
 interface AdminProductModalProps {
   isOpen: boolean;
@@ -41,7 +44,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     description: '',
     featured: false,
     active: true,
-    images: [''] as string[],
+    images: [] as string[],
     specifications: {
       movement: '',
       caseDiameter: '',
@@ -54,7 +57,12 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
 
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [urlInputValue, setUrlInputValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -77,7 +85,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         description: product.description || '',
         featured: product.featured ?? false,
         active: product.active ?? true,
-        images: product.images && product.images.length > 0 ? product.images : [''],
+        images: product.images && product.images.length > 0 ? product.images : [],
         specifications: {
           movement: product.specifications?.movement || '',
           caseDiameter: product.specifications?.caseDiameter || '',
@@ -138,56 +146,126 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     }
   };
 
-  const handleImageChange = (index: number, val: string) => {
-    const updated = [...formData.images];
-    updated[index] = val;
-    setFormData({ ...formData, images: updated });
-  };
-
-  const handleAddImageField = () => {
-    setFormData({ ...formData, images: [...formData.images, ''] });
-  };
-
-  const handleRemoveImageField = (index: number) => {
-    const updated = formData.images.filter((_, i) => i !== index);
-    setFormData({ ...formData, images: updated.length > 0 ? updated : [''] });
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  const processFiles = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
 
     try {
       setUploadingImage(true);
       setError(null);
-      const newUrls: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const url = await uploadImageFile(file, 'products');
-        newUrls.push(url);
+      setUploadNotice("Prévisualisation instantanée et optimisation...");
+
+      const fileList = Array.from(files);
+      // Instant high-res compressed local previews (0ms perceptible lag)
+      const previewUrls = await Promise.all(
+        fileList.map((f) => compressImageToDataUrl(f, 1280, 0.85))
+      );
+      const validPreviews = previewUrls.filter(Boolean);
+
+      if (validPreviews.length === 0) {
+        setError("Impossible de charger les photos sélectionnées.");
+        return;
       }
 
-      setFormData(prev => {
-        const existingClean = prev.images.filter(Boolean);
+      // Add to gallery immediately so user sees the preview immediately
+      setFormData((prev) => {
+        const existingClean = prev.images.filter((img) => img && img.trim().length > 0);
         return {
           ...prev,
-          images: [...existingClean, ...newUrls]
+          images: [...existingClean, ...validPreviews]
         };
       });
+
+      setUploadNotice(`${validPreviews.length} photo(s) ajoutée(s) avec succès !`);
+      setTimeout(() => setUploadNotice(null), 3000);
+
+      // In background, upload to Firebase Storage if available (non-blocking)
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        const localPreview = validPreviews[i];
+        if (!file || !localPreview) continue;
+
+        try {
+          const storageUrl = await uploadImageFile(file, 'products');
+          if (storageUrl && storageUrl !== localPreview) {
+            setFormData((prev) => ({
+              ...prev,
+              images: prev.images.map((img) => (img === localPreview ? storageUrl : img))
+            }));
+          }
+        } catch {
+          // Optimized local data URL is already safely preserved
+        }
+      }
     } catch (err: any) {
-      setError("Erreur lors de l'envoi de l'image.");
+      console.error('File upload error:', err);
+      setError("Erreur lors de l'importation de l'image.");
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      processFiles(e.target.files);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleAddUrlImage = () => {
+    const trimmed = urlInputValue.trim();
+    if (!trimmed) return;
+    setFormData((prev) => ({
+      ...prev,
+      images: [...prev.images.filter(Boolean), trimmed]
+    }));
+    setUrlInputValue('');
+    setShowUrlInput(false);
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setFormData((prev) => {
+      const updated = prev.images.filter((_, i) => i !== index);
+      return { ...prev, images: updated };
+    });
+    if (previewImageIndex === index) {
+      setPreviewImageIndex(null);
+    } else if (previewImageIndex !== null && previewImageIndex > index) {
+      setPreviewImageIndex(previewImageIndex - 1);
+    }
+  };
+
   const handleSetMainImage = (index: number) => {
     if (index === 0) return;
-    const updated = [...formData.images];
-    const selected = updated.splice(index, 1)[0];
-    updated.unshift(selected);
-    setFormData({ ...formData, images: updated });
+    setFormData((prev) => {
+      const updated = [...prev.images];
+      const selected = updated.splice(index, 1)[0];
+      updated.unshift(selected);
+      return { ...prev, images: updated };
+    });
+    if (previewImageIndex !== null) {
+      setPreviewImageIndex(0);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -421,35 +499,55 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
 
         {/* Photos & Image Uploader */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <label className="block text-xs text-[var(--text)] font-semibold">
-              Galerie Photos (Upload direct ou Liens HD)
-            </label>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <label className="block text-xs text-[var(--text)] font-semibold">
+                Galerie Photos de la montre <span className="text-[var(--or)]">*</span>
+              </label>
+              <p className="text-[11px] text-[var(--text-soft)]">
+                La première photo sera la couverture principale affichée sur la boutique.
+              </p>
+            </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingImage}
-                className="text-xs text-[var(--or)] hover:opacity-80 flex items-center gap-1.5 font-medium px-2.5 py-1.5 bg-[var(--or)]/10 rounded-lg border border-[var(--or)]/30 transition-colors"
+                onClick={() => setShowUrlInput(!showUrlInput)}
+                className="text-xs text-[var(--text-soft)] hover:text-[var(--text)] flex items-center gap-1 font-medium px-2.5 py-1.5 bg-[var(--carte-bg)] hover:bg-[var(--carte-bg-subtle)] rounded-lg border border-[var(--sep)] transition-colors cursor-pointer"
               >
-                {uploadingImage ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Upload className="w-3.5 h-3.5" />
-                )}
-                <span>{uploadingImage ? 'Téléversement...' : 'Importer fichier'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleAddImageField}
-                className="text-xs text-[var(--text-soft)] hover:text-[var(--text)] flex items-center gap-1 font-medium px-2.5 py-1.5 bg-[var(--carte-bg)] hover:bg-[var(--carte-bg-subtle)] rounded-lg border border-[var(--sep)] transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Lien URL</span>
+                <LinkIcon className="w-3.5 h-3.5" />
+                <span>{showUrlInput ? 'Masquer URL' : '+ Lien URL'}</span>
               </button>
             </div>
           </div>
 
+          {/* Optional URL input box */}
+          {showUrlInput && (
+            <div className="flex items-center gap-2 p-3 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)]">
+              <input
+                type="url"
+                value={urlInputValue}
+                onChange={(e) => setUrlInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddUrlImage();
+                  }
+                }}
+                placeholder="Coller un lien URL d'image (ex: https://images.unsplash.com/...)"
+                className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-lg px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleAddUrlImage}
+                disabled={!urlInputValue.trim()}
+                className="px-3 py-2 bg-[var(--or)] text-black font-semibold text-xs rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer shrink-0"
+              >
+                Ajouter
+              </button>
+            </div>
+          )}
+
+          {/* Hidden native input */}
           <input
             ref={fileInputRef}
             type="file"
@@ -459,35 +557,130 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
             className="hidden"
           />
 
-          <div className="space-y-2">
-            {formData.images.map((imgUrl, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <input
-                  type="url"
-                  value={imgUrl}
-                  onChange={(e) => handleImageChange(idx, e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
-                  className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
-                />
-                {imgUrl && (
-                  <img
-                    src={imgUrl}
-                    alt="Aperçu"
-                    className="w-9 h-9 rounded-lg object-cover border border-[var(--sep)] shrink-0"
-                  />
-                )}
-                {formData.images.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveImageField(idx)}
-                    className="p-2 text-[var(--text-muted)] hover:text-rose-500 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+          {/* Drag & Drop Upload Zone */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-2xl p-4 sm:p-5 text-center cursor-pointer transition-all ${
+              isDragging
+                ? 'border-[var(--or)] bg-[var(--or)]/10 scale-[0.99]'
+                : 'border-[var(--sep)] hover:border-[var(--or)]/60 bg-[var(--carte-bg-subtle)]/40 hover:bg-[var(--carte-bg-subtle)]'
+            }`}
+          >
+            <div className="flex flex-col items-center justify-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-[var(--or)]/10 flex items-center justify-center text-[var(--or)]">
+                {uploadingImage ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Upload className="w-5 h-5" />
                 )}
               </div>
-            ))}
+              <div className="space-y-0.5">
+                <p className="text-xs font-semibold text-[var(--text)]">
+                  {uploadingImage
+                    ? 'Chargement et optimisation des photos...'
+                    : 'Cliquez pour importer des photos ou glissez-déposez ici'}
+                </p>
+                <p className="text-[11px] text-[var(--text-muted)]">
+                  Formats acceptés : JPG, PNG, WEBP, GIF. Import multiple supporté.
+                </p>
+              </div>
+            </div>
           </div>
+
+          {/* Upload notice message */}
+          {uploadNotice && (
+            <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{uploadNotice}</span>
+            </div>
+          )}
+
+          {/* Interactive Photo Gallery with Previews */}
+          {formData.images.filter(Boolean).length > 0 && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between text-[11px] text-[var(--text-soft)]">
+                <span>
+                  {formData.images.filter(Boolean).length} photo{formData.images.filter(Boolean).length > 1 ? 's' : ''} dans la galerie (cliquez pour prévisualiser en grand)
+                </span>
+                <span className="text-[var(--text-muted)]">
+                  ⭐ Première = Couverture
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {formData.images.filter(Boolean).map((imgUrl, idx) => {
+                  const isMain = idx === 0;
+                  return (
+                    <div
+                      key={`${imgUrl.slice(0, 40)}-${idx}`}
+                      className={`group relative rounded-xl overflow-hidden border transition-all duration-200 aspect-square bg-black/5 dark:bg-black/30 ${
+                        isMain
+                          ? 'border-[var(--or)] ring-2 ring-[var(--or)]/30 shadow-md'
+                          : 'border-[var(--sep)] hover:border-[var(--or)]/50'
+                      }`}
+                    >
+                      {/* Watch Image */}
+                      <img
+                        src={imgUrl}
+                        alt={`Photo montre ${idx + 1}`}
+                        onClick={() => setPreviewImageIndex(idx)}
+                        className="w-full h-full object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
+                      />
+
+                      {/* Main Cover Badge */}
+                      {isMain && (
+                        <div className="absolute top-1.5 left-1.5 bg-black/85 text-[var(--or)] px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 shadow-sm pointer-events-none backdrop-blur-xs">
+                          <Star className="w-2.5 h-2.5 fill-[var(--or)]" />
+                          <span>Principale</span>
+                        </div>
+                      )}
+
+                      {/* Hover / Overlay Action Bar */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2 pointer-events-none">
+                        <div className="flex justify-end gap-1 pointer-events-auto">
+                          {/* Zoom / Preview Button */}
+                          <button
+                            type="button"
+                            title="Aperçu grand format"
+                            onClick={() => setPreviewImageIndex(idx)}
+                            className="p-1.5 bg-black/75 hover:bg-black text-white rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            title="Supprimer la photo"
+                            onClick={() => handleRemoveImage(idx)}
+                            className="p-1.5 bg-black/75 hover:bg-rose-600 text-white rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Set as main photo button */}
+                        {!isMain && (
+                          <div className="pointer-events-auto">
+                            <button
+                              type="button"
+                              onClick={() => handleSetMainImage(idx)}
+                              className="w-full py-1 px-2 bg-black/80 hover:bg-[var(--or)] text-white hover:text-black text-[10px] font-medium rounded-md transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <Star className="w-2.5 h-2.5" />
+                              <span>Définir principale</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Description de la montre */}
@@ -653,6 +846,118 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
           </Button>
         </div>
       </form>
+
+      {/* Fullscreen HD Preview Lightbox */}
+      {previewImageIndex !== null && formData.images.filter(Boolean)[previewImageIndex] && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex flex-col items-center justify-between p-4 sm:p-6"
+          onClick={() => setPreviewImageIndex(null)}
+        >
+          {/* Top Bar */}
+          <div
+            className="w-full max-w-5xl flex items-center justify-between text-white py-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold tracking-wider uppercase text-[var(--or)]">
+                Aperçu HD de la montre
+              </span>
+              <span className="text-xs text-white/60">
+                Photo {previewImageIndex + 1} sur {formData.images.filter(Boolean).length}
+              </span>
+              {previewImageIndex === 0 && (
+                <span className="bg-[var(--or)] text-black font-semibold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <Star className="w-2.5 h-2.5 fill-black" />
+                  Couverture principale
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setPreviewImageIndex(null)}
+              className="p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+              title="Fermer l'aperçu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Central Image with navigation arrows */}
+          <div
+            className="relative flex-1 w-full max-w-5xl flex items-center justify-center p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Prev arrow */}
+            {formData.images.filter(Boolean).length > 1 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setPreviewImageIndex(
+                    (prev) =>
+                      (prev! - 1 + formData.images.filter(Boolean).length) %
+                      formData.images.filter(Boolean).length
+                  )
+                }
+                className="absolute left-2 sm:left-4 z-10 p-3 bg-black/60 hover:bg-black text-white rounded-full transition-all border border-white/10 hover:scale-105 cursor-pointer"
+                title="Photo précédente"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+
+            {/* Main high-res picture */}
+            <img
+              src={formData.images.filter(Boolean)[previewImageIndex]}
+              alt={`Aperçu grand format ${previewImageIndex + 1}`}
+              className="max-h-[70vh] sm:max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl border border-white/10"
+            />
+
+            {/* Next arrow */}
+            {formData.images.filter(Boolean).length > 1 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setPreviewImageIndex(
+                    (prev) => (prev! + 1) % formData.images.filter(Boolean).length
+                  )
+                }
+                className="absolute right-2 sm:right-4 z-10 p-3 bg-black/60 hover:bg-black text-white rounded-full transition-all border border-white/10 hover:scale-105 cursor-pointer"
+                title="Photo suivante"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Controls */}
+          <div
+            className="w-full max-w-md flex items-center justify-center gap-3 py-2 flex-wrap"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {previewImageIndex !== 0 && (
+              <button
+                type="button"
+                onClick={() => handleSetMainImage(previewImageIndex)}
+                className="px-4 py-2 bg-[var(--or)] text-black font-semibold text-xs rounded-xl hover:opacity-90 flex items-center gap-1.5 shadow-lg transition-all cursor-pointer"
+              >
+                <Star className="w-3.5 h-3.5 fill-black" />
+                <span>Définir comme couverture</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => handleRemoveImage(previewImageIndex)}
+              className="px-4 py-2 bg-rose-600/80 hover:bg-rose-600 text-white font-medium text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Supprimer cette photo</span>
+            </button>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 };
