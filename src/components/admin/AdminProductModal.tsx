@@ -269,10 +269,10 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       title={product ? `Modifier la montre : ${product.name}` : 'Ajouter une nouvelle montre'}
       maxWidth="3xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-6 text-stone-100">
+      <form onSubmit={handleSubmit} className="space-y-6 text-[var(--text)]">
         {error && (
-          <div className="p-3 bg-rose-950 border border-rose-800 text-rose-200 text-xs rounded-lg flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-200 text-xs rounded-lg flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
             <span>{error}</span>
           </div>
         )}
@@ -280,8 +280,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         {/* Basic identification */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="sm:col-span-2">
-            <label className="block text-xs text-stone-300 font-medium mb-1">
-              Nom de la montre <span className="text-amber-400">*</span>
+            <label className="block text-xs text-[var(--text)] font-semibold mb-1">
+              Nom de la montre <span className="text-[var(--or)]">*</span>
             </label>
             <input
               type="text"
@@ -290,12 +290,12 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               value={formData.name}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="Ex: Chronographe Royal Ébène"
-              className="w-full bg-stone-950 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-stone-300 font-medium mb-1">
+            <label className="block text-xs text-[var(--text)] font-medium mb-1">
               Marque / Maison
             </label>
             <input
@@ -304,12 +304,12 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               value={formData.brand}
               onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
               placeholder="Ex: Vanguard Genève"
-              className="w-full bg-stone-950 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-stone-300 font-medium mb-1">
+            <label className="block text-xs text-[var(--text)] font-medium mb-1">
               Référence modèle
             </label>
             <input
@@ -318,19 +318,19 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               value={formData.reference}
               onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
               placeholder="Ex: VG-8840-BK"
-              className="w-full bg-stone-950 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-stone-300 font-medium mb-1">
+            <label className="block text-xs text-[var(--text)] font-medium mb-1">
               Collection / Catégorie
             </label>
             <select
               id="admin-product-category"
               value={formData.categoryId}
               onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-              className="w-full bg-stone-950 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs"
             >
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -341,14 +341,14 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs text-stone-300 font-medium mb-1">
+            <label className="block text-xs text-[var(--text)] font-medium mb-1">
               Genre
             </label>
             <select
               id="admin-product-gender"
               value={formData.gender}
               onChange={(e) => setFormData({ ...formData, gender: e.target.value as Gender })}
-              className="w-full bg-stone-950 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white focus:outline-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs"
             >
               <option value="homme">Homme</option>
               <option value="femme">Femme</option>
@@ -358,10 +358,10 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         </div>
 
         {/* Pricing & Stocks */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 bg-stone-950 rounded-xl border border-stone-800">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)]">
           <div>
-            <label className="block text-xs text-stone-300 font-medium mb-1">
-              Prix ({formData.currency}) <span className="text-amber-400">*</span>
+            <label className="block text-xs text-[var(--text)] font-semibold mb-1">
+              Prix ({formData.currency}) <span className="text-[var(--or)]">*</span>
             </label>
             <input
               type="number"
@@ -371,12 +371,12 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               id="admin-product-price"
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-              className="w-full bg-stone-900 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white focus:outline-none font-mono font-bold"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] focus:outline-none font-mono font-bold shadow-xs"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-stone-300 font-medium mb-1">
+            <label className="block text-xs text-[var(--text)] font-medium mb-1">
               Prix Promo ({formData.currency})
             </label>
             <input
@@ -387,13 +387,13 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               value={formData.promotionalPrice}
               onChange={(e) => setFormData({ ...formData, promotionalPrice: e.target.value })}
               placeholder="Facultatif"
-              className="w-full bg-stone-900 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none font-mono"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none font-mono shadow-xs"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-stone-300 font-medium mb-1">
-              Stock numérique <span className="text-amber-400">*</span>
+            <label className="block text-xs text-[var(--text)] font-semibold mb-1">
+              Stock numérique <span className="text-[var(--or)]">*</span>
             </label>
             <input
               type="number"
@@ -402,12 +402,12 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               id="admin-product-stock"
               value={formData.stock}
               onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-              className="w-full bg-stone-900 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white focus:outline-none font-mono"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] focus:outline-none font-mono shadow-xs"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-stone-300 font-medium mb-1">
+            <label className="block text-xs text-[var(--text)] font-medium mb-1">
               Seuil Stock Faible
             </label>
             <input
@@ -416,7 +416,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               id="admin-product-low-stock"
               value={formData.lowStockThreshold}
               onChange={(e) => setFormData({ ...formData, lowStockThreshold: Number(e.target.value) })}
-              className="w-full bg-stone-900 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white focus:outline-none font-mono"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] focus:outline-none font-mono shadow-xs"
             />
           </div>
         </div>
@@ -424,7 +424,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         {/* Photos & Image Uploader */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="block text-xs text-stone-300 font-medium">
+            <label className="block text-xs text-[var(--text)] font-semibold">
               Galerie Photos (Upload direct ou Liens HD)
             </label>
             <div className="flex items-center gap-2">
@@ -432,7 +432,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingImage}
-                className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1.5 font-medium px-2 py-1 bg-amber-400/10 rounded-md border border-amber-400/20 transition-colors"
+                className="text-xs text-[var(--or)] hover:opacity-80 flex items-center gap-1.5 font-medium px-2.5 py-1.5 bg-[var(--or)]/10 rounded-lg border border-[var(--or)]/30 transition-colors"
               >
                 {uploadingImage ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -444,7 +444,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               <button
                 type="button"
                 onClick={handleAddImageField}
-                className="text-xs text-stone-400 hover:text-white flex items-center gap-1 font-medium px-2 py-1 bg-stone-900 rounded-md border border-stone-800"
+                className="text-xs text-[var(--text-soft)] hover:text-[var(--text)] flex items-center gap-1 font-medium px-2.5 py-1.5 bg-[var(--carte-bg)] hover:bg-[var(--carte-bg-subtle)] rounded-lg border border-[var(--sep)] transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Lien URL</span>
@@ -469,20 +469,20 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                   value={imgUrl}
                   onChange={(e) => handleImageChange(idx, e.target.value)}
                   placeholder="https://images.unsplash.com/..."
-                  className="flex-1 bg-stone-950 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-1.5 text-xs text-white placeholder-stone-500 focus:outline-none"
+                  className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
                 />
                 {imgUrl && (
                   <img
                     src={imgUrl}
                     alt="Aperçu"
-                    className="w-8 h-8 rounded-md object-cover border border-stone-800 shrink-0"
+                    className="w-9 h-9 rounded-lg object-cover border border-[var(--sep)] shrink-0"
                   />
                 )}
                 {formData.images.length > 1 && (
                   <button
                     type="button"
                     onClick={() => handleRemoveImageField(idx)}
-                    className="p-2 text-stone-400 hover:text-rose-400"
+                    className="p-2 text-[var(--text-muted)] hover:text-rose-500 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -495,7 +495,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         {/* Descriptions */}
         <div className="space-y-3">
           <div>
-            <label className="block text-xs text-stone-300 font-medium mb-1">
+            <label className="block text-xs text-[var(--text)] font-semibold mb-1">
               Description courte (accroche catalogue)
             </label>
             <input
@@ -504,12 +504,12 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               value={formData.shortDescription}
               onChange={(e) => setFormData({ ...formData, shortDescription: e.target.value })}
               placeholder="Ex: Chronographe automatique en acier brossé avec cadran noir soleillé."
-              className="w-full bg-stone-950 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
             />
           </div>
 
           <div>
-            <label className="block text-xs text-stone-300 font-medium mb-1">
+            <label className="block text-xs text-[var(--text)] font-semibold mb-1">
               Description détaillée
             </label>
             <textarea
@@ -518,19 +518,19 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Description complète, finitions, histoire et caractéristiques..."
-              className="w-full bg-stone-950 border border-stone-800 focus:border-amber-400 rounded-lg px-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none resize-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none resize-none shadow-xs"
             />
           </div>
         </div>
 
         {/* Specifications Table */}
-        <div className="p-4 bg-stone-950 rounded-xl border border-stone-800 space-y-3">
-          <h4 className="text-xs font-serif font-semibold uppercase tracking-wider text-amber-400">
+        <div className="p-4 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] space-y-3">
+          <h4 className="text-xs font-serif font-bold uppercase tracking-wider text-[var(--or)]">
             Spécifications Horlogères (Fiche technique)
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-[11px] text-stone-400 mb-0.5">Mouvement</label>
+              <label className="block text-[11px] text-[var(--text-soft)] mb-0.5">Mouvement</label>
               <input
                 type="text"
                 value={formData.specifications.movement}
@@ -541,11 +541,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                   })
                 }
                 placeholder="Ex: Automatique Suisse 28 800 alt/h"
-                className="w-full bg-stone-900 border border-stone-800 rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)] focus:border-[var(--or)] focus:outline-none shadow-xs"
               />
             </div>
             <div>
-              <label className="block text-[11px] text-stone-400 mb-0.5">Diamètre du boîtier</label>
+              <label className="block text-[11px] text-[var(--text-soft)] mb-0.5">Diamètre du boîtier</label>
               <input
                 type="text"
                 value={formData.specifications.caseDiameter}
@@ -556,11 +556,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                   })
                 }
                 placeholder="Ex: 41 mm"
-                className="w-full bg-stone-900 border border-stone-800 rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)] focus:border-[var(--or)] focus:outline-none shadow-xs"
               />
             </div>
             <div>
-              <label className="block text-[11px] text-stone-400 mb-0.5">Matière du boîtier</label>
+              <label className="block text-[11px] text-[var(--text-soft)] mb-0.5">Matière du boîtier</label>
               <input
                 type="text"
                 value={formData.specifications.caseMaterial}
@@ -571,11 +571,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                   })
                 }
                 placeholder="Ex: Acier inoxydable 316L"
-                className="w-full bg-stone-900 border border-stone-800 rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)] focus:border-[var(--or)] focus:outline-none shadow-xs"
               />
             </div>
             <div>
-              <label className="block text-[11px] text-stone-400 mb-0.5">Étanchéité</label>
+              <label className="block text-[11px] text-[var(--text-soft)] mb-0.5">Étanchéité</label>
               <input
                 type="text"
                 value={formData.specifications.waterResistance}
@@ -586,11 +586,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                   })
                 }
                 placeholder="Ex: 10 ATM (100m)"
-                className="w-full bg-stone-900 border border-stone-800 rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)] focus:border-[var(--or)] focus:outline-none shadow-xs"
               />
             </div>
             <div>
-              <label className="block text-[11px] text-stone-400 mb-0.5">Verre</label>
+              <label className="block text-[11px] text-[var(--text-soft)] mb-0.5">Verre</label>
               <input
                 type="text"
                 value={formData.specifications.glass}
@@ -601,11 +601,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                   })
                 }
                 placeholder="Ex: Verre Saphir inrayable"
-                className="w-full bg-stone-900 border border-stone-800 rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)] focus:border-[var(--or)] focus:outline-none shadow-xs"
               />
             </div>
             <div>
-              <label className="block text-[11px] text-stone-400 mb-0.5">Bracelet</label>
+              <label className="block text-[11px] text-[var(--text-soft)] mb-0.5">Bracelet</label>
               <input
                 type="text"
                 value={formData.specifications.strapMaterial}
@@ -616,7 +616,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                   })
                 }
                 placeholder="Ex: Cuir véritable / Acier"
-                className="w-full bg-stone-900 border border-stone-800 rounded-md px-2.5 py-1.5 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text)] focus:border-[var(--or)] focus:outline-none shadow-xs"
               />
             </div>
           </div>
@@ -624,34 +624,34 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
 
         {/* Toggles: Active & Featured */}
         <div className="flex flex-wrap gap-6 pt-1">
-          <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-stone-200">
+          <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-[var(--text)]">
             <input
               type="checkbox"
               id="admin-product-active-toggle"
               checked={formData.active}
               onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-              className="w-4 h-4 rounded text-amber-500 bg-stone-950 border-stone-800 focus:ring-0"
+              className="w-4 h-4 rounded text-amber-500 bg-[var(--input-bg)] border-[var(--sep)] focus:ring-0 accent-amber-500"
             />
             <span>Produit Actif (Visible sur la boutique publique)</span>
           </label>
 
-          <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-amber-300">
+          <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-[var(--or)]">
             <input
               type="checkbox"
               id="admin-product-featured-toggle"
               checked={formData.featured}
               onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
-              className="w-4 h-4 rounded text-amber-500 bg-stone-950 border-stone-800 focus:ring-0"
+              className="w-4 h-4 rounded text-amber-500 bg-[var(--input-bg)] border-[var(--sep)] focus:ring-0 accent-amber-500"
             />
             <span className="flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <Sparkles className="w-3.5 h-3.5 text-[var(--or)]" />
               <span>Pièce Vedette (Mise en avant sur l'accueil)</span>
             </span>
           </label>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-stone-800">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--sep)]">
           <Button
             type="button"
             variant="outline"

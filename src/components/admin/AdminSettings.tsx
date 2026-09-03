@@ -160,38 +160,38 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
   };
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-8 max-w-4xl text-[var(--text)]">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-800 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--sep)] pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <Settings className="w-5 h-5 text-[#D4AF37]" />
-            <h2 className="font-serif text-xl font-bold text-stone-100 uppercase tracking-wide">
+            <Settings className="w-5 h-5 text-[var(--or)]" />
+            <h2 className="font-serif text-xl sm:text-2xl font-bold text-[var(--text)] uppercase tracking-wide">
               Paramètres de la Boutique
             </h2>
           </div>
-          <p className="text-xs text-stone-400 mt-1">
+          <p className="text-xs sm:text-sm text-[var(--text-soft)] mt-1">
             Gestion centralisée de l'identité, du numéro WhatsApp professionnel, des messages par défaut et des devises.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-950/40 border border-emerald-700/60 rounded-xl text-emerald-400 text-xs self-start sm:self-auto">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="flex items-center gap-2 px-3.5 py-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs self-start sm:self-auto">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="font-medium">WhatsApp Connecté :</span>
-          <span className="font-mono font-bold text-white">{cleanWhatsApp ? `+${cleanWhatsApp}` : 'Non configuré'}</span>
+          <span className="font-mono font-bold text-[var(--text)]">{cleanWhatsApp ? `+${cleanWhatsApp}` : 'Non configuré'}</span>
         </div>
       </div>
 
       {successMsg && (
-        <div className="p-3.5 bg-emerald-950/90 border border-emerald-600 text-emerald-100 text-xs rounded-xl flex items-center gap-2.5 shadow-lg shadow-emerald-950/40">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs rounded-xl flex items-center gap-2.5 shadow-sm">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {errorMsg && (
-        <div className="p-3.5 bg-rose-950/90 border border-rose-600 text-rose-100 text-xs rounded-xl flex items-center gap-2.5 shadow-lg shadow-rose-950/40">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs rounded-xl flex items-center gap-2.5 shadow-sm">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
           <span>{errorMsg}</span>
         </div>
       )}
@@ -200,29 +200,29 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         {/* ==================================================== */}
         {/* 1. GESTION DU NUMÉRO WHATSAPP PROFESSIONNEL (PRIORITÉ) */}
         {/* ==================================================== */}
-        <div className="p-6 bg-gradient-to-br from-stone-900/90 to-stone-950/90 rounded-2xl border-2 border-[#D4AF37]/40 shadow-xl space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-800 pb-3">
+        <div className="p-6 bg-[var(--carte-bg)] rounded-2xl border-2 border-[var(--or)]/40 shadow-sm space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--sep)] pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-lg bg-[#25D366]/20 border border-[#25D366]/40 text-[#25D366]">
+              <div className="p-2 rounded-xl bg-[#25D366]/15 border border-[#25D366]/30 text-[#25D366]">
                 <MessageSquare className="w-5 h-5 fill-current" />
               </div>
               <div>
-                <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                <h3 className="font-serif text-sm font-bold uppercase tracking-wider text-[var(--text)] flex items-center gap-2">
                   <span>Numéro WhatsApp Professionnel</span>
-                  <span className="text-[10px] px-2 py-0.5 bg-[#25D366]/20 text-[#25D366] rounded-md font-sans border border-[#25D366]/30 uppercase tracking-widest">
+                  <span className="text-[10px] px-2 py-0.5 bg-[#25D366]/15 text-emerald-600 dark:text-[#25D366] rounded-md font-sans border border-[#25D366]/30 uppercase tracking-widest font-semibold">
                     Source Unique
                   </span>
                 </h3>
-                <p className="text-[11px] text-stone-400">
+                <p className="text-[11px] text-[var(--text-soft)]">
                   Le numéro WhatsApp utilisé dynamiquement sur l'ensemble du site et du panier d'achat.
                 </p>
               </div>
             </div>
 
             {/* Current Active Number Badge */}
-            <div className="bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2 flex items-center gap-2 self-start sm:self-auto">
-              <span className="text-[10px] uppercase tracking-wider text-stone-400">Actif :</span>
-              <span className="font-mono text-xs font-bold text-[#25D366]">
+            <div className="bg-[var(--bg-2)] border border-[var(--sep)] rounded-xl px-3.5 py-2 flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Actif :</span>
+              <span className="font-mono text-xs font-bold text-emerald-600 dark:text-[#25D366]">
                 {formattedDisplay}
               </span>
             </div>
@@ -231,8 +231,8 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Input field for WhatsApp number */}
             <div className="space-y-2">
-              <label htmlFor="settings-whatsapp-number" className="block text-xs text-stone-200 font-semibold">
-                Numéro WhatsApp de réception <span className="text-[#D4AF37]">*</span>
+              <label htmlFor="settings-whatsapp-number" className="block text-xs text-[var(--text)] font-semibold">
+                Numéro WhatsApp de réception <span className="text-[var(--or)]">*</span>
               </label>
               <div className="relative">
                 <input
@@ -242,16 +242,16 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                   value={formData.whatsappNumber}
                   onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
                   placeholder="Ex: +237 6 99 00 11 22 ou +33 6 12 34 56 78"
-                  className={`w-full bg-stone-950 border ${
-                    whatsAppValidation.isValid ? 'border-stone-800 focus:border-[#D4AF37]' : 'border-rose-600'
-                  } rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none font-mono tracking-wider`}
+                  className={`w-full bg-[var(--input-bg)] border ${
+                    whatsAppValidation.isValid ? 'border-[var(--input-border)] focus:border-[var(--or)]' : 'border-rose-500'
+                  } rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none font-mono tracking-wider shadow-xs`}
                 />
               </div>
-              <p className="text-[11px] text-stone-400 leading-relaxed font-sans">
-                Saisissez le numéro avec l'indicatif international (ex: <code className="text-[#D4AF37] font-mono">+237...</code> pour le Cameroun, <code className="text-[#D4AF37] font-mono">+33...</code> pour la France, <code className="text-[#D4AF37] font-mono">+225...</code> pour la Côte d'Ivoire).
+              <p className="text-[11px] text-[var(--text-soft)] leading-relaxed font-sans">
+                Saisissez le numéro avec l'indicatif international (ex: <code className="text-[var(--or)] font-mono font-bold">+237...</code> pour le Cameroun, <code className="text-[var(--or)] font-mono font-bold">+33...</code> pour la France, <code className="text-[var(--or)] font-mono font-bold">+225...</code> pour la Côte d'Ivoire).
               </p>
               {!whatsAppValidation.isValid && (
-                <p className="text-[11px] text-rose-400 flex items-center gap-1">
+                <p className="text-[11px] text-rose-500 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   <span>{whatsAppValidation.error}</span>
                 </p>
@@ -259,20 +259,20 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
             </div>
 
             {/* Generated wa.me URL Preview & Quick Test */}
-            <div className="bg-stone-950/80 rounded-xl border border-stone-800 p-4 space-y-3 flex flex-col justify-between">
+            <div className="bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] p-4 space-y-3 flex flex-col justify-between">
               <div>
-                <span className="text-[10px] uppercase tracking-wider text-stone-400 font-semibold block mb-1">
+                <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-semibold block mb-1">
                   Lien direct généré automatiquement
                 </span>
-                <div className="flex items-center gap-2 bg-black/60 px-3 py-2 rounded-lg border border-white/10 text-xs font-mono text-[#25D366] overflow-hidden">
+                <div className="flex items-center gap-2 bg-[var(--bg)] px-3 py-2 rounded-lg border border-[var(--sep)] text-xs font-mono text-emerald-600 dark:text-[#25D366] overflow-hidden">
                   <span className="truncate">https://wa.me/{cleanWhatsApp}</span>
                   <button
                     type="button"
                     onClick={handleCopyUrl}
-                    className="ml-auto text-stone-400 hover:text-white p-1 transition-colors"
+                    className="ml-auto text-[var(--text-muted)] hover:text-[var(--text)] p-1 transition-colors"
                     title="Copier le lien"
                   >
-                    {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedUrl ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
@@ -282,7 +282,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                   href={testWhatsAppUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full py-2 px-3 bg-[#25D366]/20 hover:bg-[#25D366]/30 border border-[#25D366]/50 text-[#25D366] rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+                  className="w-full py-2.5 px-3 bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/40 text-emerald-700 dark:text-[#25D366] rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-xs"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Tester le lien WhatsApp</span>
@@ -292,8 +292,8 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
           </div>
 
           {/* Customizable Default WhatsApp Message */}
-          <div className="pt-2 border-t border-stone-800/80 space-y-2">
-            <label htmlFor="settings-whatsapp-default-message" className="block text-xs text-stone-200 font-semibold">
+          <div className="pt-2 border-t border-[var(--sep)] space-y-2">
+            <label htmlFor="settings-whatsapp-default-message" className="block text-xs text-[var(--text)] font-semibold">
               Message WhatsApp par défaut (Information & Conseil)
             </label>
             <textarea
@@ -311,10 +311,10 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                 })
               }
               placeholder="Ex: Bonjour, je souhaite obtenir des informations sur cette montre d'exception et connaître sa disponibilité."
-              className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl p-3 text-xs text-white focus:outline-none resize-none leading-relaxed font-sans"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl p-3 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none resize-none leading-relaxed font-sans shadow-xs"
             />
-            <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xl text-[11px] text-stone-400 leading-relaxed space-y-1">
-              <span className="font-semibold text-[#D4AF37] block font-serif uppercase tracking-wider text-[10px]">
+            <div className="p-3 bg-[var(--carte-bg-subtle)] border border-[var(--sep)] rounded-xl text-[11px] text-[var(--text-soft)] leading-relaxed space-y-1">
+              <span className="font-semibold text-[var(--or)] block font-serif uppercase tracking-wider text-[10px]">
                 Structure automatique des messages de commande :
               </span>
               <p>
@@ -327,8 +327,8 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         {/* ==================================================== */}
         {/* 2. IDENTITÉ VISUELLE & BRANDING DE LA BOUTIQUE      */}
         {/* ==================================================== */}
-        <div className="p-6 bg-stone-900/60 rounded-2xl border border-stone-800 space-y-5">
-          <h3 className="font-serif text-sm font-semibold uppercase tracking-wider text-[#D4AF37] flex items-center gap-2">
+        <div className="p-6 bg-[var(--carte-bg)] rounded-2xl border border-[var(--sep)] shadow-sm space-y-5">
+          <h3 className="font-serif text-sm font-semibold uppercase tracking-wider text-[var(--or)] flex items-center gap-2">
             <Watch className="w-4 h-4" />
             <span>Identité Visuelle & Logo de la Maison</span>
           </h3>
@@ -336,8 +336,8 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <label htmlFor="settings-store-name" className="block text-xs text-stone-300 font-medium mb-1">
-                  Nom de la Boutique / Maison <span className="text-[#D4AF37]">*</span>
+                <label htmlFor="settings-store-name" className="block text-xs text-[var(--text)] font-medium mb-1">
+                  Nom de la Boutique / Maison <span className="text-[var(--or)]">*</span>
                 </label>
                 <input
                   type="text"
@@ -345,12 +345,12 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                   id="settings-store-name"
                   value={formData.name || formData.storeName || ''}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value, storeName: e.target.value })}
-                  className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
                 />
               </div>
 
               <div>
-                <label htmlFor="settings-store-description" className="block text-xs text-stone-300 font-medium mb-1">
+                <label htmlFor="settings-store-description" className="block text-xs text-[var(--text)] font-medium mb-1">
                   Description courte / Slogan
                 </label>
                 <textarea
@@ -359,12 +359,12 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                   value={formData.description || ''}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Maison d'Horlogerie de Prestige & Garde-Temps d'Exception"
-                  className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none resize-none"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none resize-none shadow-xs"
                 />
               </div>
 
               <div>
-                <label htmlFor="settings-favicon-url" className="block text-xs text-stone-300 font-medium mb-1">
+                <label htmlFor="settings-favicon-url" className="block text-xs text-[var(--text)] font-medium mb-1">
                   URL de l'Icône / Favicon
                 </label>
                 <div className="flex items-center gap-2">
@@ -374,10 +374,10 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                     value={formData.faviconUrl || ''}
                     onChange={(e) => setFormData({ ...formData, faviconUrl: e.target.value })}
                     placeholder="/favicon.svg ou https://..."
-                    className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs text-white focus:outline-none font-mono text-[11px]"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none font-mono text-[11px] shadow-xs"
                   />
-                  <label className="cursor-pointer px-3 py-2 bg-stone-950 hover:bg-stone-800 border border-stone-800 text-stone-300 rounded-xl text-xs font-medium shrink-0 flex items-center gap-1.5 transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <label className="cursor-pointer px-3 py-2 bg-[var(--bg-2)] hover:bg-[var(--badge-bg)] border border-[var(--sep)] text-[var(--text)] rounded-xl text-xs font-medium shrink-0 flex items-center gap-1.5 transition-colors">
+                    <Upload className="w-3.5 h-3.5 text-[var(--or)]" />
                     <span>{uploadingFavicon ? '...' : 'Upload'}</span>
                     <input
                       type="file"
@@ -393,33 +393,33 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
 
             {/* Logo Manager & Preview */}
             <div className="space-y-3">
-              <label className="block text-xs text-stone-300 font-medium">
+              <label className="block text-xs text-[var(--text)] font-medium">
                 Prévisualisation du Logo & de la Marque
               </label>
 
-              <div className="p-4 bg-stone-950 rounded-xl border border-stone-800 space-y-3">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-stone-800/80 pb-3">
+              <div className="p-4 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] space-y-3">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-[var(--sep)] pb-3">
                   <div className="flex items-center gap-3">
-                    <WatchEmblem size={44} theme="dark" />
+                    <WatchEmblem size={44} />
                     <div>
-                      <div className="text-xs font-serif font-bold text-[#D4AF37] uppercase tracking-wider">
+                      <div className="text-xs font-serif font-bold text-[var(--or)] uppercase tracking-wider">
                         {formData.name || formData.storeName || "L'Écrin du Temps"}
                       </div>
-                      <div className="text-[10px] text-stone-400 font-serif tracking-[0.2em] uppercase">
+                      <div className="text-[10px] text-[var(--text-muted)] font-serif tracking-[0.2em] uppercase">
                         Horlogerie d'Exception
                       </div>
                     </div>
                   </div>
-                  <span className="text-[10px] px-2.5 py-1 bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30 rounded-full font-medium">
+                  <span className="text-[10px] px-2.5 py-1 bg-[var(--or)]/10 text-[var(--or)] border border-[var(--or)]/30 rounded-full font-medium">
                     Logo Actif
                   </span>
                 </div>
 
                 {/* Custom Logo Upload & Override */}
                 <div className="flex items-center justify-between gap-4 pt-1">
-                  <div className="text-xs text-stone-400">
+                  <div className="text-xs text-[var(--text-soft)]">
                     {formData.logo && !formData.logo.includes('logo-dark') ? (
-                      <span className="text-emerald-400 flex items-center gap-1.5">
+                      <span className="text-emerald-500 flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         Logo personnalisé actif
                       </span>
@@ -429,8 +429,8 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <label className="cursor-pointer px-3 py-1.5 bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-200 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors">
-                      <Upload className="w-3.5 h-3.5 text-[#D4AF37]" />
+                    <label className="cursor-pointer px-3 py-1.5 bg-[var(--bg-2)] hover:bg-[var(--badge-bg)] border border-[var(--sep)] text-[var(--text)] rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors">
+                      <Upload className="w-3.5 h-3.5 text-[var(--or)]" />
                       <span>{uploadingLogo ? 'Envoi...' : 'Téléverser'}</span>
                       <input
                         type="file"
@@ -445,7 +445,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, logo: '/logo-dark.svg', logoUrl: '/logo-dark.svg' })}
-                        className="p-1.5 text-stone-500 hover:text-rose-400 rounded-lg hover:bg-stone-900"
+                        className="p-1.5 text-[var(--text-muted)] hover:text-rose-500 rounded-lg hover:bg-[var(--bg-2)] transition-colors"
                         title="Rétablir le logo officiel vectoriel"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -461,22 +461,22 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         {/* ==================================================== */}
         {/* 3. DEVISE & GESTION DES STOCKS                       */}
         {/* ==================================================== */}
-        <div className="p-6 bg-stone-900/60 rounded-2xl border border-stone-800 space-y-4">
-          <h3 className="font-serif text-sm font-semibold uppercase tracking-wider text-[#D4AF37] flex items-center gap-2">
+        <div className="p-6 bg-[var(--carte-bg)] rounded-2xl border border-[var(--sep)] shadow-sm space-y-4">
+          <h3 className="font-serif text-sm font-semibold uppercase tracking-wider text-[var(--or)] flex items-center gap-2">
             <DollarSign className="w-4 h-4" />
             <span>Devise & Alertes de Stock</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label htmlFor="settings-currency" className="block text-xs text-stone-300 font-medium mb-1">
+              <label htmlFor="settings-currency" className="block text-xs text-[var(--text)] font-medium mb-1">
                 Symbole Devise
               </label>
               <select
                 id="settings-currency"
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs"
               >
                 <option value="€">EUR (€)</option>
                 <option value="FCFA">FCFA (XOF / XAF)</option>
@@ -489,7 +489,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
             </div>
 
             <div>
-              <label htmlFor="settings-default-low-stock" className="block text-xs text-stone-300 font-medium mb-1">
+              <label htmlFor="settings-default-low-stock" className="block text-xs text-[var(--text)] font-medium mb-1">
                 Seuil d'alerte stock faible
               </label>
               <input
@@ -500,12 +500,12 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                 onChange={(e) =>
                   setFormData({ ...formData, defaultLowStockThreshold: Number(e.target.value) })
                 }
-                className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs text-white focus:outline-none font-mono"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none font-mono shadow-xs"
               />
             </div>
 
             <div>
-              <label htmlFor="settings-shipping-fee" className="block text-xs text-stone-300 font-medium mb-1">
+              <label htmlFor="settings-shipping-fee" className="block text-xs text-[var(--text)] font-medium mb-1">
                 Frais d'expédition ({formData.currency})
               </label>
               <input
@@ -516,16 +516,16 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                 onChange={(e) =>
                   setFormData({ ...formData, shippingFee: Number(e.target.value) })
                 }
-                className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs text-white focus:outline-none font-mono"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none font-mono shadow-xs"
               />
-              <p className="text-[10px] text-stone-400 mt-1">
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">
                 0 = Frais de port offerts aux clients.
               </p>
             </div>
           </div>
 
           <div>
-            <label htmlFor="settings-shipping-msg" className="block text-xs text-stone-300 font-medium mb-1">
+            <label htmlFor="settings-shipping-msg" className="block text-xs text-[var(--text)] font-medium mb-1">
               Conditions et message d'expédition
             </label>
             <input
@@ -534,7 +534,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
               value={formData.shippingMessage || ''}
               onChange={(e) => setFormData({ ...formData, shippingMessage: e.target.value })}
               placeholder="Ex: Expédition sécurisée sous 24-48h avec assurance valeur déclarée"
-              className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
             />
           </div>
         </div>
@@ -542,15 +542,15 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         {/* ==================================================== */}
         {/* 4. INFORMATIONS DE CONTACT & RÉSEAUX SOCIAUX         */}
         {/* ==================================================== */}
-        <div className="p-6 bg-stone-900/60 rounded-2xl border border-stone-800 space-y-4">
-          <h3 className="font-serif text-sm font-semibold uppercase tracking-wider text-[#D4AF37] flex items-center gap-2">
+        <div className="p-6 bg-[var(--carte-bg)] rounded-2xl border border-[var(--sep)] shadow-sm space-y-4">
+          <h3 className="font-serif text-sm font-semibold uppercase tracking-wider text-[var(--or)] flex items-center gap-2">
             <Mail className="w-4 h-4" />
             <span>Coordonnées Publiques & Réseaux Sociaux</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs text-stone-300 font-medium mb-1">
+              <label className="block text-xs text-[var(--text)] font-medium mb-1">
                 Email de contact
               </label>
               <input
@@ -565,12 +565,12 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                     }
                   })
                 }
-                className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-stone-300 font-medium mb-1">
+              <label className="block text-xs text-[var(--text)] font-medium mb-1">
                 Téléphone d'accueil
               </label>
               <input
@@ -585,12 +585,12 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                     }
                   })
                 }
-                className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-stone-300 font-medium mb-1">
+              <label className="block text-xs text-[var(--text)] font-medium mb-1">
                 Adresse / Showroom
               </label>
               <input
@@ -605,14 +605,14 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                     }
                   })
                 }
-                className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <div>
-              <label className="block text-xs text-stone-300 font-medium mb-1">
+              <label className="block text-xs text-[var(--text)] font-medium mb-1">
                 Lien Instagram
               </label>
               <input
@@ -628,12 +628,12 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                   })
                 }
                 placeholder="https://instagram.com/..."
-                className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
               />
             </div>
 
             <div>
-              <label className="block text-xs text-stone-300 font-medium mb-1">
+              <label className="block text-xs text-[var(--text)] font-medium mb-1">
                 Lien Facebook
               </label>
               <input
@@ -649,7 +649,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
                   })
                 }
                 placeholder="https://facebook.com/..."
-                className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
               />
             </div>
           </div>
@@ -658,32 +658,32 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         {/* ==================================================== */}
         {/* 5. SÉCURITÉ & ZONE DE RÉINITIALISATION               */}
         {/* ==================================================== */}
-        <div className="p-5 bg-stone-900 border border-stone-800 rounded-2xl space-y-4">
-          <div className="flex items-center gap-2 text-white font-serif text-sm font-semibold">
-            <ShieldCheck className="w-4 h-4 text-[#D4AF37]" />
+        <div className="p-5 bg-[var(--carte-bg)] border border-[var(--sep)] rounded-2xl shadow-sm space-y-4">
+          <div className="flex items-center gap-2 text-[var(--text)] font-serif text-sm font-semibold">
+            <ShieldCheck className="w-4 h-4 text-[var(--or)]" />
             <span>Sécurité & Rôle Administrateur</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div className="p-3 bg-stone-950 rounded-xl border border-stone-800/80 space-y-1">
-              <div className="flex items-center gap-1.5 text-stone-300 font-medium">
-                <UserCheck className="w-3.5 h-3.5 text-[#D4AF37]" />
+            <div className="p-3.5 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] space-y-1">
+              <div className="flex items-center gap-1.5 text-[var(--text)] font-medium">
+                <UserCheck className="w-3.5 h-3.5 text-[var(--or)]" />
                 <span>Session Administrateur Active</span>
               </div>
-              <p className="text-stone-400 font-mono text-[11px] truncate">
+              <p className="text-[var(--text-soft)] font-mono text-[11px] truncate">
                 {user?.email || 'Compte Propriétaire Authentifié'}
               </p>
-              <p className="text-[10px] text-emerald-400">
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
                 Règles de sécurité Firestore actives (CRUD réservé à l'administrateur)
               </p>
             </div>
 
-            <div className="p-3 bg-stone-950 rounded-xl border border-stone-800/80 space-y-1">
-              <span className="text-stone-300 font-medium block">Collections Protégées</span>
-              <p className="text-stone-400 text-[11px]">
+            <div className="p-3.5 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] space-y-1">
+              <span className="text-[var(--text)] font-medium block">Collections Protégées</span>
+              <p className="text-[var(--text-soft)] text-[11px]">
                 /products, /categories, /orders, /settings, /admins
               </p>
-              <p className="text-[10px] text-stone-500">
+              <p className="text-[10px] text-[var(--text-muted)]">
                 Synchronisation temps réel Firestore activée
               </p>
             </div>
@@ -691,14 +691,14 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         </div>
 
         {/* Danger Zone & Reset Store */}
-        <div className="p-5 bg-rose-950/20 border border-rose-900/40 rounded-2xl space-y-3">
+        <div className="p-5 bg-rose-500/10 border border-rose-500/25 rounded-2xl space-y-3">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <h4 className="text-xs font-bold text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Trash2 className="w-4 h-4 text-rose-400" />
+              <h4 className="text-xs font-bold text-rose-600 dark:text-rose-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Trash2 className="w-4 h-4 text-rose-500" />
                 <span>Zone de Réinitialisation (RESET)</span>
               </h4>
-              <p className="text-[11px] text-stone-400">
+              <p className="text-[11px] text-[var(--text-soft)]">
                 Purger les commandes et le catalogue de test avant le lancement réel en production.
               </p>
             </div>
@@ -709,7 +709,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
               size="sm"
               onClick={() => setResetModalOpen(true)}
               icon={Trash2}
-              className="bg-rose-900/80 hover:bg-rose-800 text-rose-100 text-xs border border-rose-700"
+              className="text-xs"
             >
               RESET Boutique
             </Button>
@@ -717,7 +717,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         </div>
 
         {/* Action Controls & Save */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-stone-800">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[var(--sep)]">
           <Button
             type="button"
             variant="outline"
@@ -725,7 +725,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
             onClick={handleSeed}
             loading={seeding}
             icon={RotateCcw}
-            className="text-stone-400 hover:text-amber-300 border-stone-800 text-xs"
+            className="text-xs"
           >
             Recharger le catalogue de démo
           </Button>
@@ -737,7 +737,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
             loading={loading}
             id="settings-save-btn"
             icon={Save}
-            className="w-full sm:w-auto px-8 py-3.5 uppercase tracking-wider text-xs font-bold shadow-lg shadow-[#D4AF37]/20"
+            className="w-full sm:w-auto px-8 py-3.5 uppercase tracking-wider text-xs font-bold shadow-lg"
           >
             Enregistrer les modifications
           </Button>

@@ -73,10 +73,10 @@ export const AdminStock: React.FC<AdminStockProps> = ({
       {/* Header & Quick stats */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-xl sm:text-2xl font-bold text-white tracking-wide">
+          <h2 className="font-serif text-xl sm:text-2xl font-bold text-[var(--text)] tracking-wide">
             Contrôle & Ajustement des Stocks
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-300 mt-1">
+          <p className="text-xs sm:text-sm text-[var(--text-soft)] mt-1">
             Mettez à jour vos quantités en stock en 1 clic pour éviter toute rupture lors des commandes clients.
           </p>
         </div>
@@ -87,8 +87,8 @@ export const AdminStock: React.FC<AdminStockProps> = ({
             onClick={() => setStatusFilter('all')}
             className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
               statusFilter === 'all'
-                ? 'bg-amber-500/20 text-[#E5C058] border border-amber-500/50 shadow-xs'
-                : 'bg-[#151722] text-zinc-300 border border-zinc-700 hover:text-white hover:bg-zinc-800'
+                ? 'bg-amber-500/20 text-[var(--or)] border border-amber-500/50 shadow-xs'
+                : 'bg-[var(--carte-bg)] text-[var(--text-soft)] border border-[var(--sep)] hover:text-[var(--text)] hover:bg-[var(--bg-2)]'
             }`}
           >
             Tous ({products.length})
@@ -97,22 +97,22 @@ export const AdminStock: React.FC<AdminStockProps> = ({
             onClick={() => setStatusFilter('low')}
             className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               statusFilter === 'low'
-                ? 'bg-amber-950 text-amber-200 border border-amber-600 shadow-xs'
-                : 'bg-[#151722] text-zinc-300 border border-zinc-700 hover:text-white hover:bg-zinc-800'
+                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/50 shadow-xs'
+                : 'bg-[var(--carte-bg)] text-[var(--text-soft)] border border-[var(--sep)] hover:text-[var(--text)] hover:bg-[var(--bg-2)]'
             }`}
           >
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
             <span>Stock Faible ({lowStockCount})</span>
           </button>
           <button
             onClick={() => setStatusFilter('out')}
             className={`px-3 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1.5 ${
               statusFilter === 'out'
-                ? 'bg-rose-950 text-rose-200 border border-rose-600 shadow-xs'
-                : 'bg-[#151722] text-zinc-300 border border-zinc-700 hover:text-white hover:bg-zinc-800'
+                ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/50 shadow-xs'
+                : 'bg-[var(--carte-bg)] text-[var(--text-soft)] border border-[var(--sep)] hover:text-[var(--text)] hover:bg-[var(--bg-2)]'
             }`}
           >
-            <XCircle className="w-3.5 h-3.5 text-rose-400" />
+            <XCircle className="w-3.5 h-3.5 text-rose-500" />
             <span>Ruptures ({outOfStockCount})</span>
           </button>
         </div>
@@ -120,13 +120,13 @@ export const AdminStock: React.FC<AdminStockProps> = ({
 
       {/* Search bar */}
       <div className="relative max-w-md">
-        <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+        <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-3" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Filtrer une référence ou une montre..."
-          className="w-full bg-[#151722] border border-zinc-700 focus:border-[#E5C058] rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-400 focus:outline-none shadow-xs"
+          className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
         />
       </div>
 
@@ -144,10 +144,10 @@ export const AdminStock: React.FC<AdminStockProps> = ({
           return (
             <div
               key={product.id}
-              className={`p-4 sm:p-5 bg-[#151722] rounded-2xl border transition-all flex flex-col justify-between shadow-sm ${
+              className={`p-4 sm:p-5 bg-[var(--carte-bg)] rounded-2xl border transition-all flex flex-col justify-between shadow-sm ${
                 isDirty
-                  ? 'border-amber-500 shadow-lg shadow-amber-500/10'
-                  : 'border-zinc-700/80 hover:border-zinc-600'
+                  ? 'border-[var(--or)] shadow-lg shadow-[var(--or)]/10'
+                  : 'border-[var(--sep)] hover:border-[var(--or)]/40'
               }`}
             >
               <div>
@@ -158,16 +158,16 @@ export const AdminStock: React.FC<AdminStockProps> = ({
                       'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=200'
                     }
                     alt={product.name}
-                    className="w-14 h-14 rounded-xl object-cover bg-zinc-900 border border-zinc-700 shrink-0"
+                    className="w-14 h-14 rounded-xl object-cover bg-[var(--bg-2)] border border-[var(--sep)] shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <span className="text-[10px] text-[#E5C058] font-serif uppercase tracking-wider block font-bold">
+                    <span className="text-[10px] text-[var(--or)] font-serif uppercase tracking-wider block font-bold">
                       {product.brand}
                     </span>
-                    <h3 className="font-serif text-sm font-bold text-white truncate">
+                    <h3 className="font-serif text-sm font-bold text-[var(--text)] truncate">
                       {product.name}
                     </h3>
-                    <div className="text-[11px] text-zinc-400 mt-0.5 font-medium">
+                    <div className="text-[11px] text-[var(--text-muted)] mt-0.5 font-medium">
                       Réf: {product.reference || 'Non spécifiée'}
                     </div>
                   </div>
@@ -175,7 +175,7 @@ export const AdminStock: React.FC<AdminStockProps> = ({
 
                 {/* Status indicator */}
                 <div className="mt-3.5 flex items-center justify-between text-xs">
-                  <span className="text-zinc-300 font-medium">Disponibilité :</span>
+                  <span className="text-[var(--text-soft)] font-medium">Disponibilité :</span>
                   {isOut ? (
                     <Badge variant="danger">Rupture de Stock</Badge>
                   ) : isLow ? (
@@ -187,17 +187,17 @@ export const AdminStock: React.FC<AdminStockProps> = ({
               </div>
 
               {/* Counter Controls */}
-              <div className="mt-4 pt-3.5 border-t border-zinc-800 space-y-2.5">
+              <div className="mt-4 pt-3.5 border-t border-[var(--sep)] space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-200 font-bold">
+                  <span className="text-xs text-[var(--text)] font-bold">
                     Quantité en stock :
                   </span>
 
-                  <div className="flex items-center bg-[#1c1e2b] border border-zinc-700 rounded-xl overflow-hidden shadow-xs">
+                  <div className="flex items-center bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl overflow-hidden shadow-xs">
                     <button
                       type="button"
                       onClick={() => handleStockChange(product.id, product.stock, -1)}
-                      className="px-3 py-1.5 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+                      className="px-3 py-1.5 text-[var(--text-soft)] hover:text-[var(--text)] hover:bg-[var(--bg-2)] transition-colors"
                       title="Diminuer"
                     >
                       <Minus className="w-3.5 h-3.5" />
@@ -213,13 +213,13 @@ export const AdminStock: React.FC<AdminStockProps> = ({
                           [product.id]: Math.max(0, parseInt(e.target.value) || 0)
                         }))
                       }
-                      className="w-12 text-center bg-transparent text-xs font-mono font-bold text-[#E5C058] focus:outline-none"
+                      className="w-12 text-center bg-transparent text-xs font-mono font-bold text-[var(--or)] focus:outline-none"
                     />
 
                     <button
                       type="button"
                       onClick={() => handleStockChange(product.id, product.stock, 1)}
-                      className="px-3 py-1.5 text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors"
+                      className="px-3 py-1.5 text-[var(--text-soft)] hover:text-[var(--text)] hover:bg-[var(--bg-2)] transition-colors"
                       title="Augmenter"
                     >
                       <Plus className="w-3.5 h-3.5" />

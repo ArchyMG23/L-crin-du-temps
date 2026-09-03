@@ -106,40 +106,40 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
   const currency = settings?.currency || "€";
 
   return (
-    <div className="space-y-6 text-[#F5F5F0]">
+    <div className="space-y-6 text-[var(--text)]">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-xl font-bold text-stone-100 flex items-center gap-2">
-            <Users className="w-5 h-5 text-[#D4AF37]" />
+          <h2 className="font-serif text-xl sm:text-2xl font-bold text-[var(--text)] flex items-center gap-2">
+            <Users className="w-5 h-5 text-[var(--or)]" />
             <span>Répertoire Clients & Comptes ({customersWithStats.length})</span>
           </h2>
-          <p className="text-xs text-stone-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-[var(--text-soft)] mt-1">
             Consultez les fiches de vos clients, l'historique de leurs achats et communiquez directement sur WhatsApp.
           </p>
         </div>
       </div>
 
       {/* Search Bar */}
-      <div className="bg-stone-900/60 p-4 rounded-xl border border-stone-800">
+      <div className="bg-[var(--carte-bg)] p-4 rounded-2xl border border-[var(--sep)] shadow-sm">
         <div className="relative max-w-md">
-          <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-3" />
           <input
             type="text"
             id="admin-customer-search-input"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Rechercher par nom, email, téléphone ou ville..."
-            className="w-full bg-stone-950 border border-stone-800 focus:border-[#D4AF37] rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none"
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
           />
         </div>
       </div>
 
       {/* Customers Table */}
-      <div className="bg-stone-900/60 border border-stone-800 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-[var(--carte-bg)] border border-[var(--sep)] rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-stone-950/80 text-stone-400 border-b border-stone-800 uppercase text-[10px] tracking-wider">
+            <thead className="bg-[var(--bg-2)] text-[var(--text-muted)] border-b border-[var(--sep)] uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="px-5 py-3.5">Client</th>
                 <th className="px-5 py-3.5">Contact WhatsApp</th>
@@ -149,10 +149,10 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
                 <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-800/60">
+            <tbody className="divide-y divide-[var(--sep)]">
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center text-stone-500">
+                  <td colSpan={6} className="px-5 py-10 text-center text-[var(--text-muted)]">
                     Aucun client trouvé pour cette recherche.
                   </td>
                 </tr>
@@ -160,33 +160,33 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
                 filteredCustomers.map((cust) => {
                   const rawPhone = cust.phone.replace(/[^0-9]/g, '');
                   return (
-                    <tr key={cust.uid} className="hover:bg-stone-800/40 transition-colors">
-                      <td className="px-5 py-4 font-medium text-stone-200">
+                    <tr key={cust.uid} className="hover:bg-[var(--bg-2)]/50 transition-colors">
+                      <td className="px-5 py-4 font-medium text-[var(--text)]">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/30 flex items-center justify-center font-bold text-xs">
+                          <div className="w-8 h-8 rounded-full bg-[var(--or)]/15 text-[var(--or)] border border-[var(--or)]/30 flex items-center justify-center font-bold text-xs shrink-0">
                             {cust.fullName.charAt(0).toUpperCase()}
                           </div>
                           <div>
                             <span className="block font-medium">{cust.fullName}</span>
-                            <span className="text-[10px] text-stone-500">{cust.email}</span>
+                            <span className="text-[10px] text-[var(--text-muted)]">{cust.email}</span>
                           </div>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 text-stone-300">
+                      <td className="px-5 py-4 text-[var(--text-soft)]">
                         <div className="flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                          <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                           <span>{cust.phone || 'Non renseigné'}</span>
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 text-stone-300">
+                      <td className="px-5 py-4 text-[var(--text-soft)]">
                         <div className="flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-stone-500" />
+                          <MapPin className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
                           <span>{cust.city || 'Non renseigné'}</span>
                         </div>
                         {cust.address && (
-                          <span className="text-[10px] text-stone-500 block truncate max-w-xs">{cust.address}</span>
+                          <span className="text-[10px] text-[var(--text-muted)] block truncate max-w-xs">{cust.address}</span>
                         )}
                       </td>
 
@@ -196,14 +196,14 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
                         </Badge>
                       </td>
 
-                      <td className="px-5 py-4 text-right font-serif font-bold text-[#D4AF37]">
-                        {cust.totalSpent.toLocaleString('fr-FR')} {settings.currency || '€'}
+                      <td className="px-5 py-4 text-right font-serif font-bold text-[var(--or)]">
+                        {cust.totalSpent.toLocaleString('fr-FR')} {settings?.currency || '€'}
                       </td>
 
                       <td className="px-5 py-4 text-right space-x-2">
                         <button
                           onClick={() => setSelectedCustomer(cust)}
-                          className="p-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white rounded-lg transition-colors inline-flex items-center gap-1 text-[11px]"
+                          className="p-1.5 bg-[var(--bg-2)] hover:bg-[var(--badge-bg)] text-[var(--text-soft)] hover:text-[var(--text)] rounded-xl border border-[var(--sep)] transition-colors inline-flex items-center gap-1 text-[11px]"
                           title="Voir la fiche client"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -217,7 +217,7 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
                             )}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="p-1.5 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-700 text-emerald-300 rounded-lg transition-colors inline-flex items-center gap-1 text-[11px]"
+                            className="p-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 rounded-xl transition-colors inline-flex items-center gap-1 text-[11px]"
                             title="Contacter sur WhatsApp"
                           >
                             <MessageSquare className="w-3.5 h-3.5 fill-current" />
@@ -242,46 +242,46 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
           title={`Fiche Client • ${selectedCustomer.fullName}`}
           maxWidth="max-w-2xl"
         >
-          <div className="space-y-6 text-[#F5F5F0]">
+          <div className="space-y-6 text-[var(--text)]">
             {/* Info Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-stone-900 p-4 rounded-xl border border-stone-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[var(--carte-bg-subtle)] p-4 rounded-xl border border-[var(--sep)]">
               <div className="space-y-1">
-                <span className="text-[10px] text-stone-500 uppercase tracking-wider">Email</span>
-                <p className="text-xs text-white font-medium">{selectedCustomer.email}</p>
+                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Email</span>
+                <p className="text-xs text-[var(--text)] font-medium">{selectedCustomer.email}</p>
               </div>
               <div className="space-y-1">
-                <span className="text-[10px] text-stone-500 uppercase tracking-wider">WhatsApp</span>
-                <p className="text-xs text-white font-medium">{selectedCustomer.phone || 'N/A'}</p>
+                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">WhatsApp</span>
+                <p className="text-xs text-[var(--text)] font-medium">{selectedCustomer.phone || 'N/A'}</p>
               </div>
               <div className="space-y-1">
-                <span className="text-[10px] text-stone-500 uppercase tracking-wider">Ville</span>
-                <p className="text-xs text-white font-medium">{selectedCustomer.city || 'N/A'}</p>
+                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Ville</span>
+                <p className="text-xs text-[var(--text)] font-medium">{selectedCustomer.city || 'N/A'}</p>
               </div>
               <div className="space-y-1">
-                <span className="text-[10px] text-stone-500 uppercase tracking-wider">Adresse de livraison</span>
-                <p className="text-xs text-white font-medium">{selectedCustomer.address || 'N/A'}</p>
+                <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Adresse de livraison</span>
+                <p className="text-xs text-[var(--text)] font-medium">{selectedCustomer.address || 'N/A'}</p>
               </div>
             </div>
 
             {/* Historical Orders */}
             <div className="space-y-3">
-              <h4 className="font-serif text-sm font-semibold text-[#D4AF37] flex items-center gap-2">
+              <h4 className="font-serif text-sm font-semibold text-[var(--or)] flex items-center gap-2">
                 <ShoppingBag className="w-4 h-4" />
                 <span>Commandes associées ({selectedCustomerOrders.length})</span>
               </h4>
 
               {selectedCustomerOrders.length === 0 ? (
-                <p className="text-xs text-stone-500 italic">Aucune commande enregistrée pour ce compte.</p>
+                <p className="text-xs text-[var(--text-muted)] italic">Aucune commande enregistrée pour ce compte.</p>
               ) : (
                 <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                   {selectedCustomerOrders.map((ord) => (
                     <div
                       key={ord.id}
-                      className="bg-stone-950 p-3 rounded-xl border border-stone-800 flex items-center justify-between text-xs"
+                      className="bg-[var(--carte-bg-subtle)] p-3 rounded-xl border border-[var(--sep)] flex items-center justify-between text-xs"
                     >
                       <div>
-                        <span className="font-bold text-white">#{ord.orderNumber}</span>
-                        <span className="text-[10px] text-stone-500 block">
+                        <span className="font-bold text-[var(--text)]">#{ord.orderNumber}</span>
+                        <span className="text-[10px] text-[var(--text-muted)] block">
                           {new Date(ord.createdAt).toLocaleDateString('fr-FR')} • {ord.items.length} article(s)
                         </span>
                       </div>
@@ -290,7 +290,7 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
                         <Badge variant={ord.status === 'delivered' ? 'success' : ord.status === 'cancelled' ? 'danger' : 'warning'}>
                           {ord.status}
                         </Badge>
-                        <span className="font-serif font-bold text-[#D4AF37]">
+                        <span className="font-serif font-bold text-[var(--or)]">
                           {ord.total.toLocaleString('fr-FR')} {ord.currency}
                         </span>
                       </div>

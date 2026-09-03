@@ -58,7 +58,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     paid: { label: 'Payée', color: 'text-emerald-400' },
     failed: { label: 'Échouée', color: 'text-rose-400' },
     refunded: { label: 'Remboursée', color: 'text-purple-400' },
-    not_required: { label: 'Non requis', color: 'text-stone-400' }
+    not_required: { label: 'Non requis', color: 'text-[var(--text-muted)]' }
   };
 
   // Filter & search
@@ -134,28 +134,28 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-xl sm:text-2xl font-bold text-white tracking-wide">
+          <h2 className="font-serif text-xl sm:text-2xl font-bold text-[var(--text)] tracking-wide">
             Commandes & Conciergerie WhatsApp ({orders.length})
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-300 mt-1">
+          <p className="text-xs sm:text-sm text-[var(--text-soft)] mt-1">
             Suivez les commandes passées par vos clients, mettez à jour les statuts et communiquez directement sur WhatsApp.
           </p>
         </div>
       </div>
 
       {/* Filter / Search Bar */}
-      <div className="bg-[#151722] p-4 sm:p-5 rounded-2xl border border-zinc-700/80 space-y-3 shadow-sm">
+      <div className="bg-[var(--carte-bg)] p-4 sm:p-5 rounded-2xl border border-[var(--sep)] space-y-3 shadow-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search */}
           <div className="relative">
-            <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3" />
+            <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-3" />
             <input
               type="text"
               id="admin-order-search-input"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="N° commande, client, ville, tél..."
-              className="w-full bg-[#1c1e2b] border border-zinc-700 focus:border-[#E5C058] rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-400 focus:outline-none shadow-xs"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl pl-10 pr-3 py-2.5 text-xs sm:text-sm text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none shadow-xs"
             />
           </div>
 
@@ -164,7 +164,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full bg-[#1c1e2b] border border-zinc-700 focus:border-[#E5C058] rounded-xl px-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none shadow-xs"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs sm:text-sm text-[var(--text)] focus:outline-none shadow-xs"
             >
               <option value="all">Tous les statuts de commande</option>
               <option value="pending">🟡 En attente</option>
@@ -181,7 +181,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             <select
               value={paymentFilter}
               onChange={(e) => setPaymentFilter(e.target.value)}
-              className="w-full bg-[#1c1e2b] border border-zinc-700 focus:border-[#E5C058] rounded-xl px-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none shadow-xs"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs sm:text-sm text-[var(--text)] focus:outline-none shadow-xs"
             >
               <option value="all">Tous les règlements</option>
               <option value="pending">Règlement en attente</option>
@@ -197,7 +197,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="w-full bg-[#1c1e2b] border border-zinc-700 focus:border-[#E5C058] rounded-xl px-3 py-2.5 text-xs sm:text-sm text-white focus:outline-none shadow-xs"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs sm:text-sm text-[var(--text)] focus:outline-none shadow-xs"
             >
               <option value="newest">Plus récentes en premier</option>
               <option value="oldest">Plus anciennes en premier</option>
@@ -210,30 +210,29 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
 
       {/* Orders List */}
       {filteredOrders.length === 0 ? (
-        <div className="bg-[#151722] border border-zinc-700/80 rounded-2xl p-12 text-center text-xs text-zinc-400 space-y-3 shadow-sm">
-          <ShoppingBag className="w-10 h-10 text-zinc-500 mx-auto" />
-          <p className="text-white font-semibold text-sm">Aucune commande ne correspond à ces critères.</p>
+        <div className="bg-[var(--carte-bg)] border border-[var(--sep)] rounded-2xl p-12 text-center text-xs text-[var(--text-muted)] space-y-3 shadow-sm">
+          <ShoppingBag className="w-10 h-10 text-[var(--text-muted)] mx-auto" />
+          <p className="text-[var(--text)] font-semibold text-sm">Aucune commande ne correspond à ces critères.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {filteredOrders.map((order) => {
             const statusConfig = statusLabels[order.status] || { label: order.status, variant: 'secondary' };
-            const paymentConfig = paymentLabels[order.paymentStatus] || { label: order.paymentStatus, color: 'text-zinc-400' };
 
             return (
               <div
                 key={order.id}
-                className="bg-[#151722] rounded-2xl border border-zinc-700/80 p-4 sm:p-5 space-y-4 hover:border-[#E5C058]/50 transition-all shadow-sm"
+                className="bg-[var(--carte-bg)] rounded-2xl border border-[var(--sep)] p-4 sm:p-5 space-y-4 hover:border-[var(--or)]/50 transition-all shadow-sm"
               >
                 {/* Top row */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-zinc-800 gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[var(--sep)] gap-2">
                   <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-                    <span className="font-mono text-sm font-bold text-[#E5C058]">
+                    <span className="font-mono text-sm font-bold text-[var(--or)]">
                       #{order.orderNumber}
                     </span>
                     <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
-                    <span className="text-xs text-zinc-300 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-zinc-400" />
+                    <span className="text-xs text-[var(--text-soft)] flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                       <span>
                         {new Date(order.createdAt).toLocaleDateString('fr-FR')} à{' '}
                         {new Date(order.createdAt).toLocaleTimeString('fr-FR', {
@@ -245,8 +244,8 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2 sm:gap-3">
-                    <span className="text-xs text-zinc-300 font-medium">Total :</span>
-                    <span className="font-serif text-lg font-bold text-white font-mono">
+                    <span className="text-xs text-[var(--text-soft)] font-medium">Total :</span>
+                    <span className="font-serif text-lg font-bold text-[var(--text)] font-mono">
                       {order.total.toLocaleString('fr-FR')} {order.currency}
                     </span>
                   </div>
@@ -255,20 +254,20 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                 {/* Middle info */}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 text-xs">
                   {/* Customer column */}
-                  <div className="md:col-span-5 space-y-2 bg-[#1c1e2b] p-3.5 rounded-xl border border-zinc-700/80">
-                    <div className="font-bold text-white text-sm">
+                  <div className="md:col-span-5 space-y-2 bg-[var(--carte-bg-subtle)] p-3.5 rounded-xl border border-[var(--sep)]">
+                    <div className="font-bold text-[var(--text)] text-sm">
                       {order.customer.name}
                     </div>
-                    <div className="text-zinc-300 flex items-center gap-2 font-medium">
-                      <Phone className="w-3.5 h-3.5 text-[#E5C058] shrink-0" />
+                    <div className="text-[var(--text-soft)] flex items-center gap-2 font-medium">
+                      <Phone className="w-3.5 h-3.5 text-[var(--or)] shrink-0" />
                       <span className="font-mono">{order.customer.phone}</span>
                     </div>
-                    <div className="text-zinc-300 flex items-center gap-2 font-medium">
-                      <MapPin className="w-3.5 h-3.5 text-[#E5C058] shrink-0" />
+                    <div className="text-[var(--text-soft)] flex items-center gap-2 font-medium">
+                      <MapPin className="w-3.5 h-3.5 text-[var(--or)] shrink-0" />
                       <span>{order.customer.city} • {order.customer.address}</span>
                     </div>
                     {order.customer.notes && (
-                      <div className="text-amber-300 text-[11px] italic pt-1.5 border-t border-zinc-700">
+                      <div className="text-[var(--or)] text-[11px] italic pt-1.5 border-t border-[var(--sep)]">
                         Note: "{order.customer.notes}"
                       </div>
                     )}
@@ -276,23 +275,23 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
 
                   {/* Items preview */}
                   <div className="md:col-span-7 space-y-2">
-                    <span className="text-[11px] text-zinc-300 uppercase tracking-wider font-bold block">
+                    <span className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-bold block">
                       Articles commandés ({order.items.length})
                     </span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {order.items.map((item, idx) => (
                         <div
                           key={idx}
-                          className="flex items-center gap-2.5 p-2 bg-[#1c1e2b] rounded-xl border border-zinc-700/80"
+                          className="flex items-center gap-2.5 p-2 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)]"
                         >
                           <img
                             src={item.image || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=100'}
                             alt={item.name}
-                            className="w-10 h-10 rounded-lg object-cover border border-zinc-700 shrink-0 bg-zinc-900"
+                            className="w-10 h-10 rounded-lg object-cover border border-[var(--sep)] shrink-0 bg-[var(--bg-2)]"
                           />
                           <div className="min-w-0 flex-1">
-                            <h5 className="font-bold text-white truncate text-[11px]">{item.name}</h5>
-                            <div className="text-[10px] text-zinc-300 font-mono font-medium">
+                            <h5 className="font-bold text-[var(--text)] truncate text-[11px]">{item.name}</h5>
+                            <div className="text-[10px] text-[var(--text-soft)] font-mono font-medium">
                               {item.quantity}x {item.price.toLocaleString('fr-FR')} {order.currency}
                             </div>
                           </div>
@@ -303,16 +302,16 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                 </div>
 
                 {/* Bottom Controls: Status Select + WhatsApp Quick Messages */}
-                <div className="pt-3 border-t border-zinc-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="pt-3 border-t border-[var(--sep)] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-3">
                     {/* Status picker */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-zinc-300 font-semibold">Statut :</span>
+                      <span className="text-xs text-[var(--text-soft)] font-semibold">Statut :</span>
                       <select
                         id={`order-status-select-${order.id}`}
                         value={order.status}
                         onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
-                        className="bg-[#1c1e2b] border border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:border-[#E5C058] focus:outline-none"
+                        className="bg-[var(--bg-2)] border border-[var(--sep)] rounded-xl px-3 py-1.5 text-xs text-[var(--text)] font-bold focus:border-[var(--or)] focus:outline-none"
                       >
                         <option value="pending">🟡 En attente</option>
                         <option value="confirmed">🔵 Confirmée</option>
@@ -325,13 +324,13 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
 
                     {/* Payment picker */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-zinc-300 font-semibold">Règlement :</span>
+                      <span className="text-xs text-[var(--text-soft)] font-semibold">Règlement :</span>
                       <select
                         value={order.paymentStatus}
                         onChange={(e) =>
                           onUpdatePaymentStatus(order.id, e.target.value as PaymentStatus)
                         }
-                        className="bg-[#1c1e2b] border border-zinc-700 rounded-xl px-3 py-1.5 text-xs text-white font-medium focus:border-[#E5C058] focus:outline-none"
+                        className="bg-[var(--bg-2)] border border-[var(--sep)] rounded-xl px-3 py-1.5 text-xs text-[var(--text)] font-medium focus:border-[var(--or)] focus:outline-none"
                       >
                         <option value="pending">En attente (WhatsApp)</option>
                         <option value="paid">Payé / Réglé</option>
@@ -361,10 +360,10 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                       href={generateWhatsAppUrl(order, 'confirm')}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs text-white font-medium rounded-xl flex items-center gap-1.5"
+                      className="px-3 py-2 bg-[var(--bg-2)] hover:bg-[var(--badge-bg)] border border-[var(--sep)] text-xs text-[var(--text)] font-medium rounded-xl flex items-center gap-1.5"
                       title="Envoyer confirmation WhatsApp"
                     >
-                      <Send className="w-3 h-3 text-[#E5C058]" />
+                      <Send className="w-3 h-3 text-[var(--or)]" />
                       <span>Confirmer</span>
                     </a>
 
@@ -373,10 +372,10 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                       href={generateWhatsAppUrl(order, 'shipped')}
                       target="_blank"
                       rel="noreferrer"
-                      className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-xs text-white font-medium rounded-xl flex items-center gap-1.5"
+                      className="px-3 py-2 bg-[var(--bg-2)] hover:bg-[var(--badge-bg)] border border-[var(--sep)] text-xs text-[var(--text)] font-medium rounded-xl flex items-center gap-1.5"
                       title="Envoyer avis d'expédition WhatsApp"
                     >
-                      <Truck className="w-3.5 h-3.5 text-sky-400" />
+                      <Truck className="w-3.5 h-3.5 text-sky-500" />
                       <span>Expédié</span>
                     </a>
 
@@ -384,7 +383,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                     <button
                       type="button"
                       onClick={() => setSelectedOrder(order)}
-                      className="p-2 text-zinc-300 hover:text-white hover:bg-zinc-800 rounded-xl transition-colors border border-zinc-700"
+                      className="p-2 text-[var(--text-soft)] hover:text-[var(--text)] hover:bg-[var(--bg-2)] rounded-xl transition-colors border border-[var(--sep)]"
                       title="Voir détails complets"
                     >
                       <Eye className="w-4 h-4" />
@@ -405,56 +404,56 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
         maxWidth="2xl"
       >
         {selectedOrder && (
-          <div className="space-y-4 text-stone-100 text-xs">
+          <div className="space-y-4 text-[var(--text)] text-xs">
             {/* Header info */}
-            <div className="p-3 bg-stone-950 rounded-xl border border-stone-800 flex justify-between items-center">
+            <div className="p-3 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] flex justify-between items-center">
               <div>
-                <span className="text-stone-400 block text-[10px] uppercase">Client</span>
+                <span className="text-[var(--text-muted)] block text-[10px] uppercase">Client</span>
                 <span className="font-semibold text-sm">{selectedOrder.customer.name}</span>
               </div>
               <div className="text-right">
-                <span className="text-stone-400 block text-[10px] uppercase">Date d'enregistrement</span>
+                <span className="text-[var(--text-muted)] block text-[10px] uppercase">Date d'enregistrement</span>
                 <span>{new Date(selectedOrder.createdAt).toLocaleString('fr-FR')}</span>
               </div>
             </div>
 
             {/* Coordinates */}
-            <div className="space-y-1.5 p-3 bg-stone-950 rounded-xl border border-stone-800">
-              <div className="text-stone-300 flex items-center gap-2">
-                <Phone className="w-3.5 h-3.5 text-[#D4AF37]" />
-                <strong className="text-stone-400">Téléphone :</strong> {selectedOrder.customer.phone}
+            <div className="space-y-1.5 p-3 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)]">
+              <div className="text-[var(--text-soft)] flex items-center gap-2">
+                <Phone className="w-3.5 h-3.5 text-[var(--or)]" />
+                <strong className="text-[var(--text-muted)]">Téléphone :</strong> {selectedOrder.customer.phone}
               </div>
               {selectedOrder.customer.email && (
-                <div className="text-stone-300 flex items-center gap-2">
-                  <strong className="text-stone-400">Email :</strong> {selectedOrder.customer.email}
+                <div className="text-[var(--text-soft)] flex items-center gap-2">
+                  <strong className="text-[var(--text-muted)]">Email :</strong> {selectedOrder.customer.email}
                 </div>
               )}
-              <div className="text-stone-300 flex items-center gap-2">
-                <MapPin className="w-3.5 h-3.5 text-[#D4AF37]" />
-                <strong className="text-stone-400">Adresse de livraison :</strong> {selectedOrder.customer.address}, {selectedOrder.customer.city}
+              <div className="text-[var(--text-soft)] flex items-center gap-2">
+                <MapPin className="w-3.5 h-3.5 text-[var(--or)]" />
+                <strong className="text-[var(--text-muted)]">Adresse de livraison :</strong> {selectedOrder.customer.address}, {selectedOrder.customer.city}
               </div>
               {selectedOrder.customer.notes && (
-                <div className="text-amber-300 mt-2 pt-2 border-t border-stone-900">
-                  <strong className="text-stone-400">Notes du client :</strong> "{selectedOrder.customer.notes}"
+                <div className="text-[var(--or)] mt-2 pt-2 border-t border-[var(--sep)]">
+                  <strong className="text-[var(--text-muted)]">Notes du client :</strong> "{selectedOrder.customer.notes}"
                 </div>
               )}
             </div>
 
             {/* Items breakdown with HISTORICAL PRICES */}
             <div className="space-y-2">
-              <span className="font-semibold text-stone-300 block">Détail des pièces commandées (prix historiques)</span>
-              <div className="divide-y divide-stone-800 border border-stone-800 rounded-xl overflow-hidden bg-stone-950">
+              <span className="font-semibold text-[var(--text-soft)] block">Détail des pièces commandées (prix historiques)</span>
+              <div className="divide-y divide-[var(--sep)] border border-[var(--sep)] rounded-xl overflow-hidden bg-[var(--carte-bg-subtle)]">
                 {selectedOrder.items.map((item, idx) => (
                   <div key={idx} className="p-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <img
                         src={item.image}
                         alt={item.name}
-                        className="w-10 h-10 rounded-md object-cover border border-stone-800"
+                        className="w-10 h-10 rounded-md object-cover border border-[var(--sep)]"
                       />
                       <div>
-                        <div className="font-medium text-stone-100">{item.name}</div>
-                        <div className="text-stone-400 text-[11px] font-mono">
+                        <div className="font-medium text-[var(--text)]">{item.name}</div>
+                        <div className="text-[var(--text-muted)] text-[11px] font-mono">
                           Quantité : {item.quantity} x {item.price.toLocaleString('fr-FR')} {selectedOrder.currency}
                         </div>
                       </div>
@@ -468,28 +467,28 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             </div>
 
             {/* Total Recap */}
-            <div className="p-4 bg-stone-950 rounded-xl border border-stone-800 space-y-1.5">
-              <div className="flex justify-between text-stone-400">
+            <div className="p-4 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] space-y-1.5">
+              <div className="flex justify-between text-[var(--text-muted)]">
                 <span>Sous-total articles</span>
                 <span className="font-mono">{selectedOrder.subtotal.toLocaleString('fr-FR')} {selectedOrder.currency}</span>
               </div>
-              <div className="flex justify-between text-stone-400">
+              <div className="flex justify-between text-[var(--text-muted)]">
                 <span>Frais de livraison</span>
                 <span className="font-mono">
                   {selectedOrder.shippingFee === 0 ? 'Gratuit' : `${selectedOrder.shippingFee.toLocaleString('fr-FR')} ${selectedOrder.currency}`}
                 </span>
               </div>
-              <div className="flex justify-between items-center pt-2 border-t border-stone-800 text-sm font-serif font-bold">
-                <span className="text-stone-100">Total Commande</span>
-                <span className="text-[#D4AF37] text-lg font-mono">
+              <div className="flex justify-between items-center pt-2 border-t border-[var(--sep)] text-sm font-serif font-bold">
+                <span className="text-[var(--text)]">Total Commande</span>
+                <span className="text-[var(--or)] text-lg font-mono">
                   {selectedOrder.total.toLocaleString('fr-FR')} {selectedOrder.currency}
                 </span>
               </div>
             </div>
 
             {/* Quick WhatsApp contact links from modal */}
-            <div className="p-3 bg-emerald-950/20 border border-emerald-800/40 rounded-xl space-y-2">
-              <span className="text-[11px] font-semibold text-emerald-300 block">
+            <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 rounded-xl space-y-2">
+              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 block">
                 Modèles de messages WhatsApp automatiques :
               </span>
               <div className="grid grid-cols-2 gap-2">
@@ -497,7 +496,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                   href={generateWhatsAppUrl(selectedOrder, 'confirm')}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 bg-stone-950 hover:bg-emerald-900/40 border border-stone-800 rounded text-[11px] text-stone-300 text-center transition-colors"
+                  className="p-2 bg-[var(--carte-bg)] hover:bg-emerald-500/20 border border-[var(--sep)] rounded text-[11px] text-[var(--text)] text-center transition-colors"
                 >
                   📨 Confirmation Commande
                 </a>
@@ -505,7 +504,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                   href={generateWhatsAppUrl(selectedOrder, 'preparing')}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 bg-stone-950 hover:bg-emerald-900/40 border border-stone-800 rounded text-[11px] text-stone-300 text-center transition-colors"
+                  className="p-2 bg-[var(--carte-bg)] hover:bg-emerald-500/20 border border-[var(--sep)] rounded text-[11px] text-[var(--text)] text-center transition-colors"
                 >
                   ⚙️ En Préparation Atelier
                 </a>
@@ -513,7 +512,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                   href={generateWhatsAppUrl(selectedOrder, 'shipped')}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 bg-stone-950 hover:bg-emerald-900/40 border border-stone-800 rounded text-[11px] text-stone-300 text-center transition-colors"
+                  className="p-2 bg-[var(--carte-bg)] hover:bg-emerald-500/20 border border-[var(--sep)] rounded text-[11px] text-[var(--text)] text-center transition-colors"
                 >
                   🚚 Avis d'Expédition
                 </a>
@@ -521,7 +520,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                   href={generateWhatsAppUrl(selectedOrder, 'delivered')}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 bg-stone-950 hover:bg-emerald-900/40 border border-stone-800 rounded text-[11px] text-stone-300 text-center transition-colors"
+                  className="p-2 bg-[var(--carte-bg)] hover:bg-emerald-500/20 border border-[var(--sep)] rounded text-[11px] text-[var(--text)] text-center transition-colors"
                 >
                   🟢 Remerciement & Livraison
                 </a>
@@ -538,12 +537,12 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
         title="Confirmation d'annulation"
         maxWidth="sm"
       >
-        <div className="space-y-4 text-stone-200 text-xs">
-          <div className="p-3 bg-rose-950/40 border border-rose-800/60 rounded-xl flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+        <div className="space-y-4 text-[var(--text)] text-xs">
+          <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-semibold text-rose-200">Annuler cette commande ?</h4>
-              <p className="text-rose-300/80 mt-1">
+              <h4 className="font-semibold text-rose-700 dark:text-rose-200">Annuler cette commande ?</h4>
+              <p className="text-rose-800 dark:text-rose-300 mt-1">
                 Le statut de la commande sera marqué comme "Annulée" et celle-ci ne sera plus comptabilisée dans le chiffre d'affaires.
               </p>
             </div>
