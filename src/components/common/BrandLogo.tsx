@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../context/ThemeContext';
 
 export interface BrandLogoProps {
   variant?: 'full' | 'emblem' | 'horizontal' | 'compact' | 'text';
@@ -63,13 +64,21 @@ export const WatchEmblem: React.FC<{
 
 export const BrandLogo: React.FC<BrandLogoProps> = ({
   variant = 'horizontal',
-  theme = 'dark',
+  theme,
   size = 'md',
   showSubtitle = true,
   className = '',
   onClick
 }) => {
-  const isLight = theme === 'light';
+  let contextTheme: 'dark' | 'light' = 'dark';
+  try {
+    const context = useTheme();
+    contextTheme = context.isLight ? 'light' : 'dark';
+  } catch {
+    contextTheme = 'dark';
+  }
+  const effectiveTheme = theme || contextTheme;
+  const isLight = effectiveTheme === 'light';
   const textColor = isLight ? 'text-[#111111]' : 'text-[#F5F5F0]';
   const goldColor = 'text-[#D4AF37]';
   const subtextColor = isLight ? 'text-[#333333]' : 'text-[#D4AF37]';

@@ -162,28 +162,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
       maxWidth="max-w-md"
     >
-      <div className="space-y-5 text-[#F5F5F0]">
+      <div className="space-y-5 text-[var(--text)]">
         <div className="flex justify-center pb-1">
-          <BrandLogo variant="emblem" theme="dark" size="lg" />
+          <BrandLogo variant="emblem" size="lg" />
         </div>
 
         {titleMessage && (
-          <div className="p-3 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-xl flex items-start gap-2 text-xs text-[#D4AF37]">
+          <div className="p-3 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl flex items-start gap-2 text-xs text-[var(--or)]">
             <Sparkles className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{titleMessage}</span>
           </div>
         )}
 
         {/* Tab Navigation */}
-        <div className="grid grid-cols-2 bg-[#121212] p-1 rounded-xl border border-white/10">
+        <div className="grid grid-cols-2 bg-[var(--bg)] p-1 rounded-xl border border-[var(--sep)]">
           <button
             type="button"
             id="auth-tab-login"
             onClick={() => handleSwitchTab('login')}
             className={`py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all ${
               activeTab === 'login'
-                ? 'bg-[#D4AF37] text-black shadow'
-                : 'text-white/60 hover:text-white'
+                ? 'bg-[var(--or)] text-black shadow'
+                : 'text-[var(--text-soft)] hover:text-[var(--text)]'
             }`}
           >
             Se connecter
@@ -194,8 +194,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             onClick={() => handleSwitchTab('register')}
             className={`py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-all ${
               activeTab === 'register'
-                ? 'bg-[#D4AF37] text-black shadow'
-                : 'text-white/60 hover:text-white'
+                ? 'bg-[var(--or)] text-black shadow'
+                : 'text-[var(--text-soft)] hover:text-[var(--text)]'
             }`}
           >
             Créer un compte
@@ -203,15 +203,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </div>
 
         {errorMsg && (
-          <div className="p-3 bg-rose-950/80 border border-rose-700 text-rose-200 text-xs rounded-xl flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+          <div className="p-3 bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs rounded-xl flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-3 bg-emerald-950/80 border border-emerald-700 text-emerald-200 text-xs rounded-xl flex items-start gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+          <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-xs rounded-xl flex items-start gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
             <span>{successMsg}</span>
           </div>
         )}
@@ -220,11 +220,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {activeTab === 'login' && (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-xs text-white/70 font-medium mb-1">
-                Adresse Email <span className="text-[#D4AF37]">*</span>
+              <label className="block text-xs text-[var(--text-soft)] font-medium mb-1">
+                Adresse Email <span className="text-[var(--or)]">*</span>
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-white/40 absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-3" />
                 <input
                   type="email"
                   required
@@ -232,26 +232,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="votre.email@exemple.com"
-                  className="w-full bg-[#121212] border border-white/10 focus:border-[#D4AF37] rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none"
+                  className="w-full bg-[var(--bg)] border border-[var(--sep)] focus:border-[var(--or)] rounded-xl pl-9 pr-4 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none"
                 />
               </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-white/70 font-medium">
-                  Mot de passe <span className="text-[#D4AF37]">*</span>
+                <label className="text-xs text-[var(--text-soft)] font-medium">
+                  Mot de passe <span className="text-[var(--or)]">*</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => handleSwitchTab('forgot')}
-                  className="text-[11px] text-[#D4AF37] hover:underline"
+                  className="text-[11px] text-[var(--or)] hover:underline"
                 >
                   Mot de passe oublié ?
                 </button>
               </div>
               <div className="relative">
-                <Lock className="w-4 h-4 text-white/40 absolute left-3 top-3" />
+                <Lock className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-3" />
                 <input
                   type="password"
                   required
@@ -259,7 +259,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-[#121212] border border-white/10 focus:border-[#D4AF37] rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none"
+                  className="w-full bg-[var(--bg)] border border-[var(--sep)] focus:border-[var(--or)] rounded-xl pl-9 pr-4 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none"
                 />
               </div>
             </div>
@@ -283,11 +283,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {activeTab === 'register' && (
           <form onSubmit={handleRegister} className="space-y-3.5">
             <div>
-              <label className="block text-xs text-white/70 font-medium mb-1">
-                Nom complet <span className="text-[#D4AF37]">*</span>
+              <label className="block text-xs text-[var(--text-soft)] font-medium mb-1">
+                Nom complet <span className="text-[var(--or)]">*</span>
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-white/40 absolute left-3 top-3" />
+                <User className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-3" />
                 <input
                   type="text"
                   required
@@ -295,18 +295,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="ex: Jean Dupont"
-                  className="w-full bg-[#121212] border border-white/10 focus:border-[#D4AF37] rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-white/30 focus:outline-none"
+                  className="w-full bg-[var(--bg)] border border-[var(--sep)] focus:border-[var(--or)] rounded-xl pl-9 pr-4 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-white/70 font-medium mb-1">
-                  Téléphone WhatsApp <span className="text-[#D4AF37]">*</span>
+                <label className="block text-xs text-[var(--text-soft)] font-medium mb-1">
+                  Téléphone WhatsApp <span className="text-[var(--or)]">*</span>
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-white/40 absolute left-3 top-3" />
+                  <Phone className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-3" />
                   <input
                     type="tel"
                     required
@@ -314,17 +314,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+33 6 12 34 56 78"
-                    className="w-full bg-[#121212] border border-white/10 focus:border-[#D4AF37] rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-white/30 focus:outline-none"
+                    className="w-full bg-[var(--bg)] border border-[var(--sep)] focus:border-[var(--or)] rounded-xl pl-9 pr-4 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-white/70 font-medium mb-1">
-                  Email <span className="text-[#D4AF37]">*</span>
+                <label className="block text-xs text-[var(--text-soft)] font-medium mb-1">
+                  Email <span className="text-[var(--or)]">*</span>
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-white/40 absolute left-3 top-3" />
+                  <Mail className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-3" />
                   <input
                     type="email"
                     required
@@ -332,7 +332,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="jean@exemple.com"
-                    className="w-full bg-[#121212] border border-white/10 focus:border-[#D4AF37] rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-white/30 focus:outline-none"
+                    className="w-full bg-[var(--bg)] border border-[var(--sep)] focus:border-[var(--or)] rounded-xl pl-9 pr-4 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none"
                   />
                 </div>
               </div>
@@ -340,11 +340,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-white/70 font-medium mb-1">
-                  Ville de livraison <span className="text-[#D4AF37]">*</span>
+                <label className="block text-xs text-[var(--text-soft)] font-medium mb-1">
+                  Ville de livraison <span className="text-[var(--or)]">*</span>
                 </label>
                 <div className="relative">
-                  <MapPin className="w-4 h-4 text-white/40 absolute left-3 top-3" />
+                  <MapPin className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-3" />
                   <input
                     type="text"
                     required
@@ -352,17 +352,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     placeholder="Paris, Lyon, Genève..."
-                    className="w-full bg-[#121212] border border-white/10 focus:border-[#D4AF37] rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-white/30 focus:outline-none"
+                    className="w-full bg-[var(--bg)] border border-[var(--sep)] focus:border-[var(--or)] rounded-xl pl-9 pr-4 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-white/70 font-medium mb-1">
-                  Mot de passe <span className="text-[#D4AF37]">*</span>
+                <label className="block text-xs text-[var(--text-soft)] font-medium mb-1">
+                  Mot de passe <span className="text-[var(--or)]">*</span>
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-white/40 absolute left-3 top-3" />
+                  <Lock className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-3" />
                   <input
                     type="password"
                     required
@@ -370,18 +370,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Min. 6 caractères"
-                    className="w-full bg-[#121212] border border-white/10 focus:border-[#D4AF37] rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-white/30 focus:outline-none"
+                    className="w-full bg-[var(--bg)] border border-[var(--sep)] focus:border-[var(--or)] rounded-xl pl-9 pr-4 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none"
                   />
                 </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs text-white/70 font-medium mb-1">
-                Adresse postale complète <span className="text-[#D4AF37]">*</span>
+              <label className="block text-xs text-[var(--text-soft)] font-medium mb-1">
+                Adresse postale complète <span className="text-[var(--or)]">*</span>
               </label>
               <div className="relative">
-                <Home className="w-4 h-4 text-white/40 absolute left-3 top-3" />
+                <Home className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-3" />
                 <input
                   type="text"
                   required
@@ -389,7 +389,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Numéro, rue, bâtiment, code postal"
-                  className="w-full bg-[#121212] border border-white/10 focus:border-[#D4AF37] rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-white/30 focus:outline-none"
+                  className="w-full bg-[var(--bg)] border border-[var(--sep)] focus:border-[var(--or)] rounded-xl pl-9 pr-4 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none"
                 />
               </div>
             </div>
@@ -412,16 +412,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* FORGOT PASSWORD FORM */}
         {activeTab === 'forgot' && (
           <form onSubmit={handleForgot} className="space-y-4">
-            <p className="text-xs text-white/60 leading-relaxed">
+            <p className="text-xs text-[var(--text-soft)] leading-relaxed">
               Entrez l'adresse email associée à votre compte client. Nous vous transmettrons un lien sécurisé pour redéfinir votre mot de passe.
             </p>
 
             <div>
-              <label className="block text-xs text-white/70 font-medium mb-1">
+              <label className="block text-xs text-[var(--text-soft)] font-medium mb-1">
                 Adresse Email
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-white/40 absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-3" />
                 <input
                   type="email"
                   required
@@ -429,7 +429,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="votre.email@exemple.com"
-                  className="w-full bg-[#121212] border border-white/10 focus:border-[#D4AF37] rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-white/30 focus:outline-none"
+                  className="w-full bg-[var(--bg)] border border-[var(--sep)] focus:border-[var(--or)] rounded-xl pl-9 pr-4 py-2.5 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none"
                 />
               </div>
             </div>

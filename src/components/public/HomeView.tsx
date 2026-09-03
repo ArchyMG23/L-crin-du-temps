@@ -136,18 +136,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
   };
 
   return (
-    <div className="space-y-12 sm:space-y-20 2xl:space-y-28 text-[#F5F5F0]">
+    <div className="space-y-12 sm:space-y-20 2xl:space-y-28 text-[var(--text)]">
       {/* ========================================================================= */}
       {/* 1. HERO RESPONSIVE AVANCÉ : RECOMPOSITION DÉDIÉE PAR FORMAT               */}
       {/* ========================================================================= */}
       {activeHeroProduct ? (
         <section
-          className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-b from-[#121217] via-[#0c0c0f] to-[#07070a] shadow-2xl transition-all"
+          className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-[var(--sep)] theme-surface-hero shadow-2xl transition-all"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
           {/* Ambient Background Glow */}
-          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-30 dark:opacity-70">
             <img
               key={`bg-${activeHeroProduct.id}`}
               src={activeHeroProduct.images[0]}
@@ -155,8 +155,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover opacity-15 filter blur-3xl scale-125 transition-all duration-1000"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#07070a] via-[#07070a]/90 to-[#07070a]/60" />
-            <div className="absolute inset-0 bg-radial from-transparent via-[#07070a]/60 to-[#07070a]" />
+            <div className="absolute inset-0 bg-radial from-transparent via-[var(--bg)]/70 to-[var(--bg)]" />
           </div>
 
           <AnimatePresence mode="wait">
@@ -174,8 +173,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <div className="block lg:hidden p-4 sm:p-7 space-y-4">
                 {/* 1. Top Mini-Badge & Brand Hook */}
                 <div className="flex items-center justify-between gap-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#c6a664]/15 border border-[#c6a664]/40 text-[#c6a664] text-[9px] sm:text-[10px] font-bold tracking-[0.2em] uppercase font-serif">
-                    <Sparkles className="w-3 h-3 text-[#c6a664]" />
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--badge-bg)] border border-[var(--badge-border)] text-[var(--or)] text-[9px] sm:text-[10px] font-bold tracking-[0.2em] uppercase font-serif">
+                    <Sparkles className="w-3 h-3 text-[var(--or)]" />
                     <span>
                       {activeHeroProduct.featured
                         ? "Pièce d'Exception"
@@ -184,7 +183,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                         : 'Haute Horlogerie'}
                     </span>
                   </div>
-                  <span className="text-[10px] uppercase tracking-widest text-white/60 font-serif font-bold">
+                  <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-serif font-bold">
                     {activeHeroProduct.brand}
                   </span>
                 </div>
@@ -193,10 +192,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <div className="relative py-2 flex flex-col items-center justify-center">
                   <div
                     onClick={() => onSelectProduct(activeHeroProduct)}
-                    className="relative w-full max-w-[260px] sm:max-w-[300px] aspect-square rounded-2xl bg-radial from-white/10 via-black/40 to-black/80 border border-white/10 p-4 shadow-2xl flex items-center justify-center cursor-pointer group"
+                    className="relative w-full max-w-[260px] sm:max-w-[300px] aspect-square rounded-2xl theme-watch-stage p-4 shadow-2xl flex items-center justify-center cursor-pointer group"
                   >
                     {/* Radial gold halo */}
-                    <div className="absolute inset-0 bg-radial from-[#c6a664]/15 to-transparent rounded-2xl pointer-events-none" />
+                    <div className="absolute inset-0 bg-radial from-[var(--or)]/15 to-transparent rounded-2xl pointer-events-none" />
 
                     {/* Floating Watch Visual */}
                     <motion.img
@@ -205,11 +204,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       referrerPolicy="no-referrer"
                       animate={{ y: [0, -6, 0] }}
                       transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                      className="w-full h-full object-contain filter drop-shadow-[0_20px_30px_rgba(0,0,0,0.9)] transition-transform duration-300 group-hover:scale-105"
+                      className="w-full h-full object-contain filter drop-shadow-[0_20px_30px_rgba(0,0,0,0.85)] transition-transform duration-300 group-hover:scale-105"
                     />
 
                     {/* Subtle click badge */}
-                    <div className="absolute bottom-2.5 right-2.5 bg-black/80 backdrop-blur-md border border-white/15 px-2 py-0.5 rounded text-[8px] uppercase tracking-widest text-[#c6a664] font-serif font-semibold">
+                    <div className="absolute bottom-2.5 right-2.5 bg-[var(--carte-bg)]/90 backdrop-blur-md border border-[var(--sep)] px-2 py-0.5 rounded text-[8px] uppercase tracking-widest text-[var(--or)] font-serif font-semibold shadow-md">
                       Toucher pour voir
                     </div>
                   </div>
@@ -222,7 +221,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                           e.stopPropagation();
                           setCurrentSlideIndex((prev) => (prev - 1 + heroCandidates.length) % heroCandidates.length);
                         }}
-                        className="p-1 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white"
+                        className="p-1 rounded-full bg-[var(--badge-bg)] border border-[var(--sep)] text-[var(--text-soft)] hover:text-[var(--text)]"
                         aria-label="Pièce précédente"
                       >
                         <ChevronLeft className="w-3.5 h-3.5" />
@@ -238,8 +237,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
                             }}
                             className={`h-1.5 rounded-full transition-all ${
                               idx === currentSlideIndex
-                                ? 'w-6 bg-[#c6a664]'
-                                : 'w-1.5 bg-white/20'
+                                ? 'w-6 bg-[var(--or)]'
+                                : 'w-1.5 bg-[var(--sep)]'
                             }`}
                             aria-label={`Voir montre ${idx + 1}`}
                           />
@@ -251,7 +250,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                           e.stopPropagation();
                           setCurrentSlideIndex((prev) => (prev + 1) % heroCandidates.length);
                         }}
-                        className="p-1 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white"
+                        className="p-1 rounded-full bg-[var(--badge-bg)] border border-[var(--sep)] text-[var(--text-soft)] hover:text-[var(--text)]"
                         aria-label="Pièce suivante"
                       >
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -262,25 +261,25 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                 {/* 3. Essential Product Details & Specs */}
                 <div className="text-center space-y-2">
-                  <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-white line-clamp-1">
+                  <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-[var(--text)] line-clamp-1">
                     {activeHeroProduct.name}
                   </h1>
 
                   {/* Compact Horological Spec Pills */}
                   {activeHeroProduct.specifications && (
-                    <div className="flex flex-wrap items-center justify-center gap-1.5 text-[10px] text-white/70">
+                    <div className="flex flex-wrap items-center justify-center gap-1.5 text-[10px] text-[var(--text-soft)]">
                       {activeHeroProduct.specifications.movement && (
-                        <span className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10">
+                        <span className="px-2.5 py-0.5 rounded-full bg-[var(--carte-bg)] border border-[var(--sep)]">
                           {activeHeroProduct.specifications.movement}
                         </span>
                       )}
                       {activeHeroProduct.specifications.caseDiameter && (
-                        <span className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10">
+                        <span className="px-2.5 py-0.5 rounded-full bg-[var(--carte-bg)] border border-[var(--sep)]">
                           {activeHeroProduct.specifications.caseDiameter}
                         </span>
                       )}
                       {activeHeroProduct.specifications.waterResistance && (
-                        <span className="px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10">
+                        <span className="px-2.5 py-0.5 rounded-full bg-[var(--carte-bg)] border border-[var(--sep)]">
                           {activeHeroProduct.specifications.waterResistance}
                         </span>
                       )}
@@ -289,16 +288,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                   {/* Price Row */}
                   <div className="flex items-center justify-center gap-3 pt-1">
-                    <div className="text-2xl sm:text-3xl font-serif font-bold text-[#c6a664]">
+                    <div className="text-2xl sm:text-3xl font-serif font-bold text-[var(--or)]">
                       {formatPrice(activeHeroProduct.promotionalPrice || activeHeroProduct.price)}
                     </div>
                     {activeHeroProduct.promotionalPrice && activeHeroProduct.promotionalPrice < activeHeroProduct.price && (
-                      <div className="text-xs sm:text-sm text-white/40 line-through font-serif">
+                      <div className="text-xs sm:text-sm text-[var(--text-muted)] line-through font-serif">
                         {formatPrice(activeHeroProduct.price)}
                       </div>
                     )}
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-semibold">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 dark:text-emerald-400 text-[10px] font-semibold">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
                       En stock
                     </span>
                   </div>
@@ -313,7 +312,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     onClick={() => onSelectProduct(activeHeroProduct)}
                     icon={Eye}
                     iconPosition="left"
-                    className="w-full shadow-lg shadow-[#c6a664]/20 py-3.5 font-bold text-xs uppercase tracking-wider"
+                    className="w-full shadow-lg shadow-[var(--or)]/20 py-3.5 font-bold text-xs uppercase tracking-wider"
                   >
                     Découvrir cette Montre
                   </Button>
@@ -323,7 +322,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       variant="outline"
                       size="sm"
                       onClick={() => onNavigate('shop')}
-                      className="border-white/15 hover:border-[#c6a664] text-[11px] py-2.5 uppercase tracking-wider"
+                      className="border-[var(--sep)] text-[var(--text)] hover:border-[var(--or)] hover:text-[var(--or)] text-[11px] py-2.5 uppercase tracking-wider"
                     >
                       Boutique
                     </Button>
@@ -345,7 +344,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                 {/* 5. Scroll Invitation Pill */}
                 <div className="pt-3 pb-1 flex items-center justify-center">
-                  <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-white/40 font-serif animate-pulse">
+                  <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-serif animate-pulse">
                     <span>Explorer les collections</span>
                     <ChevronDown className="w-3.5 h-3.5" />
                   </div>
@@ -360,8 +359,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <div className="lg:col-span-7 xl:col-span-6 2xl:col-span-6 space-y-6 text-left">
                   {/* Tag & Brand row */}
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#c6a664]/15 border border-[#c6a664]/40 text-[#c6a664] text-xs font-bold tracking-[0.25em] uppercase font-serif">
-                      <Sparkles className="w-3.5 h-3.5 text-[#c6a664]" />
+                    <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[var(--badge-bg)] border border-[var(--badge-border)] text-[var(--or)] text-xs font-bold tracking-[0.25em] uppercase font-serif">
+                      <Sparkles className="w-3.5 h-3.5 text-[var(--or)]" />
                       <span>
                         {activeHeroProduct.featured
                           ? 'Pièce Maîtresse en Vedette'
@@ -370,18 +369,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
                           : 'Haute Horlogerie Certifiée'}
                       </span>
                     </div>
-                    <span className="text-xs uppercase tracking-widest text-white/50 font-semibold font-serif">
+                    <span className="text-xs uppercase tracking-widest text-[var(--text-muted)] font-semibold font-serif">
                       {activeHeroProduct.brand}
                     </span>
                   </div>
 
                   {/* Fluid Product Title */}
-                  <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl 2xl:text-6xl font-bold tracking-tight text-white leading-[1.15]">
+                  <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl 2xl:text-6xl font-bold tracking-tight text-[var(--text)] leading-[1.15]">
                     {activeHeroProduct.name}
                   </h1>
 
                   {/* Short Description */}
-                  <p className="text-sm sm:text-base 2xl:text-lg text-white/70 max-w-2xl leading-relaxed font-sans font-light line-clamp-3">
+                  <p className="text-sm sm:text-base 2xl:text-lg text-[var(--text-soft)] max-w-2xl leading-relaxed font-sans font-light line-clamp-3">
                     {activeHeroProduct.shortDescription || activeHeroProduct.description || "Garde-temps de prestige alliant précision mécanique, finitions soignées et élégance intemporelle."}
                   </p>
 
@@ -389,21 +388,21 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   {activeHeroProduct.specifications && (
                     <div className="grid grid-cols-3 gap-2.5 pt-1 text-xs">
                       {activeHeroProduct.specifications.movement && (
-                        <div className="px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl flex flex-col">
-                          <span className="text-[10px] text-white/40 uppercase tracking-wider font-serif">Mouvement</span>
-                          <strong className="text-white font-medium text-xs truncate mt-0.5">{activeHeroProduct.specifications.movement}</strong>
+                        <div className="px-3.5 py-2 bg-[var(--carte-bg)] border border-[var(--sep)] rounded-xl flex flex-col shadow-xs">
+                          <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-serif">Mouvement</span>
+                          <strong className="text-[var(--text)] font-medium text-xs truncate mt-0.5">{activeHeroProduct.specifications.movement}</strong>
                         </div>
                       )}
                       {activeHeroProduct.specifications.caseDiameter && (
-                        <div className="px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl flex flex-col">
-                          <span className="text-[10px] text-white/40 uppercase tracking-wider font-serif">Boîtier</span>
-                          <strong className="text-white font-medium text-xs truncate mt-0.5">{activeHeroProduct.specifications.caseDiameter}</strong>
+                        <div className="px-3.5 py-2 bg-[var(--carte-bg)] border border-[var(--sep)] rounded-xl flex flex-col shadow-xs">
+                          <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-serif">Boîtier</span>
+                          <strong className="text-[var(--text)] font-medium text-xs truncate mt-0.5">{activeHeroProduct.specifications.caseDiameter}</strong>
                         </div>
                       )}
                       {activeHeroProduct.specifications.waterResistance && (
-                        <div className="px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl flex flex-col">
-                          <span className="text-[10px] text-white/40 uppercase tracking-wider font-serif">Étanchéité</span>
-                          <strong className="text-white font-medium text-xs truncate mt-0.5">{activeHeroProduct.specifications.waterResistance}</strong>
+                        <div className="px-3.5 py-2 bg-[var(--carte-bg)] border border-[var(--sep)] rounded-xl flex flex-col shadow-xs">
+                          <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider font-serif">Étanchéité</span>
+                          <strong className="text-[var(--text)] font-medium text-xs truncate mt-0.5">{activeHeroProduct.specifications.waterResistance}</strong>
                         </div>
                       )}
                     </div>
@@ -411,16 +410,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                   {/* Price & Availability Row */}
                   <div className="pt-2 flex flex-wrap items-baseline gap-4">
-                    <div className="text-3xl sm:text-4xl 2xl:text-5xl font-serif font-bold text-[#c6a664]">
+                    <div className="text-3xl sm:text-4xl 2xl:text-5xl font-serif font-bold text-[var(--or)]">
                       {formatPrice(activeHeroProduct.promotionalPrice || activeHeroProduct.price)}
                     </div>
                     {activeHeroProduct.promotionalPrice && activeHeroProduct.promotionalPrice < activeHeroProduct.price && (
-                      <div className="text-base sm:text-lg text-white/40 line-through font-serif">
+                      <div className="text-base sm:text-lg text-[var(--text-muted)] line-through font-serif">
                         {formatPrice(activeHeroProduct.price)}
                       </div>
                     )}
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wider">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
                       En stock immédiat
                     </span>
                   </div>
@@ -434,7 +433,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       onClick={() => onSelectProduct(activeHeroProduct)}
                       icon={Eye}
                       iconPosition="left"
-                      className="shadow-xl shadow-[#c6a664]/20 py-4 px-7 font-bold text-sm"
+                      className="shadow-xl shadow-[var(--or)]/20 py-4 px-7 font-bold text-sm"
                     >
                       Découvrir cette Montre
                     </Button>
@@ -446,7 +445,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       onClick={() => onNavigate('shop')}
                       icon={ArrowRight}
                       iconPosition="right"
-                      className="py-4 px-6 border-white/20 hover:border-[#c6a664] hover:text-[#c6a664] text-sm"
+                      className="py-4 px-6 border-[var(--sep)] text-[var(--text)] hover:border-[var(--or)] hover:text-[var(--or)] text-sm"
                     >
                       Boutique
                     </Button>
@@ -471,7 +470,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <div className="lg:col-span-5 xl:col-span-4 2xl:col-span-4 flex flex-col items-center justify-center relative">
                   <div
                     onClick={() => onSelectProduct(activeHeroProduct)}
-                    className="group relative w-full max-w-sm 2xl:max-w-md aspect-square rounded-3xl bg-radial from-white/10 via-black/50 to-black/90 border border-white/15 p-6 shadow-2xl flex items-center justify-center cursor-pointer overflow-hidden transition-all duration-700 hover:border-[#c6a664]/70 hover:shadow-[#c6a664]/10"
+                    className="group relative w-full max-w-sm 2xl:max-w-md aspect-square rounded-3xl theme-watch-stage p-6 shadow-2xl flex items-center justify-center cursor-pointer overflow-hidden transition-all duration-700 hover:border-[var(--or)] hover:shadow-[var(--carte-ombre)]"
                   >
                     <motion.img
                       src={activeHeroProduct.images[0]}
@@ -479,11 +478,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       referrerPolicy="no-referrer"
                       animate={{ y: [0, -8, 0] }}
                       transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut" }}
-                      className="w-full h-full object-contain filter drop-shadow-[0_25px_35px_rgba(0,0,0,0.9)] transition-transform duration-500 ease-out group-hover:scale-110"
+                      className="w-full h-full object-contain filter drop-shadow-[0_25px_35px_rgba(0,0,0,0.85)] transition-transform duration-500 ease-out group-hover:scale-110"
                     />
 
                     {/* Brand Seal */}
-                    <div className="absolute top-4 right-4 bg-black/80 backdrop-blur-md border border-white/15 px-3 py-1.5 rounded-lg text-[10px] uppercase tracking-widest text-[#c6a664] font-serif font-bold">
+                    <div className="absolute top-4 right-4 bg-[var(--carte-bg)]/90 backdrop-blur-md border border-[var(--sep)] px-3 py-1.5 rounded-lg text-[10px] uppercase tracking-widest text-[var(--or)] font-serif font-bold shadow-md">
                       {activeHeroProduct.brand}
                     </div>
                   </div>
@@ -491,8 +490,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                 {/* Right Zone (Grand Écran / Ultrawide) : Interactive Flagship Rail */}
                 {heroCandidates.length > 1 && (
-                  <div className="hidden xl:flex xl:col-span-2 2xl:col-span-2 flex-col justify-center space-y-2.5 pl-4 border-l border-white/10">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#c6a664] font-serif font-bold mb-1">
+                  <div className="hidden xl:flex xl:col-span-2 2xl:col-span-2 flex-col justify-center space-y-2.5 pl-4 border-l border-[var(--sep)]">
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--or)] font-serif font-bold mb-1">
                       Sélection Flagship
                     </div>
                     {heroCandidates.map((cand, idx) => {
@@ -503,11 +502,11 @@ export const HomeView: React.FC<HomeViewProps> = ({
                           onClick={() => setCurrentSlideIndex(idx)}
                           className={`group/item text-left p-2 rounded-xl border transition-all flex items-center gap-2.5 ${
                             isSelected
-                              ? 'bg-white/10 border-[#c6a664] shadow-lg shadow-[#c6a664]/10'
-                              : 'bg-white/[0.02] border-white/5 hover:bg-white/5 hover:border-white/20 opacity-70 hover:opacity-100'
+                              ? 'bg-[var(--badge-bg)] border-[var(--or)] shadow-md'
+                              : 'bg-[var(--carte-bg)] border-[var(--sep)] hover:border-[var(--or)]/50 opacity-80 hover:opacity-100'
                           }`}
                         >
-                          <div className="w-10 h-10 rounded-lg bg-black/40 border border-white/10 p-1 shrink-0 flex items-center justify-center overflow-hidden">
+                          <div className="w-10 h-10 rounded-lg bg-[var(--bg)] border border-[var(--sep)] p-1 shrink-0 flex items-center justify-center overflow-hidden">
                             <img
                               src={cand.images[0]}
                               alt={cand.name}
@@ -515,13 +514,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
                             />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="text-[9px] text-[#c6a664] font-serif uppercase tracking-wider truncate">
+                            <div className="text-[9px] text-[var(--or)] font-serif uppercase tracking-wider truncate">
                               {cand.brand}
                             </div>
-                            <div className="text-xs text-white font-medium truncate">
+                            <div className="text-xs text-[var(--text)] font-medium truncate">
                               {cand.name}
                             </div>
-                            <div className="text-[10px] text-white/50 font-serif">
+                            <div className="text-[10px] text-[var(--text-muted)] font-serif">
                               {formatPrice(cand.promotionalPrice || cand.price)}
                             </div>
                           </div>
@@ -536,16 +535,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
         </section>
       ) : (
         /* Fallback Hero if catalogue has no products yet */
-        <section className="relative min-h-[420px] rounded-3xl overflow-hidden border border-white/10 bg-[#0A0A0A] flex items-center justify-center text-center p-8 shadow-2xl">
+        <section className="relative min-h-[420px] rounded-3xl overflow-hidden border border-[var(--sep)] theme-surface-hero flex items-center justify-center text-center p-8 shadow-2xl">
           <div className="relative z-10 max-w-2xl mx-auto space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#c6a664]/10 border border-[#c6a664]/30 text-[#c6a664] text-[10px] font-bold tracking-[0.25em] uppercase font-serif">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--badge-bg)] border border-[var(--badge-border)] text-[var(--or)] text-[10px] font-bold tracking-[0.25em] uppercase font-serif">
+              <Sparkles className="w-3.5 h-3.5 text-[var(--or)]" />
               <span>Maison d'Horlogerie & Conciergerie Privée</span>
             </div>
-            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white">
+            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-[var(--text)]">
               L'Excellence Horlogère à Portée de Main
             </h1>
-            <p className="text-sm sm:text-base text-white/60 font-sans leading-relaxed">
+            <p className="text-sm sm:text-base text-[var(--text-soft)] font-sans leading-relaxed">
               Découvrez notre sélection exclusive de garde-temps certifiés et commandez directement auprès de notre conciergerie WhatsApp.
             </p>
             <div className="pt-2 flex justify-center">
@@ -575,20 +574,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
           transition={{ duration: 0.55, ease: "easeOut" }}
           className="space-y-6 sm:space-y-8"
         >
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-white/10 pb-3 sm:pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[var(--sep)] pb-3 sm:pb-4">
             <div>
-              <div className="flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[#c6a664] font-serif font-bold">
-                <Award className="w-3.5 h-3.5 text-[#c6a664]" />
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[var(--or)] font-serif font-bold">
+                <Award className="w-3.5 h-3.5 text-[var(--or)]" />
                 <span>Sélection Haute Horlogerie</span>
               </div>
-              <h2 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[#F5F5F0] mt-1">
+              <h2 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[var(--text)] mt-1">
                 La Pièce d'Exception de la Maison
               </h2>
             </div>
 
             <button
               onClick={() => onNavigate('shop')}
-              className="text-xs uppercase tracking-[0.15em] font-semibold text-[#c6a664] hover:text-[#e8d9ad] flex items-center gap-1.5 transition-colors"
+              className="text-xs uppercase tracking-[0.15em] font-semibold text-[var(--or)] hover:text-[var(--or-clair)] flex items-center gap-1.5 transition-colors"
             >
               <span>Voir la sélection</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -600,21 +599,21 @@ export const HomeView: React.FC<HomeViewProps> = ({
             {/* Main Spotlight Featured Card */}
             <div
               onClick={() => onSelectProduct(spotlightPiece)}
-              className="lg:col-span-7 xl:col-span-7 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#18181d] via-[#101014] to-[#0a0a0d] border border-white/15 p-5 sm:p-8 lg:p-10 flex flex-col justify-between cursor-pointer group hover:border-[#c6a664]/60 transition-all duration-500 shadow-2xl relative overflow-hidden"
+              className="lg:col-span-7 xl:col-span-7 rounded-2xl sm:rounded-3xl theme-surface-card border border-[var(--sep)] p-5 sm:p-8 lg:p-10 flex flex-col justify-between cursor-pointer group hover:border-[var(--or)]/60 transition-all duration-500 shadow-2xl relative overflow-hidden"
             >
-              <div className="absolute top-0 right-0 w-96 h-96 bg-radial from-[#c6a664]/10 to-transparent pointer-events-none filter blur-2xl" />
+              <div className="absolute top-0 right-0 w-96 h-96 bg-radial from-[var(--or)]/10 to-transparent pointer-events-none filter blur-2xl" />
 
               <div className="relative z-10 flex items-center justify-between">
-                <span className="px-3 py-0.5 sm:py-1 bg-[#c6a664]/15 border border-[#c6a664]/40 text-[#c6a664] rounded-full text-[9px] sm:text-[10px] uppercase font-bold tracking-widest font-serif">
+                <span className="px-3 py-0.5 sm:py-1 bg-[var(--badge-bg)] border border-[var(--badge-border)] text-[var(--or)] rounded-full text-[9px] sm:text-[10px] uppercase font-bold tracking-widest font-serif">
                   Signature de la Maison
                 </span>
-                <span className="text-[10px] sm:text-xs uppercase tracking-widest text-white/50 font-serif font-bold">
+                <span className="text-[10px] sm:text-xs uppercase tracking-widest text-[var(--text-muted)] font-serif font-bold">
                   {spotlightPiece.brand}
                 </span>
               </div>
 
               {/* Large Central Watch Presentation */}
-              <div className="relative z-10 my-6 sm:my-8 py-2 sm:py-4 flex items-center justify-center">
+              <div className="relative z-10 my-6 sm:my-8 py-2 sm:py-4 flex items-center justify-center theme-watch-stage rounded-2xl">
                 <img
                   src={spotlightPiece.images[0]}
                   alt={spotlightPiece.name}
@@ -625,18 +624,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
               <div className="relative z-10 space-y-3 sm:space-y-4">
                 <div>
-                  <h3 className="font-serif text-xl sm:text-2xl lg:text-3xl font-bold text-white group-hover:text-[#c6a664] transition-colors">
+                  <h3 className="font-serif text-xl sm:text-2xl lg:text-3xl font-bold text-[var(--text)] group-hover:text-[var(--or)] transition-colors">
                     {spotlightPiece.name}
                   </h3>
-                  <p className="text-xs sm:text-sm text-white/60 mt-1 line-clamp-2 font-light">
+                  <p className="text-xs sm:text-sm text-[var(--text-soft)] mt-1 line-clamp-2 font-light">
                     {spotlightPiece.shortDescription || spotlightPiece.description}
                   </p>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between border-t border-white/10">
+                <div className="pt-2 flex items-center justify-between border-t border-[var(--sep)]">
                   <div>
-                    <span className="text-[9px] sm:text-[10px] text-white/40 uppercase tracking-widest font-serif block">Prix Horloger</span>
-                    <span className="font-serif text-xl sm:text-3xl font-bold text-[#c6a664]">
+                    <span className="text-[9px] sm:text-[10px] text-[var(--text-muted)] uppercase tracking-widest font-serif block">Prix Horloger</span>
+                    <span className="font-serif text-xl sm:text-3xl font-bold text-[var(--or)]">
                       {formatPrice(spotlightPiece.promotionalPrice || spotlightPiece.price)}
                     </span>
                   </div>
@@ -650,7 +649,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     }}
                     icon={Eye}
                     iconPosition="left"
-                    className="font-bold py-2.5 px-4 sm:py-3 sm:px-6 shadow-lg shadow-[#c6a664]/15 text-xs uppercase tracking-wider"
+                    className="font-bold py-2.5 px-4 sm:py-3 sm:px-6 shadow-lg shadow-[var(--or)]/15 text-xs uppercase tracking-wider"
                   >
                     Examiner
                   </Button>
@@ -665,9 +664,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   <div
                     key={sat.id}
                     onClick={() => onSelectProduct(sat)}
-                    className="flex-1 rounded-2xl bg-[#111116] border border-white/10 hover:border-[#c6a664]/40 p-3.5 sm:p-5 flex items-center gap-4 sm:gap-5 cursor-pointer group transition-all duration-300 hover:bg-[#14141a]"
+                    className="flex-1 rounded-2xl bg-[var(--carte-bg)] border border-[var(--sep)] hover:border-[var(--or)]/50 p-3.5 sm:p-5 flex items-center gap-4 sm:gap-5 cursor-pointer group transition-all duration-300 shadow-sm"
                   >
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-black/50 border border-white/10 p-1.5 shrink-0 flex items-center justify-center overflow-hidden">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-[var(--bg)] border border-[var(--sep)] p-1.5 shrink-0 flex items-center justify-center overflow-hidden">
                       <img
                         src={sat.images[0]}
                         alt={sat.name}
@@ -675,20 +674,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
                       />
                     </div>
                     <div className="min-w-0 flex-1 space-y-1">
-                      <div className="text-[9px] text-[#c6a664] font-serif uppercase tracking-widest font-bold">
+                      <div className="text-[9px] text-[var(--or)] font-serif uppercase tracking-widest font-bold">
                         {sat.brand}
                       </div>
-                      <h4 className="font-serif text-sm sm:text-base font-semibold text-white group-hover:text-[#c6a664] transition-colors truncate">
+                      <h4 className="font-serif text-sm sm:text-base font-semibold text-[var(--text)] group-hover:text-[var(--or)] transition-colors truncate">
                         {sat.name}
                       </h4>
-                      <p className="text-[11px] sm:text-xs text-white/50 line-clamp-1 font-light">
+                      <p className="text-[11px] sm:text-xs text-[var(--text-soft)] line-clamp-1 font-light">
                         {sat.shortDescription || sat.description}
                       </p>
                       <div className="pt-1 flex items-center justify-between">
-                        <span className="font-serif text-sm sm:text-base font-bold text-[#c6a664]">
+                        <span className="font-serif text-sm sm:text-base font-bold text-[var(--or)]">
                           {formatPrice(sat.promotionalPrice || sat.price)}
                         </span>
-                        <span className="text-[10px] text-[#c6a664] uppercase font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                        <span className="text-[10px] text-[var(--or)] uppercase font-semibold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                           <span>Voir</span>
                           <ArrowRight className="w-3 h-3" />
                         </span>
@@ -697,14 +696,14 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   </div>
                 ))
               ) : (
-                <div className="h-full rounded-2xl bg-[#111116] border border-white/10 p-6 flex flex-col justify-center space-y-3">
-                  <div className="p-3 bg-[#c6a664]/10 border border-[#c6a664]/30 rounded-xl w-fit text-[#c6a664]">
+                <div className="h-full rounded-2xl bg-[var(--carte-bg)] border border-[var(--sep)] p-6 flex flex-col justify-center space-y-3">
+                  <div className="p-3 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl w-fit text-[var(--or)]">
                     <ShieldCheck className="w-6 h-6" />
                   </div>
-                  <h4 className="font-serif text-lg font-bold text-white">
+                  <h4 className="font-serif text-lg font-bold text-[var(--text)]">
                     Garde-Temps Rares & Certifiés
                   </h4>
-                  <p className="text-xs text-white/60 leading-relaxed font-light">
+                  <p className="text-xs text-[var(--text-soft)] leading-relaxed font-light">
                     Toutes nos pièces sont inspectées par des maîtres horlogers et livrées avec écrin et certificat d'authenticité.
                   </p>
                   <Button
@@ -712,7 +711,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     onClick={() => onNavigate('shop')}
                     icon={ArrowRight}
                     iconPosition="right"
-                    className="w-fit border-white/20 hover:border-[#c6a664] hover:text-[#c6a664] text-xs"
+                    className="w-fit border-[var(--sep)] text-[var(--text)] hover:border-[var(--or)] hover:text-[var(--or)] text-xs"
                   >
                     Catalogue complet
                   </Button>
@@ -734,20 +733,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
           transition={{ duration: 0.55, ease: "easeOut" }}
           className="space-y-6 sm:space-y-8"
         >
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-white/10 pb-3 sm:pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[var(--sep)] pb-3 sm:pb-4">
             <div>
-              <div className="flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.25em] text-amber-400 font-serif font-bold">
-                <Flame className="w-3.5 h-3.5 text-amber-400" />
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[var(--or)] font-serif font-bold">
+                <Flame className="w-3.5 h-3.5 text-[var(--or)]" />
                 <span>Tendances Horlogères</span>
               </div>
-              <h2 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[#F5F5F0] mt-1">
+              <h2 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[var(--text)] mt-1">
                 Modèles Populaires & Bestsellers
               </h2>
             </div>
 
             <button
               onClick={() => onNavigate('shop')}
-              className="text-xs uppercase tracking-[0.15em] font-semibold text-[#c6a664] hover:text-[#e8d9ad] flex items-center gap-1.5 transition-colors"
+              className="text-xs uppercase tracking-[0.15em] font-semibold text-[var(--or)] hover:text-[var(--or-clair)] flex items-center gap-1.5 transition-colors"
             >
               <span>Explorer le catalogue</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -775,40 +774,40 @@ export const HomeView: React.FC<HomeViewProps> = ({
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-40px" }}
         transition={{ duration: 0.55, ease: "easeOut" }}
-        className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-white/15 bg-gradient-to-r from-[#0d0e12] via-[#14151b] to-[#07070a] p-6 sm:p-12 lg:p-16 shadow-2xl"
+        className="relative rounded-2xl sm:rounded-3xl overflow-hidden border border-[var(--sep)] theme-surface-banner p-6 sm:p-12 lg:p-16 shadow-2xl transition-all"
       >
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-radial from-[#c6a664]/15 to-transparent pointer-events-none filter blur-3xl" />
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-96 h-96 bg-radial from-[var(--or)]/15 to-transparent pointer-events-none filter blur-3xl" />
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center">
           <div className="lg:col-span-7 space-y-3 sm:space-y-4">
-            <div className="inline-flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[#c6a664] font-serif font-bold">
-              <Compass className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[var(--or)] font-serif font-bold">
+              <Compass className="w-3.5 h-3.5 text-[var(--or)]" />
               <span>L'Art & la Précision Mécanique</span>
             </div>
-            <h3 className="font-serif text-2xl sm:text-3xl 2xl:text-4xl font-bold text-white leading-tight">
+            <h3 className="font-serif text-2xl sm:text-3xl 2xl:text-4xl font-bold text-[var(--text)] leading-tight">
               Une passion inébranlable pour la mécanique d'exception
             </h3>
-            <p className="text-xs sm:text-sm text-white/70 max-w-xl leading-relaxed font-light">
+            <p className="text-xs sm:text-sm text-[var(--text-soft)] max-w-xl leading-relaxed font-light">
               Chaque montre proposée dans notre écrin fait l'objet d'une sélection rigoureuse. Nous ne sélectionnons que des pièces attestées par un historique irréprochable et un état mécanique certifié.
             </p>
           </div>
 
           <div className="lg:col-span-5 grid grid-cols-2 gap-3 sm:gap-4">
-            <div className="p-3.5 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 text-center space-y-1">
-              <div className="font-serif text-xl sm:text-3xl font-bold text-[#c6a664]">100%</div>
-              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-white/60 font-serif">Certifié Authentique</div>
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-[var(--carte-bg)] border border-[var(--sep)] text-center space-y-1 shadow-sm">
+              <div className="font-serif text-xl sm:text-3xl font-bold text-[var(--or)]">100%</div>
+              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-serif">Certifié Authentique</div>
             </div>
-            <div className="p-3.5 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 text-center space-y-1">
-              <div className="font-serif text-xl sm:text-3xl font-bold text-[#c6a664]">24-48h</div>
-              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-white/60 font-serif">Expédition Sécurisée</div>
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-[var(--carte-bg)] border border-[var(--sep)] text-center space-y-1 shadow-sm">
+              <div className="font-serif text-xl sm:text-3xl font-bold text-[var(--or)]">24-48h</div>
+              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-serif">Expédition Sécurisée</div>
             </div>
-            <div className="p-3.5 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 text-center space-y-1">
-              <div className="font-serif text-xl sm:text-3xl font-bold text-[#c6a664]">VIP</div>
-              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-white/60 font-serif">Conciergerie WhatsApp</div>
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-[var(--carte-bg)] border border-[var(--sep)] text-center space-y-1 shadow-sm">
+              <div className="font-serif text-xl sm:text-3xl font-bold text-[var(--or)]">VIP</div>
+              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-serif">Conciergerie WhatsApp</div>
             </div>
-            <div className="p-3.5 sm:p-5 rounded-2xl bg-white/[0.03] border border-white/10 text-center space-y-1">
-              <div className="font-serif text-xl sm:text-3xl font-bold text-[#c6a664]">Écrin</div>
-              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-white/60 font-serif">Coffret de Luxe Inclus</div>
+            <div className="p-3.5 sm:p-5 rounded-2xl bg-[var(--carte-bg)] border border-[var(--sep)] text-center space-y-1 shadow-sm">
+              <div className="font-serif text-xl sm:text-3xl font-bold text-[var(--or)]">Écrin</div>
+              <div className="text-[10px] sm:text-[11px] uppercase tracking-wider text-[var(--text-muted)] font-serif">Coffret de Luxe Inclus</div>
             </div>
           </div>
         </div>
@@ -825,20 +824,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
           transition={{ duration: 0.55, ease: "easeOut" }}
           className="space-y-6 sm:space-y-8"
         >
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-white/10 pb-3 sm:pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[var(--sep)] pb-3 sm:pb-4">
             <div>
-              <div className="flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[#c6a664] font-serif font-bold">
-                <Clock className="w-3.5 h-3.5 text-[#c6a664]" />
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[var(--or)] font-serif font-bold">
+                <Clock className="w-3.5 h-3.5 text-[var(--or)]" />
                 <span>Disponibilité Immédiate</span>
               </div>
-              <h2 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[#F5F5F0] mt-1">
+              <h2 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[var(--text)] mt-1">
                 Dernières Nouveautés Horlogères
               </h2>
             </div>
 
             <button
               onClick={() => onNavigate('shop')}
-              className="text-xs uppercase tracking-[0.15em] font-semibold text-[#c6a664] hover:text-[#e8d9ad] flex items-center gap-1.5 transition-colors"
+              className="text-xs uppercase tracking-[0.15em] font-semibold text-[var(--or)] hover:text-[var(--or-clair)] flex items-center gap-1.5 transition-colors"
             >
               <span>Consulter toutes les montres</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -869,13 +868,13 @@ export const HomeView: React.FC<HomeViewProps> = ({
           className="space-y-6 sm:space-y-8"
         >
           <div className="text-center space-y-2 max-w-2xl mx-auto">
-            <span className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[#c6a664] font-serif font-bold">
+            <span className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[var(--or)] font-serif font-bold">
               Collections & Univers
             </span>
-            <h2 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[#F5F5F0]">
+            <h2 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[var(--text)]">
               Explorez par Collection
             </h2>
-            <p className="text-xs sm:text-sm text-white/50 font-sans">
+            <p className="text-xs sm:text-sm text-[var(--text-soft)] font-sans">
               Des garde-temps classiques, sportifs ou habillés conçus selon les plus hauts standards d'exigence.
             </p>
           </div>
@@ -885,29 +884,29 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <div
                 key={cat.id}
                 onClick={() => onNavigate('shop', cat.id)}
-                className="group relative h-64 sm:h-80 rounded-2xl overflow-hidden border border-white/10 cursor-pointer shadow-xl hover:border-[#c6a664]/60 transition-all duration-500 flex flex-col justify-end p-5 sm:p-8 bg-[#111116]"
+                className="group relative h-64 sm:h-80 rounded-2xl overflow-hidden border border-[var(--sep)] cursor-pointer shadow-xl hover:border-[var(--or)]/60 transition-all duration-500 flex flex-col justify-end p-5 sm:p-8 bg-[var(--carte-bg)]"
               >
                 {cat.image ? (
                   <img
                     src={cat.image}
                     alt={cat.name}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-50"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out opacity-60"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#1A1A20] to-[#0A0A0E]" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-[var(--carte-bg-subtle)] to-[var(--bg-3)]" />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#07070a] via-[#07070a]/65 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg)] via-[var(--bg)]/75 to-transparent" />
 
                 <div className="relative z-10 space-y-1.5 sm:space-y-2">
-                  <h3 className="font-serif text-xl sm:text-2xl font-bold text-white group-hover:text-[#c6a664] transition-colors">
+                  <h3 className="font-serif text-xl sm:text-2xl font-bold text-[var(--text)] group-hover:text-[var(--or)] transition-colors">
                     {cat.name}
                   </h3>
                   {cat.description && (
-                    <p className="text-xs text-white/60 line-clamp-2 leading-relaxed font-light">
+                    <p className="text-xs text-[var(--text-soft)] line-clamp-2 leading-relaxed font-light">
                       {cat.description}
                     </p>
                   )}
-                  <div className="pt-2 flex items-center gap-1.5 text-xs text-[#c6a664] font-semibold tracking-wider uppercase group-hover:translate-x-1.5 transition-transform">
+                  <div className="pt-2 flex items-center gap-1.5 text-xs text-[var(--or)] font-semibold tracking-wider uppercase group-hover:translate-x-1.5 transition-transform">
                     <span>Explorer</span>
                     <ArrowRight className="w-3 h-3" />
                   </div>
@@ -926,69 +925,69 @@ export const HomeView: React.FC<HomeViewProps> = ({
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-40px" }}
         transition={{ duration: 0.55, ease: "easeOut" }}
-        className="bg-gradient-to-b from-[#111116] to-[#0a0a0d] border border-white/10 rounded-2xl sm:rounded-3xl p-6 sm:p-12 2xl:p-16 shadow-xl"
+        className="bg-[var(--carte-bg)] border border-[var(--sep)] rounded-2xl sm:rounded-3xl p-6 sm:p-12 2xl:p-16 shadow-xl"
       >
         <div className="text-center space-y-1.5 sm:space-y-2 mb-8 sm:mb-10 max-w-xl mx-auto">
-          <span className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[#c6a664] font-serif font-bold">
+          <span className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[var(--or)] font-serif font-bold">
             Engagement & Rigueur
           </span>
-          <h3 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[#F5F5F0]">
+          <h3 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[var(--text)]">
             L'Excellence du Service Horloger
           </h3>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
-          <div className="flex items-start space-x-3.5 p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-[#c6a664]/30 transition-colors">
-            <div className="p-2.5 sm:p-3 bg-[#c6a664]/10 border border-[#c6a664]/25 rounded-xl text-[#c6a664] shrink-0">
+          <div className="flex items-start space-x-3.5 p-4 sm:p-5 rounded-2xl bg-[var(--bg)] border border-[var(--sep)] hover:border-[var(--or)]/30 transition-colors shadow-xs">
+            <div className="p-2.5 sm:p-3 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl text-[var(--or)] shrink-0">
               <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-white font-serif">
+              <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[var(--text)] font-serif">
                 Authenticité 100%
               </h4>
-              <p className="text-[11px] sm:text-xs text-white/50 mt-1 leading-relaxed font-sans font-light">
+              <p className="text-[11px] sm:text-xs text-[var(--text-soft)] mt-1 leading-relaxed font-sans font-light">
                 Chaque pièce fait l'objet d'un contrôle rigoureux avec certificat et numéro de série vérifié.
               </p>
             </div>
           </div>
 
-          <div className="flex items-start space-x-3.5 p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-[#c6a664]/30 transition-colors">
-            <div className="p-2.5 sm:p-3 bg-[#c6a664]/10 border border-[#c6a664]/25 rounded-xl text-[#c6a664] shrink-0">
+          <div className="flex items-start space-x-3.5 p-4 sm:p-5 rounded-2xl bg-[var(--bg)] border border-[var(--sep)] hover:border-[var(--or)]/30 transition-colors shadow-xs">
+            <div className="p-2.5 sm:p-3 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl text-[var(--or)] shrink-0">
               <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-white font-serif">
+              <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[var(--text)] font-serif">
                 Conciergerie Dédiée
               </h4>
-              <p className="text-[11px] sm:text-xs text-white/50 mt-1 leading-relaxed font-sans font-light">
+              <p className="text-[11px] sm:text-xs text-[var(--text-soft)] mt-1 leading-relaxed font-sans font-light">
                 Conseils personnalisés, photos et vidéos HD sur demande en direct avec notre équipe sur WhatsApp.
               </p>
             </div>
           </div>
 
-          <div className="flex items-start space-x-3.5 p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-[#c6a664]/30 transition-colors">
-            <div className="p-2.5 sm:p-3 bg-[#c6a664]/10 border border-[#c6a664]/25 rounded-xl text-[#c6a664] shrink-0">
+          <div className="flex items-start space-x-3.5 p-4 sm:p-5 rounded-2xl bg-[var(--bg)] border border-[var(--sep)] hover:border-[var(--or)]/30 transition-colors shadow-xs">
+            <div className="p-2.5 sm:p-3 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl text-[var(--or)] shrink-0">
               <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-white font-serif">
+              <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[var(--text)] font-serif">
                 Écrin & Expédition
               </h4>
-              <p className="text-[11px] sm:text-xs text-white/50 mt-1 leading-relaxed font-sans font-light">
+              <p className="text-[11px] sm:text-xs text-[var(--text-soft)] mt-1 leading-relaxed font-sans font-light">
                 Colis scellé haute sécurité, écrin de luxe offert et remise soignée.
               </p>
             </div>
           </div>
 
-          <div className="flex items-start space-x-3.5 p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-[#c6a664]/30 transition-colors">
-            <div className="p-2.5 sm:p-3 bg-[#c6a664]/10 border border-[#c6a664]/25 rounded-xl text-[#c6a664] shrink-0">
+          <div className="flex items-start space-x-3.5 p-4 sm:p-5 rounded-2xl bg-[var(--bg)] border border-[var(--sep)] hover:border-[var(--or)]/30 transition-colors shadow-xs">
+            <div className="p-2.5 sm:p-3 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl text-[var(--or)] shrink-0">
               <Clock className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div>
-              <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-white font-serif">
+              <h4 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-[var(--text)] font-serif">
                 Garantie & Suivi
               </h4>
-              <p className="text-[11px] sm:text-xs text-white/50 mt-1 leading-relaxed font-sans font-light">
+              <p className="text-[11px] sm:text-xs text-[var(--text-soft)] mt-1 leading-relaxed font-sans font-light">
                 Prise en charge complète du mouvement et révision horlogère soignée.
               </p>
             </div>
@@ -1004,17 +1003,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-40px" }}
         transition={{ duration: 0.55, ease: "easeOut" }}
-        className="p-6 sm:p-12 2xl:p-16 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#1a1a22] via-[#121217] to-[#07070a] border border-white/15 flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 shadow-2xl relative overflow-hidden"
+        className="p-6 sm:p-12 2xl:p-16 rounded-2xl sm:rounded-3xl theme-surface-banner border border-[var(--sep)] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 shadow-2xl relative overflow-hidden"
       >
         <div className="space-y-2 sm:space-y-3 max-w-2xl text-center md:text-left relative z-10">
           <div className="inline-flex items-center gap-1.5 text-[10px] sm:text-xs text-[#25D366] font-semibold tracking-[0.2em] uppercase font-serif">
             <MessageSquare className="w-3.5 h-3.5 fill-current" />
             <span>Service Conciergerie Privée</span>
           </div>
-          <h3 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[#F5F5F0]">
+          <h3 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[var(--text)]">
             Une recherche spécifique ou une commande sur-mesure ?
           </h3>
-          <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-sans font-light">
+          <p className="text-xs sm:text-sm text-[var(--text-soft)] leading-relaxed font-sans font-light">
             Notre équipe vous répond en direct sur WhatsApp pour vous conseiller, vous envoyer des vidéos au poignet ou vérifier la disponibilité d'une référence rare.
           </p>
         </div>
@@ -1039,7 +1038,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             onClick={() => onNavigate('shop')}
             icon={ArrowRight}
             iconPosition="right"
-            className="w-full sm:w-auto py-3.5 sm:py-4 px-6 border-white/20 hover:border-[#c6a664] hover:text-[#c6a664] text-xs font-bold uppercase tracking-wider"
+            className="w-full sm:w-auto py-3.5 sm:py-4 px-6 border-[var(--sep)] text-[var(--text)] hover:border-[var(--or)] hover:text-[var(--or)] text-xs font-bold uppercase tracking-wider"
           >
             Boutique Complète
           </Button>

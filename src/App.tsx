@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Product, Category, Order, StoreSettings, OrderStatus, PaymentStatus, UserProfile } from './types';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Services
 import { seedInitialDataIfEmpty, forceSeedData } from './services/seedService';
@@ -227,6 +228,18 @@ const MainApp: React.FC = () => {
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, [products, orders]);
+
+  // Global search shortcut (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Handlers for Navigation
   const handleNavigate = (view: string, categorySlug?: string) => {
@@ -567,9 +580,9 @@ const MainApp: React.FC = () => {
 
   if (loading && products.length === 0) {
     return (
-      <div className="min-h-screen bg-stone-950 flex flex-col items-center justify-center text-stone-100 space-y-4">
-        <div className="w-12 h-12 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
-        <span className="font-serif text-sm uppercase tracking-widest text-amber-400">
+      <div className="min-h-screen bg-[var(--bg)] flex flex-col items-center justify-center text-[var(--text)] space-y-4">
+        <div className="w-12 h-12 border-2 border-[var(--or)] border-t-transparent rounded-full animate-spin" />
+        <span className="font-serif text-sm uppercase tracking-widest text-[var(--or)]">
           Chargement de l'Écrin Horloger...
         </span>
       </div>
@@ -693,7 +706,7 @@ const MainApp: React.FC = () => {
   const cleanWhatsApp = settings.whatsappNumber.replace(/[^0-9]/g, '');
 
   return (
-    <div className="min-h-screen bg-[#07070a] text-stone-100 flex flex-col font-sans selection:bg-[#c6a664] selection:text-stone-950 relative z-10 isolate">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col font-sans selection:bg-[var(--or)] selection:text-black relative z-10 isolate transition-colors duration-300">
       {/* Atmosphere Background strictly on public views */}
       <AtmosphereBackground />
 
@@ -784,7 +797,10 @@ const MainApp: React.FC = () => {
       />
 
       {/* Floating WhatsApp Concierge Badge */}
-      <aside aria-label="Conciergerie WhatsApp" className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30 group">
+      <aside
+        aria-label="Conciergerie WhatsApp"
+        className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-[calc(1rem+env(safe-area-inset-right,0px))] sm:bottom-6 sm:right-6 z-30 group"
+      >
         <a
           id="floating-whatsapp-btn"
           href={buildWhatsAppChatUrl(
@@ -796,7 +812,7 @@ const MainApp: React.FC = () => {
           target="_blank"
           rel="noreferrer"
           aria-label="Contacter la conciergerie WhatsApp"
-          className="flex items-center justify-center gap-2 sm:gap-3 bg-[#25D366] hover:bg-[#20ba59] text-black font-bold h-11 w-11 sm:h-auto sm:w-auto sm:py-3.5 sm:px-4.5 rounded-full shadow-2xl shadow-[#25D366]/30 border-2 border-white/20 transition-all hover:scale-105 active:scale-95"
+          className="flex items-center justify-center gap-2 sm:gap-3 bg-[#25D366] hover:bg-[#20ba59] text-black font-bold min-w-[48px] min-h-[48px] h-12 w-12 sm:h-auto sm:w-auto sm:py-3.5 sm:px-4.5 rounded-full shadow-2xl shadow-[#25D366]/30 border-2 border-white/20 transition-all hover:scale-105 active:scale-95"
         >
           <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-black opacity-40"></span>
@@ -871,10 +887,12 @@ const MainApp: React.FC = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <MainApp />
-      </CartProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <CartProvider>
+          <MainApp />
+        </CartProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

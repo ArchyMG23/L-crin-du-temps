@@ -1,19 +1,110 @@
 @import "tailwindcss";
 
 @layer base {
-  :root {
+  :root,
+  [data-theme="dark"] {
     --font-serif: 'Cinzel', Georgia, serif;
     --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    
+    /* Thème Sombre d'Origine (conservé strictement) */
+    --bg: #07070a;
+    --bg-2: #0d0e12;
+    --bg-3: #14151b;
+    --text: #f4efe2;
+    --text-soft: rgba(244, 239, 226, 0.72);
+    --text-muted: rgba(244, 239, 226, 0.45);
+    --or: #c6a664;
+    --or-clair: #e8d9ad;
+    --carte-bg: #121216;
+    --carte-bg-subtle: #18181f;
+    --carte-bg-elevated: #16161c;
+    --carte-ombre: 0 0 40px rgba(198, 166, 100, 0.08);
+    --badge-bg: rgba(198, 166, 100, 0.12);
+    --badge-border: rgba(198, 166, 100, 0.35);
+    --sep: rgba(244, 239, 226, 0.12);
+    --sep-subtle: rgba(255, 255, 255, 0.06);
+    --hero-bg: linear-gradient(180deg, #121217 0%, #0c0c0f 50%, #07070a 100%);
+    --hero-overlay: radial-gradient(circle at 50% 50%, rgba(198, 166, 100, 0.1) 0%, transparent 70%);
+    --banner-bg: linear-gradient(135deg, #0d0e12 0%, #14151b 50%, #07070a 100%);
+    --modal-bg: #121216;
+    --modal-header-bg: #0c0c0f;
+    --modal-backdrop: rgba(0, 0, 0, 0.85);
+    --input-bg: #0b0b0e;
+    --input-border: rgba(255, 255, 255, 0.12);
+    --watch-stage-bg: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.6) 60%, rgba(0, 0, 0, 0.9) 100%);
+
+    /* Dérivés & compatibilités */
     --ec-or: #c6a664;
     --ec-or-clair: #e8d9ad;
     --ec-noir: #07070a;
     --ec-noir-2: #0d0e12;
+
+    /* Ambiance vivante */
+    --vignette-start: transparent;
+    --vignette-end: rgba(7, 7, 10, 0.85);
+    --dust-start: var(--or-clair);
+    --dust-end: var(--or);
+  }
+
+  [data-theme="light"] {
+    --font-serif: 'Cinzel', Georgia, serif;
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    
+    /* Thème Clair Spécification Section 41 & 44 (Haute Horlogerie Ivoire & Or) */
+    --bg: #f6f2e9;
+    --bg-2: #efe9da;
+    --bg-3: #e5decb;
+    --text: #1c1a16;
+    --text-soft: rgba(28, 26, 22, 0.72);
+    --text-muted: rgba(28, 26, 22, 0.48);
+    --or: #a9803f;        /* or assombri contrasté */
+    --or-clair: #8a6a34;
+    --carte-bg: #ffffff;
+    --carte-bg-subtle: #fbf9f5;
+    --carte-bg-elevated: #ffffff;
+    --carte-ombre: 0 4px 24px rgba(28, 26, 22, 0.08);
+    --badge-bg: rgba(169, 128, 63, 0.12);
+    --badge-border: rgba(169, 128, 63, 0.32);
+    --sep: rgba(28, 26, 22, 0.12);
+    --sep-subtle: rgba(28, 26, 22, 0.06);
+    --hero-bg: linear-gradient(145deg, #fdfbf7 0%, #f6f1e6 55%, #ece4d2 100%);
+    --hero-overlay: radial-gradient(circle at 50% 50%, rgba(169, 128, 63, 0.06) 0%, transparent 70%);
+    --banner-bg: linear-gradient(135deg, #faf7f0 0%, #efe8d8 50%, #e6ddcb 100%);
+    --modal-bg: #ffffff;
+    --modal-header-bg: #f7f3ec;
+    --modal-backdrop: rgba(28, 26, 22, 0.55);
+    --input-bg: #ffffff;
+    --input-border: rgba(28, 26, 22, 0.16);
+    --watch-stage-bg: radial-gradient(circle at 50% 50%, #ffffff 0%, #f7f3eb 60%, #eee6d6 100%);
+
+    /* Dérivés & compatibilités */
+    --ec-or: #a9803f;
+    --ec-or-clair: #8a6a34;
+    --ec-noir: #f6f2e9;
+    --ec-noir-2: #efe9da;
+
+    /* Ambiance vivante */
+    --vignette-start: transparent;
+    --vignette-end: rgba(239, 233, 218, 0.55);
+    --dust-start: #c49a53;
+    --dust-end: #8a6a34;
+  }
+
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     font-family: var(--font-sans);
-    background-color: #07070a;
-    color: #F5F5F0;
+    background-color: var(--bg);
+    color: var(--text);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    min-height: 100vh;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 
   h1, h2, h3, h4, h5, h6, .font-serif {
@@ -22,7 +113,216 @@
 }
 
 /* ==========================================================
-   L'ÉCRIN DU TEMPS — Système d'ambiance animée (public uniquement)
+   Utilitaires Sémantiques de Thème
+   ========================================================== */
+.theme-surface-hero {
+  background: var(--hero-bg);
+  border-color: var(--sep);
+  box-shadow: var(--carte-ombre);
+}
+
+.theme-surface-banner {
+  background: var(--banner-bg);
+  border-color: var(--sep);
+  box-shadow: var(--carte-ombre);
+}
+
+.theme-surface-card {
+  background: var(--carte-bg);
+  border-color: var(--sep);
+  box-shadow: var(--carte-ombre);
+}
+
+.theme-surface-card-subtle {
+  background: var(--carte-bg-subtle);
+  border-color: var(--sep);
+}
+
+.theme-watch-stage {
+  background: var(--watch-stage-bg);
+  border-color: var(--sep);
+}
+
+/* ==========================================================
+   Règles Thème Clair — Remplacement Global Garanti & Anti-Contraste
+   ========================================================== */
+[data-theme="light"] {
+  color: var(--text);
+}
+
+/* Textes de base en thème clair */
+[data-theme="light"] .text-white,
+[data-theme="light"] .text-\[\#F5F5F0\],
+[data-theme="light"] .text-\[\#f4efe2\] {
+  color: var(--text) !important;
+}
+
+[data-theme="light"] .text-white\/90,
+[data-theme="light"] .text-white\/80,
+[data-theme="light"] .text-white\/70,
+[data-theme="light"] .text-white\/60 {
+  color: var(--text-soft) !important;
+}
+
+[data-theme="light"] .text-white\/50,
+[data-theme="light"] .text-white\/40,
+[data-theme="light"] .text-white\/30 {
+  color: var(--text-muted) !important;
+}
+
+/* Fonds sombres généraux convertis en surfaces claires */
+[data-theme="light"] .bg-\[\#07070a\],
+[data-theme="light"] .bg-\[\#080808\],
+[data-theme="light"] .bg-\[\#09090c\],
+[data-theme="light"] .bg-\[\#0A0A0A\],
+[data-theme="light"] .bg-\[\#0D0D0D\],
+[data-theme="light"] .bg-\[\#0e0e0e\],
+[data-theme="light"] .bg-\[\#101014\],
+[data-theme="light"] .bg-\[\#111116\],
+[data-theme="light"] .bg-\[\#121212\],
+[data-theme="light"] .bg-\[\#121216\],
+[data-theme="light"] .bg-\[\#121217\],
+[data-theme="light"] .bg-\[\#141417\],
+[data-theme="light"] .bg-\[\#14151b\],
+[data-theme="light"] .bg-\[\#151515\],
+[data-theme="light"] .bg-\[\#18181d\],
+[data-theme="light"] .bg-\[\#1a1a22\],
+[data-theme="light"] .bg-\[\#1A1A20\] {
+  background-color: var(--carte-bg) !important;
+}
+
+/* Dégradés sombres convertis en surfaces adaptées */
+[data-theme="light"] .bg-gradient-to-b,
+[data-theme="light"] .bg-gradient-to-r,
+[data-theme="light"] .bg-gradient-to-br {
+  background-image: none !important;
+  background-color: var(--carte-bg) !important;
+}
+
+/* Exception luxueuse pour les sections clés en clair */
+[data-theme="light"] .theme-surface-hero,
+[data-theme="light"] section:has(#mobile-hero-view-product-btn),
+[data-theme="light"] section:has(#hero-view-product-btn) {
+  background-image: var(--hero-bg) !important;
+  background-color: transparent !important;
+}
+
+[data-theme="light"] .theme-surface-banner {
+  background-image: var(--banner-bg) !important;
+  background-color: transparent !important;
+}
+
+/* Bordures en thème clair */
+[data-theme="light"] .border-white\/20,
+[data-theme="light"] .border-white\/15,
+[data-theme="light"] .border-white\/10,
+[data-theme="light"] .border-white\/5 {
+  border-color: var(--sep) !important;
+}
+
+/* Petites surfaces intérieures blanches translucides */
+[data-theme="light"] .bg-white\/5,
+[data-theme="light"] .bg-white\/10,
+[data-theme="light"] .bg-white\/\[0\.02\],
+[data-theme="light"] .bg-white\/\[0\.03\] {
+  background-color: rgba(28, 26, 22, 0.04) !important;
+  border-color: var(--sep) !important;
+}
+
+/* Inputs & Formulaires en clair */
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--input-border) !important;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Modals en thème clair */
+[data-theme="light"] .fixed .bg-\[\#121212\],
+[data-theme="light"] .fixed .bg-\[\#111111\],
+[data-theme="light"] .fixed .bg-\[\#0E0E0E\] {
+  background-color: var(--modal-bg) !important;
+  color: var(--text) !important;
+  border-color: var(--sep) !important;
+}
+
+[data-theme="light"] .fixed .bg-\[\#0A0A0A\],
+[data-theme="light"] .fixed .bg-\[\#151515\] {
+  background-color: var(--modal-header-bg) !important;
+  border-color: var(--sep) !important;
+}
+
+/* Or text & accents */
+[data-theme="light"] .text-\[\#D4AF37\],
+[data-theme="light"] .text-\[\#c6a664\] {
+  color: var(--or) !important;
+}
+
+[data-theme="light"] .border-\[\#D4AF37\],
+[data-theme="light"] .border-\[\#c6a664\] {
+  border-color: var(--or) !important;
+}
+
+[data-theme="light"] .bg-\[\#D4AF37\]\/10,
+[data-theme="light"] .bg-\[\#D4AF37\]\/15,
+[data-theme="light"] .bg-\[\#c6a664\]\/10,
+[data-theme="light"] .bg-\[\#c6a664\]\/15 {
+  background-color: var(--badge-bg) !important;
+  border-color: var(--badge-border) !important;
+  color: var(--or) !important;
+}
+
+/* ==========================================================
+   Bouton de Bascule de Thème (Spécification Section 41 & 42)
+   ========================================================== */
+.ec-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--sep);
+  background: var(--carte-bg);
+  color: var(--or);
+  cursor: pointer;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, transform 0.15s ease;
+  user-select: none;
+}
+
+.ec-theme-toggle:hover {
+  background: var(--bg-2);
+  border-color: var(--or);
+}
+
+.ec-theme-toggle:active {
+  transform: scale(0.92);
+}
+
+.ec-theme-toggle svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.4s ease, opacity 0.3s ease;
+}
+
+/* Zone tactile confortable sur mobile (44px minimum, norme Apple & Android) */
+@media (hover: none) {
+  .ec-theme-toggle {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* ==========================================================
+   L'ÉCRIN DU TEMPS — Système d'ambiance animée (Thème-aware)
    ========================================================== */
 
 #ec-atmosphere {
@@ -32,12 +332,15 @@
   pointer-events: none;
   overflow: hidden;
   contain: strict;
+  transition: opacity 0.4s ease;
 }
 
 .ec-vignette {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, var(--vignette-start) 40%, var(--vignette-end) 100%);
+  transition: background 0.3s ease;
 }
 
 .ec-movement {
@@ -51,7 +354,12 @@
   filter: blur(6px);
   animation: ec-rotate 240s linear infinite;
   will-change: transform;
-  transition: transform 0.5s ease-out;
+  transition: transform 0.5s ease-out, opacity 0.3s ease;
+}
+
+[data-theme="light"] .ec-movement {
+  opacity: 0.03;
+  filter: blur(4px);
 }
 
 @keyframes ec-rotate {
@@ -68,11 +376,16 @@
   margin: -450px 0 0 -450px;
   opacity: 0.05;
   filter: blur(70px);
-  background: conic-gradient(from 0deg, var(--ec-or), transparent 25%, var(--ec-or), transparent 60%, var(--ec-or));
+  background: conic-gradient(from 0deg, var(--or), transparent 25%, var(--or), transparent 60%, var(--or));
   border-radius: 38% 62% 55% 45% / 45% 40% 60% 55%;
   animation: ec-drift 46s ease-in-out infinite alternate;
   will-change: transform;
-  transition: transform 0.5s ease-out;
+  transition: transform 0.5s ease-out, opacity 0.3s ease;
+}
+
+[data-theme="light"] .ec-gem-ghost {
+  opacity: 0.035;
+  filter: blur(80px);
 }
 
 @keyframes ec-drift {
@@ -83,8 +396,12 @@
 .ec-dust {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--ec-or-clair), var(--ec-or) 60%, transparent 75%);
+  background: radial-gradient(circle, var(--dust-start), var(--dust-end) 60%, transparent 75%);
   will-change: transform, opacity;
+}
+
+[data-theme="light"] .ec-dust {
+  opacity: 0.25;
 }
 
 .ec-grain {
@@ -94,20 +411,24 @@
   pointer-events: none;
 }
 
-/* Tablette : moins de flou, mécanisme plus discret */
-@media (max-width: 1024px) {
-  .ec-movement { filter: blur(4px); opacity: 0.045; }
-  .ec-gem-ghost { filter: blur(50px); opacity: 0.05; }
+[data-theme="light"] .ec-grain {
+  opacity: 0.008;
 }
 
-/* Mobile : ambiance allégée, pas de mécanisme (trop coûteux visuellement à petite échelle) */
+/* Tablette : moins de flou, mécanisme plus discret */
+@media (max-width: 1024px) {
+  .ec-movement { filter: blur(4px); opacity: 0.035; }
+  .ec-gem-ghost { filter: blur(50px); opacity: 0.04; }
+}
+
+/* Mobile : ambiance allégée, pas de mécanisme pour 60fps garanti */
 @media (max-width: 640px) {
   .ec-movement { display: none; }
-  .ec-gem-ghost { width: 600px; height: 600px; margin: -300px 0 0 -300px; filter: blur(40px); opacity: 0.05; }
+  .ec-gem-ghost { width: 600px; height: 600px; margin: -300px 0 0 -300px; filter: blur(40px); opacity: 0.04; }
   .ec-vignette { animation-duration: 26s; }
 }
 
-/* Respect strict de la préférence système */
+/* Respect strict de la préférence système de réduction de mouvement */
 @media (prefers-reduced-motion: reduce) {
   .ec-vignette, .ec-movement, .ec-gem-ghost, .ec-dust {
     animation: none !important;
@@ -115,19 +436,158 @@
   }
 }
 
+/* ==========================================================
+   Composants Thème Clair (Variante Haute Horlogerie Ivoire)
+   ========================================================== */
+
+[data-theme="light"] header {
+  background-color: rgba(246, 242, 233, 0.95) !important;
+  border-color: rgba(28, 26, 22, 0.08) !important;
+  color: var(--text) !important;
+}
+
+[data-theme="light"] header .bg-\[\#09090c\] {
+  background-color: var(--bg-2) !important;
+  border-color: rgba(28, 26, 22, 0.06) !important;
+  color: var(--or) !important;
+}
+
+[data-theme="light"] header .bg-\[\#151515\] {
+  background-color: var(--carte-bg) !important;
+  border-color: rgba(28, 26, 22, 0.1) !important;
+  color: var(--text) !important;
+  box-shadow: 0 1px 3px rgba(28, 26, 22, 0.05) !important;
+}
+
+[data-theme="light"] header .bg-\[\#151515\]:hover {
+  background-color: var(--bg-2) !important;
+}
+
+[data-theme="light"] header .bg-\[\#0f0f13\] {
+  background-color: var(--bg-2) !important;
+  border-color: rgba(28, 26, 22, 0.08) !important;
+}
+
+[data-theme="light"] header .bg-\[\#07070a\] {
+  background-color: var(--carte-bg) !important;
+  border-color: rgba(28, 26, 22, 0.1) !important;
+}
+
+/* Cartes Produits en Thème Clair */
+[data-theme="light"] [id^="product-card-"] {
+  background: var(--carte-bg) !important;
+  border-color: rgba(28, 26, 22, 0.08) !important;
+  box-shadow: var(--carte-ombre) !important;
+}
+
+[data-theme="light"] [id^="product-card-"]:hover {
+  border-color: var(--or) !important;
+  box-shadow: 0 8px 32px rgba(169, 128, 63, 0.14) !important;
+}
+
+[data-theme="light"] [id^="product-card-"] .aspect-square {
+  background: radial-gradient(circle, #faf7f2 0%, #efe9dc 100%) !important;
+}
+
+[data-theme="light"] [id^="product-card-"] h3 {
+  color: var(--text) !important;
+}
+
+[data-theme="light"] [id^="product-card-"] h3:hover {
+  color: var(--or) !important;
+}
+
+[data-theme="light"] [id^="product-card-"] .border-t {
+  border-color: rgba(28, 26, 22, 0.06) !important;
+}
+
+[data-theme="light"] [id^="product-card-"] .text-white\/50,
+[data-theme="light"] [id^="product-card-"] .text-white\/40 {
+  color: var(--text-soft) !important;
+}
+
+[data-theme="light"] [id^="product-card-"] .bg-gradient-to-b {
+  background: var(--carte-bg) !important;
+}
+
+/* Footer en Thème Clair */
+[data-theme="light"] footer {
+  background-color: #efe9da !important;
+  border-color: rgba(28, 26, 22, 0.08) !important;
+  color: var(--text-soft) !important;
+}
+
+[data-theme="light"] footer .bg-\[\#0D0D0D\] {
+  background-color: #e8e1cf !important;
+  border-color: rgba(28, 26, 22, 0.08) !important;
+}
+
+[data-theme="light"] footer h4,
+[data-theme="light"] footer h5,
+[data-theme="light"] footer .text-\[\#F5F5F0\] {
+  color: var(--text) !important;
+}
+
+[data-theme="light"] footer .text-white\/50,
+[data-theme="light"] footer .text-white\/60,
+[data-theme="light"] footer .text-white\/70 {
+  color: var(--text-soft) !important;
+}
+
+[data-theme="light"] footer .bg-white\/5 {
+  background-color: rgba(28, 26, 22, 0.05) !important;
+}
+
+[data-theme="light"] footer .border-white\/5,
+[data-theme="light"] footer .border-white\/10 {
+  border-color: rgba(28, 26, 22, 0.08) !important;
+}
+
+/* Section Hero & Bannière en Thème Clair */
+[data-theme="light"] .bg-\[\#09090c\],
+[data-theme="light"] .bg-\[\#07070a\],
+[data-theme="light"] .bg-\[\#080808\],
+[data-theme="light"] .bg-\[\#0A0A0A\] {
+  background-color: var(--bg) !important;
+}
+
+[data-theme="light"] .text-\[\#F5F5F0\],
+[data-theme="light"] .text-\[\#f4efe2\] {
+  color: var(--text) !important;
+}
+
+/* Badges & Pills en Thème Clair */
+[data-theme="light"] .bg-\[\#D4AF37\]\/10,
+[data-theme="light"] .bg-\[\#D4AF37\]\/15 {
+  background-color: var(--badge-bg) !important;
+  border-color: rgba(169, 128, 63, 0.25) !important;
+  color: var(--or) !important;
+}
+
+/* Bulle Flottante WhatsApp : Reste éclatante et parfaitement lisible */
+#floating-whatsapp-btn {
+  background-color: #25D366 !important;
+  color: #000000 !important;
+  box-shadow: 0 10px 28px rgba(37, 211, 102, 0.35) !important;
+}
+
 /* Custom Gold and Luxury Accents */
 .gold-gradient-text {
-  background: linear-gradient(135deg, #F9E79F 0%, #D4AF37 50%, #AA8010 100%);
+  background: linear-gradient(135deg, var(--or-clair) 0%, var(--or) 50%, var(--or-clair) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .gold-border {
-  border-color: rgba(212, 175, 55, 0.25);
+  border-color: var(--sep);
 }
 
 .gold-glow {
-  box-shadow: 0 0 25px -5px rgba(212, 175, 55, 0.15);
+  box-shadow: 0 0 25px -5px rgba(198, 166, 100, 0.15);
+}
+
+[data-theme="light"] .gold-glow {
+  box-shadow: 0 4px 20px -2px rgba(169, 128, 63, 0.12);
 }
 
 /* Custom Scrollbars */
@@ -136,12 +596,12 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #07070a;
+  background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #262626;
+  background: var(--sep);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #D4AF37;
+  background: var(--or);
 }

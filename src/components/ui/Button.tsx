@@ -29,12 +29,12 @@ export const Button: React.FC<ButtonProps> = ({
   };
 
   const variants = {
-    primary: 'bg-[#181818] text-[#F5F5F0] hover:bg-[#252525] border border-white/10 shadow-sm active:scale-[0.98]',
-    secondary: 'bg-white/10 text-white hover:bg-white/20 border border-white/10 active:scale-[0.98]',
-    gold: 'bg-[#D4AF37] hover:bg-[#B8962F] text-black font-bold uppercase tracking-widest shadow-md shadow-[#D4AF37]/10 active:scale-[0.98]',
-    outline: 'border border-[#D4AF37]/30 text-[#D4AF37] hover:bg-[#D4AF37]/10 active:scale-[0.98]',
-    ghost: 'text-white/70 hover:text-white hover:bg-white/5 active:scale-[0.98]',
-    danger: 'bg-rose-700 hover:bg-rose-600 text-white active:scale-[0.98]'
+    primary: 'bg-[var(--text)] text-[var(--bg)] hover:opacity-90 border border-[var(--sep)] shadow-sm active:scale-[0.98]',
+    secondary: 'bg-[var(--badge-bg)] text-[var(--text)] hover:bg-[var(--badge-bg)]/80 border border-[var(--sep)] active:scale-[0.98]',
+    gold: 'bg-[var(--or)] hover:opacity-90 text-black font-bold uppercase tracking-widest shadow-md shadow-[var(--or)]/10 active:scale-[0.98]',
+    outline: 'border border-[var(--or)]/40 text-[var(--or)] hover:bg-[var(--badge-bg)] active:scale-[0.98]',
+    ghost: 'text-[var(--text-soft)] hover:text-[var(--text)] hover:bg-[var(--badge-bg)] active:scale-[0.98]',
+    danger: 'bg-rose-600 hover:bg-rose-500 text-white active:scale-[0.98]'
   };
 
   return (

@@ -17,62 +17,62 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
   const customIntro = settings?.whatsappDefaultMessage || settings?.contactInformation?.whatsappMessage || "Bonjour ! J'aimerais échanger avec votre conciergerie WhatsApp.";
 
   return (
-    <footer className="bg-[#080808] text-white/70 border-t border-white/10 mt-auto">
+    <footer className="bg-[var(--bg-2)] text-[var(--text-soft)] border-t border-[var(--sep)] mt-auto transition-colors">
       {/* Reassurance Pillars */}
-      <div className="border-b border-white/5 bg-[#0D0D0D] py-12">
+      <div className="border-b border-[var(--sep)] bg-[var(--carte-bg)] py-12 transition-colors">
         <div className="max-w-[1720px] mx-auto px-4 sm:px-8 lg:px-12 2xl:px-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="flex items-start space-x-4">
-              <div className="p-3.5 bg-[#D4AF37]/10 border border-[#D4AF37]/25 rounded-xl text-[#D4AF37] shrink-0">
+              <div className="p-3.5 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl text-[var(--or)] shrink-0">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#F5F5F0] font-serif">
+                <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text)] font-serif">
                   100% Authentique
                 </h4>
-                <p className="text-xs text-white/50 mt-1.5 leading-relaxed font-sans">
+                <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed font-sans">
                   Chaque garde-temps fait l'objet d'un contrôle rigoureux avec certificat d'authenticité.
                 </p>
               </div>
             </div>
 
             <div className="flex items-start space-x-4">
-              <div className="p-3.5 bg-[#D4AF37]/10 border border-[#D4AF37]/25 rounded-xl text-[#D4AF37] shrink-0">
+              <div className="p-3.5 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl text-[var(--or)] shrink-0">
                 <MessageSquare className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#F5F5F0] font-serif">
+                <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text)] font-serif">
                   Conciergerie WhatsApp
                 </h4>
-                <p className="text-xs text-white/50 mt-1.5 leading-relaxed font-sans">
+                <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed font-sans">
                   Conseils personnalisés, photos et vidéos HD sur demande en direct avec la gérante.
                 </p>
               </div>
             </div>
 
             <div className="flex items-start space-x-4">
-              <div className="p-3.5 bg-[#D4AF37]/10 border border-[#D4AF37]/25 rounded-xl text-[#D4AF37] shrink-0">
+              <div className="p-3.5 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl text-[var(--or)] shrink-0">
                 <Truck className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#F5F5F0] font-serif">
+                <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text)] font-serif">
                   Livraison Sous Écrin
                 </h4>
-                <p className="text-xs text-white/50 mt-1.5 leading-relaxed font-sans">
+                <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed font-sans">
                   Colis scellé haute sécurité, écrin de luxe offert et remise en main propre sécurisée.
                 </p>
               </div>
             </div>
 
             <div className="flex items-start space-x-4">
-              <div className="p-3.5 bg-[#D4AF37]/10 border border-[#D4AF37]/25 rounded-xl text-[#D4AF37] shrink-0">
+              <div className="p-3.5 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl text-[var(--or)] shrink-0">
                 <Clock className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#F5F5F0] font-serif">
+                <h4 className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--text)] font-serif">
                   Garantie 24 Mois
                 </h4>
-                <p className="text-xs text-white/50 mt-1.5 leading-relaxed font-sans">
+                <p className="text-xs text-[var(--text-muted)] mt-1.5 leading-relaxed font-sans">
                   Prise en charge complète du mouvement et révision horlogère soignée.
                 </p>
               </div>
@@ -90,9 +90,9 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
               onClick={() => onNavigate('home')}
               className="text-left hover:opacity-90 transition-opacity"
             >
-              <BrandLogo variant="horizontal" theme="dark" size="sm" />
+              <BrandLogo variant="horizontal" size="sm" />
             </button>
-            <p className="text-xs text-white/50 leading-relaxed font-sans">
+            <p className="text-xs text-[var(--text-muted)] leading-relaxed font-sans">
               Sélection exclusive de pièces d'horlogerie d'exception. Alliance entre tradition mécanique, élégance intemporelle et service sur-mesure.
             </p>
             <div className="flex space-x-3 pt-2">
@@ -101,7 +101,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
                   href={settings.socialLinks.instagram}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2.5 bg-white/5 hover:bg-[#D4AF37]/10 border border-white/10 hover:border-[#D4AF37]/30 text-white/70 hover:text-[#D4AF37] rounded-lg transition-colors"
+                  className="p-2.5 bg-[var(--bg)] hover:bg-[var(--badge-bg)] border border-[var(--sep)] hover:border-[var(--or)]/40 text-[var(--text-soft)] hover:text-[var(--or)] rounded-lg transition-colors"
                 >
                   <Instagram className="w-4 h-4" />
                 </a>
@@ -111,7 +111,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
                   href={settings.socialLinks.facebook}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2.5 bg-white/5 hover:bg-[#D4AF37]/10 border border-white/10 hover:border-[#D4AF37]/30 text-white/70 hover:text-[#D4AF37] rounded-lg transition-colors"
+                  className="p-2.5 bg-[var(--bg)] hover:bg-[var(--badge-bg)] border border-[var(--sep)] hover:border-[var(--or)]/40 text-[var(--text-soft)] hover:text-[var(--or)] rounded-lg transition-colors"
                 >
                   <Facebook className="w-4 h-4" />
                 </a>
@@ -121,14 +121,14 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
 
           {/* Quick Navigation */}
           <div>
-            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37] font-serif mb-4">
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--or)] font-serif mb-4">
               Navigation
             </h4>
             <ul className="space-y-2.5 text-xs">
               <li>
                 <button
                   onClick={() => onNavigate('shop')}
-                  className="text-white/60 hover:text-[#D4AF37] transition-colors uppercase tracking-wider"
+                  className="text-[var(--text-soft)] hover:text-[var(--or)] transition-colors uppercase tracking-wider"
                 >
                   Boutique & Montres
                 </button>
@@ -136,7 +136,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
               <li>
                 <button
                   onClick={() => onNavigate('about')}
-                  className="text-white/60 hover:text-[#D4AF37] transition-colors uppercase tracking-wider"
+                  className="text-[var(--text-soft)] hover:text-[var(--or)] transition-colors uppercase tracking-wider"
                 >
                   À propos de la Maison
                 </button>
@@ -144,7 +144,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
               <li>
                 <button
                   onClick={() => onNavigate('search')}
-                  className="text-white/60 hover:text-[#D4AF37] transition-colors uppercase tracking-wider"
+                  className="text-[var(--text-soft)] hover:text-[var(--or)] transition-colors uppercase tracking-wider"
                 >
                   Recherche Rapide
                 </button>
@@ -152,7 +152,7 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
               <li>
                 <button
                   onClick={() => onNavigate('account')}
-                  className="text-white/60 hover:text-[#D4AF37] transition-colors uppercase tracking-wider"
+                  className="text-[var(--text-soft)] hover:text-[var(--or)] transition-colors uppercase tracking-wider"
                 >
                   Espace Client
                 </button>
@@ -162,25 +162,25 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
 
           {/* Contact & WhatsApp */}
           <div>
-            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37] font-serif mb-4">
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--or)] font-serif mb-4">
               Service Client
             </h4>
-            <ul className="space-y-3 text-xs text-white/60">
+            <ul className="space-y-3 text-xs text-[var(--text-soft)]">
               {settings?.contactInformation?.phone && (
                 <li className="flex items-center gap-2.5">
-                  <Phone className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
+                  <Phone className="w-3.5 h-3.5 text-[var(--or)] shrink-0" />
                   <span>{settings.contactInformation.phone}</span>
                 </li>
               )}
               {settings?.contactInformation?.email && (
                 <li className="flex items-center gap-2.5">
-                  <Mail className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
+                  <Mail className="w-3.5 h-3.5 text-[var(--or)] shrink-0" />
                   <span>{settings.contactInformation.email}</span>
                 </li>
               )}
               {settings?.contactInformation?.address && (
                 <li className="flex items-center gap-2.5">
-                  <MapPin className="w-3.5 h-3.5 text-[#D4AF37] shrink-0" />
+                  <MapPin className="w-3.5 h-3.5 text-[var(--or)] shrink-0" />
                   <span>{settings.contactInformation.address}</span>
                 </li>
               )}
@@ -200,14 +200,14 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
 
           {/* Boutique Pillars / Informations */}
           <div>
-            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#D4AF37] font-serif mb-4">
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--or)] font-serif mb-4">
               Maison & Écrin
             </h4>
-            <p className="text-xs text-white/50 mb-3 leading-relaxed">
+            <p className="text-xs text-[var(--text-muted)] mb-3 leading-relaxed">
               Maison spécialisée dans l'horlogerie d'exception, les modèles automatiques, chronographes de prestige et pièces d'horlogerie exclusives.
             </p>
             <div className="pt-2">
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-[#D4AF37]">
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--or)]">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Certificats & Garantie Atelier 2 ans</span>
               </span>
@@ -216,20 +216,20 @@ export const Footer: React.FC<FooterProps> = ({ settings, storeName, whatsappNum
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-white/5 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-white/40 tracking-wider uppercase gap-4 select-none">
+        <div className="border-t border-[var(--sep)] mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between text-[11px] text-[var(--text-muted)] tracking-wider uppercase gap-4 select-none">
           <p className="text-center sm:text-left">
             © {new Date().getFullYear()} {name}.{' '}
             <span
               id="footer-secret-cms-trigger"
               onClick={() => onNavigate('admin')}
-              className="cursor-default hover:text-white/70 transition-colors"
+              className="cursor-default hover:text-[var(--text)] transition-colors"
               title=""
             >
               Tous droits réservés.
             </span>
           </p>
           
-          <p className="text-white/30 text-[10px] tracking-widest">
+          <p className="text-[var(--text-muted)] text-[10px] tracking-widest opacity-80">
             Maison d'Horlogerie de Prestige & Conciergerie WhatsApp
           </p>
         </div>

@@ -57,16 +57,16 @@ export const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className={`relative w-full ${maxWidthClasses[maxWidth]} bg-[#121212] text-[#F5F5F0] rounded-2xl shadow-2xl border border-white/10 overflow-hidden z-10 my-8`}
+            className={`relative w-full ${maxWidthClasses[maxWidth]} bg-[var(--carte-bg)] text-[var(--text)] rounded-2xl shadow-2xl border border-[var(--sep)] overflow-hidden z-10 my-8`}
           >
             {title && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-[#161616]">
-                <div className="text-lg font-serif font-semibold text-white tracking-wide">{title}</div>
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--sep)] bg-[var(--bg)]">
+                <div className="text-lg font-serif font-semibold text-[var(--text)] tracking-wide">{title}</div>
                 <button
                   type="button"
                   id="modal-close-btn"
                   onClick={onClose}
-                  className="p-1.5 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                  className="p-1.5 text-[var(--text-soft)] hover:text-[var(--text)] hover:bg-[var(--badge-bg)] rounded-full transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -78,7 +78,7 @@ export const Modal: React.FC<ModalProps> = ({
                 type="button"
                 id="modal-direct-close-btn"
                 onClick={onClose}
-                className="absolute top-4 right-4 z-20 p-2 bg-black/60 hover:bg-black/80 text-white/70 hover:text-white rounded-full backdrop-blur-xs transition-colors border border-white/10"
+                className="absolute top-4 right-4 z-20 p-2 bg-[var(--carte-bg)]/80 hover:bg-[var(--carte-bg)] text-[var(--text-soft)] hover:text-[var(--text)] rounded-full backdrop-blur-xs transition-colors border border-[var(--sep)]"
               >
                 <X className="w-5 h-5" />
               </button>

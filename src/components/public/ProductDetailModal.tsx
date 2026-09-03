@@ -94,10 +94,10 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   return (
     <Modal isOpen={Boolean(product)} onClose={onClose} maxWidth="4xl">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-[#F5F5F0]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-[var(--text)]">
         {/* Left Column: Image Gallery */}
         <div className="lg:col-span-6 space-y-4">
-          <div className="relative aspect-square w-full bg-[#0D0D0D] rounded-xl overflow-hidden border border-white/10 flex items-center justify-center group">
+          <div className="relative aspect-square w-full bg-[var(--bg)] rounded-xl overflow-hidden border border-[var(--sep)] flex items-center justify-center group">
             <img
               src={images[selectedImageIndex] || images[0]}
               alt={product.name}
@@ -128,7 +128,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
             {product.featured && (
               <div className="absolute top-3 left-3">
-                <Badge variant="gold" className="shadow-lg bg-[#D4AF37]/90 text-black font-bold uppercase tracking-widest text-[9px] py-1 px-2.5">
+                <Badge variant="gold" className="shadow-lg bg-[var(--or)] text-black font-bold uppercase tracking-widest text-[9px] py-1 px-2.5">
                   <Sparkles className="w-3 h-3 mr-1 text-black" />
                   Sélection Prestige
                 </Badge>
@@ -146,8 +146,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   onClick={() => setSelectedImageIndex(idx)}
                   className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
                     selectedImageIndex === idx
-                      ? 'border-[#D4AF37] scale-105 shadow-md shadow-[#D4AF37]/20'
-                      : 'border-white/10 opacity-60 hover:opacity-100'
+                      ? 'border-[var(--or)] scale-105 shadow-md shadow-[var(--or)]/20'
+                      : 'border-[var(--sep)] opacity-60 hover:opacity-100'
                   }`}
                 >
                   <img
@@ -163,13 +163,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
           {/* Luxury Reassurance Badges */}
           <div className="grid grid-cols-2 gap-3 pt-2">
-            <div className="p-3 bg-[#121212] border border-white/10 rounded-lg flex items-center gap-2.5">
-              <ShieldCheck className="w-4 h-4 text-[#D4AF37] shrink-0" />
-              <span className="text-[11px] text-white/80 font-medium font-sans">Contrôle d'authenticité</span>
+            <div className="p-3 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-lg flex items-center gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-[var(--or)] shrink-0" />
+              <span className="text-[11px] text-[var(--text-soft)] font-medium font-sans">Contrôle d'authenticité</span>
             </div>
-            <div className="p-3 bg-[#121212] border border-white/10 rounded-lg flex items-center gap-2.5">
-              <Truck className="w-4 h-4 text-[#D4AF37] shrink-0" />
-              <span className="text-[11px] text-white/80 font-medium font-sans">Écrin de luxe offert</span>
+            <div className="p-3 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-lg flex items-center gap-2.5">
+              <Truck className="w-4 h-4 text-[var(--or)] shrink-0" />
+              <span className="text-[11px] text-[var(--text-soft)] font-medium font-sans">Écrin de luxe offert</span>
             </div>
           </div>
         </div>
@@ -178,38 +178,38 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         <div className="lg:col-span-6 flex flex-col justify-between">
           <div className="space-y-4">
             {/* Header: Brand & Gender */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+            <div className="flex items-center justify-between border-b border-[var(--sep)] pb-3">
               <div>
-                <span className="text-xs uppercase tracking-[0.2em] text-[#D4AF37] font-serif font-bold">
+                <span className="text-xs uppercase tracking-[0.2em] text-[var(--or)] font-serif font-bold">
                   {product.brand}
                 </span>
                 {product.reference && (
-                  <span className="text-xs text-white/40 ml-2 font-mono">
+                  <span className="text-xs text-[var(--text-muted)] ml-2 font-mono">
                     Réf. {product.reference}
                   </span>
                 )}
               </div>
-              <Badge variant="outline" className="text-[10px] uppercase tracking-wider text-white/60 border-white/20">
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wider text-[var(--text-soft)] border-[var(--sep)]">
                 Collection {product.gender}
               </Badge>
             </div>
 
             {/* Title */}
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#F5F5F0] leading-tight">
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[var(--text)] leading-tight">
               {product.name}
             </h2>
 
             {/* Price & Stock Alert */}
-            <div className="flex items-center justify-between bg-[#121212] p-4 rounded-xl border border-white/10">
+            <div className="flex items-center justify-between bg-[var(--bg)] p-4 rounded-xl border border-[var(--sep)]">
               <div>
-                <span className="text-[10px] text-white/40 block uppercase tracking-[0.15em]">Prix public</span>
+                <span className="text-[10px] text-[var(--text-muted)] block uppercase tracking-[0.15em]">Prix public</span>
                 <div className="flex items-baseline gap-2">
                   {hasPromo && (
-                    <span className="text-xs text-white/40 line-through">
+                    <span className="text-xs text-[var(--text-muted)] line-through">
                       {product.price.toLocaleString('fr-FR')} {product.currency}
                     </span>
                   )}
-                  <span className="font-serif text-2xl font-bold text-[#D4AF37]">
+                  <span className="font-serif text-2xl font-bold text-[var(--or)]">
                     {effectivePrice.toLocaleString('fr-FR')} {product.currency}
                   </span>
                 </div>
@@ -218,18 +218,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {/* Stock Status Badge */}
               <div>
                 {isOutOfStock ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-black/80 border border-white/10 text-white/60 text-xs font-semibold rounded">
-                    <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[var(--badge-bg)] border border-[var(--sep)] text-[var(--text-muted)] text-xs font-semibold rounded">
+                    <XCircle className="w-3.5 h-3.5 text-rose-500" />
                     <span>Rupture de stock</span>
                   </span>
                 ) : isLowStock ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-950/80 border border-amber-500/40 text-amber-300 text-xs font-semibold rounded">
-                    <AlertTriangle className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold rounded">
+                    <AlertTriangle className="w-3.5 h-3.5 text-[var(--or)]" />
                     <span>Derniers ({product.stock})</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-black/70 border border-emerald-500/30 text-emerald-300 text-xs font-semibold rounded">
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded">
+                    <Check className="w-3.5 h-3.5 text-emerald-500" />
                     <span>En stock ({product.stock} ex.)</span>
                   </span>
                 )}
@@ -237,52 +237,52 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             </div>
 
             {/* Description */}
-            <div className="text-xs sm:text-sm text-white/70 leading-relaxed font-sans space-y-2">
+            <div className="text-xs sm:text-sm text-[var(--text-soft)] leading-relaxed font-sans space-y-2">
               <p>{product.description}</p>
             </div>
 
             {/* Technical Specifications */}
             {product.specifications && (
-              <div className="bg-[#0A0A0A] rounded-xl p-4 border border-white/10 space-y-2.5">
-                <div className="flex items-center gap-2 text-xs font-serif uppercase tracking-[0.2em] text-[#D4AF37] font-semibold mb-2">
+              <div className="bg-[var(--bg)] rounded-xl p-4 border border-[var(--sep)] space-y-2.5">
+                <div className="flex items-center gap-2 text-xs font-serif uppercase tracking-[0.2em] text-[var(--or)] font-semibold mb-2">
                   <Layers className="w-3.5 h-3.5" />
                   <span>Fiche Technique Horlogère</span>
                 </div>
                 <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs font-sans">
                   {product.specifications.movement && (
                     <div>
-                      <span className="text-white/40 block text-[11px]">Mouvement</span>
-                      <span className="text-white/90 font-medium">{product.specifications.movement}</span>
+                      <span className="text-[var(--text-muted)] block text-[11px]">Mouvement</span>
+                      <span className="text-[var(--text)] font-medium">{product.specifications.movement}</span>
                     </div>
                   )}
                   {product.specifications.caseDiameter && (
                     <div>
-                      <span className="text-white/40 block text-[11px]">Diamètre</span>
-                      <span className="text-white/90 font-medium">{product.specifications.caseDiameter}</span>
+                      <span className="text-[var(--text-muted)] block text-[11px]">Diamètre</span>
+                      <span className="text-[var(--text)] font-medium">{product.specifications.caseDiameter}</span>
                     </div>
                   )}
                   {product.specifications.caseMaterial && (
                     <div>
-                      <span className="text-white/40 block text-[11px]">Boîtier</span>
-                      <span className="text-white/90 font-medium">{product.specifications.caseMaterial}</span>
+                      <span className="text-[var(--text-muted)] block text-[11px]">Boîtier</span>
+                      <span className="text-[var(--text)] font-medium">{product.specifications.caseMaterial}</span>
                     </div>
                   )}
                   {product.specifications.waterResistance && (
                     <div>
-                      <span className="text-white/40 block text-[11px]">Étanchéité</span>
-                      <span className="text-white/90 font-medium">{product.specifications.waterResistance}</span>
+                      <span className="text-[var(--text-muted)] block text-[11px]">Étanchéité</span>
+                      <span className="text-[var(--text)] font-medium">{product.specifications.waterResistance}</span>
                     </div>
                   )}
                   {product.specifications.glass && (
                     <div>
-                      <span className="text-white/40 block text-[11px]">Verre</span>
-                      <span className="text-white/90 font-medium">{product.specifications.glass}</span>
+                      <span className="text-[var(--text-muted)] block text-[11px]">Verre</span>
+                      <span className="text-[var(--text)] font-medium">{product.specifications.glass}</span>
                     </div>
                   )}
                   {product.specifications.strapMaterial && (
                     <div>
-                      <span className="text-white/40 block text-[11px]">Bracelet</span>
-                      <span className="text-white/90 font-medium">{product.specifications.strapMaterial}</span>
+                      <span className="text-[var(--text-muted)] block text-[11px]">Bracelet</span>
+                      <span className="text-[var(--text)] font-medium">{product.specifications.strapMaterial}</span>
                     </div>
                   )}
                 </div>
@@ -291,37 +291,37 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
             {/* Error / Warning Feedback */}
             {feedbackMsg && (
-              <div className="p-3 bg-rose-950/80 border border-rose-700 text-rose-200 rounded-lg text-xs flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <div className="p-3 bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-300 rounded-lg text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
                 <span>{feedbackMsg}</span>
               </div>
             )}
           </div>
 
           {/* Action Zone */}
-          <div className="mt-6 pt-4 border-t border-white/10 space-y-3">
+          <div className="mt-6 pt-4 border-t border-[var(--sep)] space-y-3">
             {/* Quantity Selector (if in stock) */}
             {!isOutOfStock && (
               <div className="flex items-center gap-4 mb-2">
-                <span className="text-xs text-white/50 uppercase tracking-wider">Quantité :</span>
-                <div className="flex items-center border border-white/15 rounded-lg bg-[#0A0A0A]">
+                <span className="text-xs text-[var(--text-muted)] uppercase tracking-wider">Quantité :</span>
+                <div className="flex items-center border border-[var(--sep)] rounded-lg bg-[var(--bg)]">
                   <button
                     type="button"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="px-3 py-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                    className="px-3 py-1 text-[var(--text-soft)] hover:text-[var(--text)] hover:bg-[var(--badge-bg)] transition-colors"
                   >
                     -
                   </button>
-                  <span className="px-3 py-1 text-xs font-semibold text-white font-mono">{quantity}</span>
+                  <span className="px-3 py-1 text-xs font-semibold text-[var(--text)] font-mono">{quantity}</span>
                   <button
                     type="button"
                     onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                    className="px-3 py-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                    className="px-3 py-1 text-[var(--text-soft)] hover:text-[var(--text)] hover:bg-[var(--badge-bg)] transition-colors"
                   >
                     +
                   </button>
                 </div>
-                <span className="text-[11px] text-white/40">
+                <span className="text-[11px] text-[var(--text-muted)]">
                   Stock disponible : {product.stock}
                 </span>
               </div>
@@ -352,7 +352,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </button>
             </div>
 
-            <p className="text-[11px] text-center text-white/40 font-sans">
+            <p className="text-[11px] text-center text-[var(--text-muted)] font-sans">
               Commande confidentielle & personnalisée • Échange direct avec notre experte sans engagement.
             </p>
           </div>
