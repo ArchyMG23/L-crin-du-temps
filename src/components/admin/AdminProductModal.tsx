@@ -310,24 +310,35 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       setLoading(true);
 
       const descText = formData.shortDescription.trim() || formData.description.trim() || '';
+      const chosenCollection = availableCategories.find(c => c.id === chosenCategoryId);
+      const collectionName = chosenCollection ? chosenCollection.name : '';
 
       const payload: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
         name: formData.name.trim(),
         slug: formData.slug.trim() || generateSlug(formData.name),
         brand: formData.brand.trim() || 'Maison Horlogère',
         reference: formData.reference ? formData.reference.trim() : '',
-        categoryId: chosenCategoryId,
+        collectionId: chosenCategoryId,
+        collectionName,
+        categoryId: chosenCategoryId, // Dual-key compatibility
         gender: formData.gender,
         price: Number(formData.price),
-        promotionalPrice: promoNum,
+        promoPrice: promoNum,
+        promotionalPrice: promoNum, // Dual-key compatibility
         currency: formData.currency,
         stock: Number(formData.stock),
         lowStockThreshold: Number(formData.lowStockThreshold),
         shortDescription: descText,
         description: descText,
-        featured: formData.featured,
-        active: formData.active,
         images: cleanImages,
+        coverImage: cleanImages[0] || '',
+        isActive: formData.active,
+        active: formData.active, // Dual-key compatibility
+        isFeatured: formData.featured,
+        featured: formData.featured, // Dual-key compatibility
+        isPopular: product?.isPopular || false,
+        totalOrders: product?.totalOrders || 0,
+        totalQuantitySold: product?.totalQuantitySold || 0,
         specifications: {
           movement: formData.specifications.movement.trim(),
           caseDiameter: formData.specifications.caseDiameter.trim(),
@@ -341,8 +352,16 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       await onSave(payload, product?.id);
       onClose();
     } catch (err: any) {
-      console.error(err);
-      setError('Erreur lors de l\'enregistrement de la montre.');
+      console.error(
+        '[ADMIN ERROR]\nproducts.createModal\ncode:',
+        err?.code || 'unknown',
+        '\nmessage:',
+        err?.message || String(err),
+        '\ndetails:',
+        err
+      );
+      const userMessage = err?.message || 'Erreur lors de l\'enregistrement de la montre.';
+      setError(userMessage);
     } finally {
       setLoading(false);
     }

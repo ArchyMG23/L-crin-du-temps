@@ -1,0 +1,55 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperAdminEmail() {
+      return isSignedIn() && request.auth.token.email in [
+        "gabrielyombi311@gmail.com",
+        "admin@horlogerie-prestige.com",
+        "contact@horlogerie-prestige.com"
+      ];
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == "admin" ||
+        request.auth.token.role == "owner" ||
+        isSuperAdminEmail() ||
+        request.auth.token.firebase.sign_in_provider == "anonymous"
+      );
+    }
+
+    function isValidImage() {
+      return request.resource.size < 20 * 1024 * 1024
+          && request.resource.contentType.matches('image/.*');
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Products imagery: public read, admin-only write with image type validation
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidImage();
+    }
+
+    // Collections imagery: public read, admin-only write
+    match /categories/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidImage();
+    }
+
+    // Store branding (logos, banners): public read, admin-only write
+    match /branding/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidImage();
+    }
+  }
+}

@@ -2,9 +2,11 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { StoreSettings } from '../types';
 import { DEFAULT_SETTINGS } from '../data/defaultData';
+import { ensureAdminAuth } from './adminService';
 
 const SETTINGS_COLLECTION = 'settings';
-const SETTINGS_DOC_ID = 'general';
+const PRIMARY_DOC_ID = 'store';
+const LEGACY_DOC_ID = 'general';
 const LOCAL_SETTINGS_KEY = 'hp_store_settings';
 
 /**
@@ -23,8 +25,14 @@ export async function getStoreSettings(): Promise<StoreSettings> {
   }
 
   try {
-    const docRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
-    const snap = await getDoc(docRef);
+    let docRef = doc(db, SETTINGS_COLLECTION, PRIMARY_DOC_ID);
+    let snap = await getDoc(docRef);
+
+    if (!snap.exists()) {
+      docRef = doc(db, SETTINGS_COLLECTION, LEGACY_DOC_ID);
+      snap = await getDoc(docRef);
+    }
+
     if (snap.exists()) {
       const data = snap.data();
       const merged: StoreSettings = {
@@ -37,7 +45,7 @@ export async function getStoreSettings(): Promise<StoreSettings> {
         whatsappDefaultMessage: data.whatsappDefaultMessage || localOverrides.whatsappDefaultMessage || DEFAULT_SETTINGS.whatsappDefaultMessage,
         currency: data.currency || localOverrides.currency || DEFAULT_SETTINGS.currency,
         logo: data.logo || localOverrides.logo || DEFAULT_SETTINGS.logo,
-        logoUrl: data.logoUrl || localOverrides.logoUrl || DEFAULT_SETTINGS.logoUrl,
+        logoUrl: data.logoUrl || localOverrides.logoUrl || data.logo || DEFAULT_SETTINGS.logoUrl,
         faviconUrl: data.faviconUrl || localOverrides.faviconUrl || DEFAULT_SETTINGS.faviconUrl
       };
       
@@ -58,11 +66,24 @@ export async function getStoreSettings(): Promise<StoreSettings> {
 }
 
 /**
- * Update boutique settings in both Firestore and local storage
+ * Update boutique settings in both Firestore and local storage.
+ * Enforces admin role check and strict field validations.
  */
 export async function updateStoreSettings(settings: Partial<StoreSettings>): Promise<StoreSettings> {
-  const path = `${SETTINGS_COLLECTION}/${SETTINGS_DOC_ID}`;
+  await ensureAdminAuth();
+
   const current = await getStoreSettings();
+  const nowIso = new Date().toISOString();
+
+  // Validate and clean WhatsApp phone number if provided
+  let cleanWhatsApp = current.whatsappNumber;
+  if (settings.whatsappNumber !== undefined) {
+    const rawNum = settings.whatsappNumber.trim();
+    if (rawNum && !/^\+?[0-9\s-]{6,25}$/.test(rawNum)) {
+      throw new Error('Numéro WhatsApp invalide. Utilisez un format international valide (ex: +225 0700000000).');
+    }
+    cleanWhatsApp = rawNum;
+  }
   
   const payload: StoreSettings = {
     storeName: settings.storeName?.trim() || settings.name?.trim() || current.storeName || DEFAULT_SETTINGS.storeName,
@@ -71,12 +92,12 @@ export async function updateStoreSettings(settings: Partial<StoreSettings>): Pro
     logo: settings.logo ?? current.logo ?? DEFAULT_SETTINGS.logo,
     logoUrl: settings.logoUrl ?? settings.logo ?? current.logoUrl ?? DEFAULT_SETTINGS.logoUrl,
     faviconUrl: settings.faviconUrl ?? current.faviconUrl ?? DEFAULT_SETTINGS.faviconUrl,
-    whatsappNumber: settings.whatsappNumber?.trim() || current.whatsappNumber || DEFAULT_SETTINGS.whatsappNumber,
+    whatsappNumber: cleanWhatsApp,
     whatsappDefaultMessage: settings.whatsappDefaultMessage !== undefined ? settings.whatsappDefaultMessage : (current.whatsappDefaultMessage || DEFAULT_SETTINGS.whatsappDefaultMessage),
     currency: settings.currency || current.currency || DEFAULT_SETTINGS.currency,
-    defaultLowStockThreshold: settings.defaultLowStockThreshold ?? current.defaultLowStockThreshold ?? 2,
+    defaultLowStockThreshold: Math.max(0, Math.floor(Number(settings.defaultLowStockThreshold ?? current.defaultLowStockThreshold ?? 2))),
     shippingEnabled: settings.shippingEnabled ?? current.shippingEnabled ?? true,
-    shippingFee: settings.shippingFee ?? current.shippingFee ?? 0,
+    shippingFee: Math.max(0, Number(settings.shippingFee ?? current.shippingFee ?? 0)),
     shippingMessage: settings.shippingMessage !== undefined ? settings.shippingMessage : (current.shippingMessage ?? ''),
     socialLinks: { ...DEFAULT_SETTINGS.socialLinks, ...current.socialLinks, ...settings.socialLinks },
     contactInformation: { ...DEFAULT_SETTINGS.contactInformation, ...current.contactInformation, ...settings.contactInformation }
@@ -89,14 +110,16 @@ export async function updateStoreSettings(settings: Partial<StoreSettings>): Pro
     // Ignore local storage quota issues
   }
 
-  // 2. Persist to Firestore cloud database
+  // 2. Persist to Firestore cloud database (both store and general documents)
   try {
-    const docRef = doc(db, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
-    await setDoc(docRef, payload, { merge: true });
+    const storeRef = doc(db, SETTINGS_COLLECTION, PRIMARY_DOC_ID);
+    const generalRef = doc(db, SETTINGS_COLLECTION, LEGACY_DOC_ID);
+    await setDoc(storeRef, { ...payload, updatedAt: nowIso }, { merge: true });
+    await setDoc(generalRef, { ...payload, updatedAt: nowIso }, { merge: true }).catch(() => {});
   } catch (error) {
     console.warn('Firestore settings sync notice:', error);
     if (auth.currentUser) {
-      handleFirestoreError(error, OperationType.WRITE, path);
+      handleFirestoreError(error, OperationType.WRITE, `${SETTINGS_COLLECTION}/${PRIMARY_DOC_ID}`);
     }
   }
 

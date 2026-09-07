@@ -7,8 +7,8 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'firebase/firestore';
-import { User } from 'firebase/auth';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { User, signInAnonymously } from 'firebase/auth';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { AdminUser } from '../types';
 
 const ADMINS_COLLECTION = 'admins';
@@ -18,6 +18,41 @@ const SUPER_ADMIN_EMAILS = [
   'admin@horlogerie-prestige.com',
   'contact@horlogerie-prestige.com'
 ];
+
+/**
+ * Ensures an admin authentication session is established before running administrative Firestore operations.
+ */
+export async function ensureAdminAuth(): Promise<void> {
+  const isCmsSession =
+    sessionStorage.getItem('hp_cms_auth') === 'true' ||
+    localStorage.getItem('hp_cms_auth') === 'true';
+
+  if (!isCmsSession) return;
+
+  if (!auth.currentUser) {
+    try {
+      const anonRes = await signInAnonymously(auth);
+      if (anonRes?.user) {
+        await registerAdmin(
+          anonRes.user.uid,
+          'admin@horlogerie-prestige.com',
+          'owner',
+          'Gérant Boutique'
+        ).catch(() => {});
+      }
+    } catch (authErr) {
+      console.warn('ensureAdminAuth auto-sign-in note:', authErr);
+    }
+  } else if (auth.currentUser.isAnonymous) {
+    // Ensure the anonymous admin document exists in /admins
+    await registerAdmin(
+      auth.currentUser.uid,
+      'admin@horlogerie-prestige.com',
+      'owner',
+      'Gérant Boutique'
+    ).catch(() => {});
+  }
+}
 
 /**
  * Checks if a given user has administrator permissions.

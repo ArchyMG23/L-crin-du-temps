@@ -94,7 +94,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
   const currentTabLabel = menuItems.find(m => m.id === activeTab)?.label || 'Administration';
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col md:flex-row font-sans selection:bg-[var(--or)] selection:text-black relative z-10 isolate transition-colors duration-300">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col md:flex-row font-sans selection:bg-[var(--or)] selection:text-black relative transition-colors duration-300">
       {/* Mobile Top App Bar */}
       <header className="md:hidden bg-[var(--carte-bg)] border-b border-[var(--sep)] px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-md">
         <div className="flex items-center gap-3">

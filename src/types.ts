@@ -1,8 +1,9 @@
-export type Gender = 'homme' | 'femme' | 'mixte';
+export type Gender = 'homme' | 'femme' | 'mixte' | 'unisex';
 
 export type OrderStatus =
   | 'pending'
   | 'confirmed'
+  | 'processing'
   | 'preparing'
   | 'shipped'
   | 'delivered'
@@ -17,9 +18,12 @@ export type PaymentStatus =
 
 export type PaymentMethod =
   | 'whatsapp_direct'
+  | 'whatsapp'
   | 'bank_transfer'
   | 'cash_on_delivery'
-  | 'online_gateway';
+  | 'online_gateway'
+  | 'pending'
+  | 'other';
 
 export interface WatchSpecifications {
   movement?: string; // Ex: Automatique Suisse Calibre ETA 2824-2
@@ -34,22 +38,30 @@ export interface WatchSpecifications {
 export interface Product {
   id: string;
   name: string;
-  slug: string;
+  brand: string;
+  collectionId?: string;
+  collectionName?: string;
+  categoryId?: string;
+  gender: Gender;
   description: string;
-  shortDescription: string;
+  shortDescription?: string;
   price: number;
+  promoPrice?: number | null;
   promotionalPrice?: number | null;
   currency: string;
-  categoryId: string;
-  gender: Gender;
-  brand: string;
-  reference?: string;
-  images: string[];
   stock: number;
   lowStockThreshold: number;
-  featured: boolean;
-  active: boolean;
-  orderCount?: number; // Total validated orders for popularity ranking
+  images: string[];
+  coverImage?: string;
+  isActive?: boolean;
+  active: boolean; // Dual-key compatibility
+  isFeatured?: boolean;
+  featured: boolean; // Dual-key compatibility
+  isPopular?: boolean;
+  totalOrders?: number;
+  totalQuantitySold?: number;
+  slug?: string;
+  reference?: string;
   specifications?: WatchSpecifications;
   isDemo?: boolean; // Tag identifying demo/seed fixture data
   createdAt: string;
@@ -59,25 +71,32 @@ export interface Product {
 export interface Category {
   id: string;
   name: string;
-  slug: string;
+  slug?: string;
   description?: string;
   image?: string;
-  active: boolean;
+  isActive?: boolean;
+  active: boolean; // Dual-key compatibility
+  status?: 'active' | 'archived';
   createdAt: string;
   updatedAt: string;
 }
 
 export interface UserProfile {
+  id?: string;
   uid: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
   fullName: string;
   phone: string;
-  email: string;
+  country?: string;
   city: string;
   address: string;
   role: 'customer' | 'admin' | 'owner';
   isDemo?: boolean; // Tag identifying demo customer accounts
   ordersCount?: number;
   totalSpent?: number;
+  lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -93,8 +112,11 @@ export interface CustomerInfo {
 
 export interface OrderItem {
   productId: string;
+  productName?: string;
   name: string;
+  brand?: string;
   image: string;
+  unitPrice?: number;
   price: number; // Historical fixed unit price at time of order
   quantity: number;
   subtotal: number;
@@ -102,18 +124,24 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
-  orderNumber: string;
+  orderNumber?: string;
   customerId?: string; // Associated Firebase Auth customer account UID
+  customerEmail?: string;
+  customerName?: string;
+  customerPhone?: string;
   customer: CustomerInfo;
   items: OrderItem[];
   subtotal: number;
+  shippingCost?: number;
   shipping: number;
   total: number;
   currency: string;
   status: OrderStatus;
+  orderStatus?: OrderStatus;
   paymentStatus: PaymentStatus;
   paymentMethod: PaymentMethod;
   notes?: string;
+  whatsappOrder?: boolean;
   whatsappMessageSent?: boolean;
   isDemo?: boolean; // Tag identifying demo orders
   createdAt: string;
@@ -175,7 +203,17 @@ export interface AdminUser {
   email: string;
   role: 'owner' | 'admin' | 'manager';
   displayName?: string;
+  isActive?: boolean;
   createdAt: string;
+  updatedAt: string;
+}
+
+export interface Cart {
+  userId: string;
+  items: {
+    productId: string;
+    quantity: number;
+  }[];
   updatedAt: string;
 }
 

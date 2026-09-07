@@ -8,13 +8,15 @@ import {
   deleteDoc,
   query,
   where,
-  orderBy
+  orderBy,
+  runTransaction
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Order, OrderStatus, PaymentStatus, PaymentMethod } from '../types';
-import { decrementStock } from './productService';
+import { ensureAdminAuth } from './adminService';
 
 const ORDERS_COLLECTION = 'orders';
+const PRODUCTS_COLLECTION = 'products';
 
 export function generateOrderNumber(): string {
   const currentYear = new Date().getFullYear();
@@ -32,16 +34,20 @@ function sanitizeString(input: string | undefined | null, maxLength = 255): stri
 }
 
 /**
- * Creates an order in Firestore with fixed snapshot pricing and decrements product inventory.
- * Enforces strict input validation and calculations.
+ * Zero-Trust Order Creation Engine:
+ * 1. NEVER trusts price, total, or stock provided by the client.
+ * 2. Fetches each watch directly from Firestore to obtain the authentic catalog price and promo price.
+ * 3. Validates stock sufficiency before placing the order.
+ * 4. Atomically decrements watch inventory within a Firestore transaction.
+ * 5. Binds the authenticated user UID to prevent order spoofing.
  */
 export async function createOrder(
   orderPayload: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt'>
 ): Promise<Order> {
   const orderNumber = generateOrderNumber();
-  const docRef = doc(collection(db, ORDERS_COLLECTION));
+  const orderDocRef = doc(collection(db, ORDERS_COLLECTION));
 
-  // 1. Sanitize customer inputs
+  // 1. Strict sanitization of customer inputs
   const sanitizedCustomer = {
     name: sanitizeString(orderPayload.customer.name, 100),
     phone: sanitizeString(orderPayload.customer.phone, 30),
@@ -59,61 +65,147 @@ export async function createOrder(
     throw new Error('Le panier est vide.');
   }
 
-  // 2. Strict snapshot and recalculation of item pricing fixed at purchase time
+  // 2. ZERO-TRUST: Fetch authentic product data from Firestore & recalculate prices
   let calculatedSubtotal = 0;
-  const sanitizedItems = orderPayload.items.slice(0, 50).map(item => {
-    const qty = Math.max(1, Math.min(100, Math.floor(item.quantity || 1)));
-    const price = Math.max(0, Number(item.price) || 0);
-    const itemSubtotal = price * qty;
+  const verifiedItems: Order['items'] = [];
+  const productDeductions: { ref: any; newStock: number; newOrders: number; newSold: number }[] = [];
+
+  for (const clientItem of orderPayload.items.slice(0, 50)) {
+    const pId = sanitizeString(clientItem.productId, 100);
+    const qty = Math.max(1, Math.min(50, Math.floor(clientItem.quantity || 1)));
+
+    if (!pId) {
+      throw new Error('Identifiant de produit manquant dans la commande.');
+    }
+
+    const pRef = doc(db, PRODUCTS_COLLECTION, pId);
+    const pSnap = await getDoc(pRef);
+
+    if (!pSnap.exists()) {
+      throw new Error(`Le garde-temps #${pId} est introuvable dans le catalogue.`);
+    }
+
+    const pData = pSnap.data();
+    const isActive = pData.isActive !== false && pData.active !== false;
+    if (!isActive) {
+      throw new Error(`Le garde-temps "${pData.name || pId}" n'est plus disponible à l'achat.`);
+    }
+
+    const availableStock = Math.max(0, Math.floor(Number(pData.stock) || 0));
+    if (availableStock < qty) {
+      throw new Error(
+        `Stock insuffisant pour "${pData.name}". Quantité en stock : ${availableStock}, demandée : ${qty}.`
+      );
+    }
+
+    // Official server-verified unit price (priority: active promoPrice -> regular price)
+    const promo = pData.promoPrice !== undefined ? pData.promoPrice : (pData.promotionalPrice !== undefined ? pData.promotionalPrice : null);
+    const officialPrice = (promo !== null && promo !== undefined && Number(promo) > 0)
+      ? Number(promo)
+      : Math.max(0, Number(pData.price) || 0);
+
+    const itemSubtotal = officialPrice * qty;
     calculatedSubtotal += itemSubtotal;
-    return {
-      productId: sanitizeString(item.productId, 100),
-      name: sanitizeString(item.name, 200),
-      image: sanitizeString(item.image, 500) || '',
-      price: price,
+
+    const pImage = pData.coverImage || (Array.isArray(pData.images) ? pData.images[0] : '') || sanitizeString(clientItem.image, 500) || '';
+
+    verifiedItems.push({
+      productId: pId,
+      name: sanitizeString(pData.name, 200) || 'Garde-temps d\'exception',
+      brand: sanitizeString(pData.brand, 100) || '',
+      image: pImage,
+      price: officialPrice,
       quantity: qty,
       subtotal: itemSubtotal
-    };
-  });
+    });
+  }
 
-  const shippingFee = Math.max(0, Number(orderPayload.shipping) || 0);
+  // 3. Strict shipping fee calculation & total
+  const rawShipping = Number(orderPayload.shipping ?? orderPayload.shippingCost ?? 0);
+  const shippingFee = Math.max(0, Math.min(100000, isNaN(rawShipping) ? 0 : rawShipping));
   const calculatedTotal = calculatedSubtotal + shippingFee;
+  const nowIso = new Date().toISOString();
+
+  // 4. Force authenticated customer UID if user is signed in to prevent ID spoofing
+  const authenticatedUid = auth.currentUser ? auth.currentUser.uid : undefined;
+  const customerId = authenticatedUid || (orderPayload.customerId ? sanitizeString(orderPayload.customerId, 100) : undefined);
+  const customerEmail = sanitizedCustomer.email || auth.currentUser?.email || orderPayload.customerEmail || '';
+  const customerName = sanitizedCustomer.name || auth.currentUser?.displayName || orderPayload.customerName || '';
+  const customerPhone = sanitizedCustomer.phone || orderPayload.customerPhone || '';
 
   const newOrder: Order = {
-    id: docRef.id,
+    id: orderDocRef.id,
     orderNumber,
-    customerId: orderPayload.customerId ? sanitizeString(orderPayload.customerId, 100) : undefined,
+    customerId,
+    customerEmail,
+    customerName,
+    customerPhone,
     customer: sanitizedCustomer,
-    items: sanitizedItems,
+    items: verifiedItems,
     subtotal: calculatedSubtotal,
     shipping: shippingFee,
+    shippingCost: shippingFee,
     total: calculatedTotal,
-    currency: sanitizeString(orderPayload.currency, 10) || '€',
-    status: 'pending', // Public visitor CANNOT set to paid or delivered
-    paymentStatus: 'pending', // Protected status
+    currency: sanitizeString(orderPayload.currency, 10) || 'FCFA',
+    status: 'pending',
+    orderStatus: 'pending',
+    paymentStatus: 'pending',
     paymentMethod: (orderPayload.paymentMethod as PaymentMethod) || 'whatsapp_direct',
+    whatsappOrder: Boolean(orderPayload.whatsappOrder ?? true),
+    whatsappMessageSent: Boolean(orderPayload.whatsappMessageSent ?? false),
     notes: sanitizedCustomer.notes,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: nowIso,
+    updatedAt: nowIso
   };
 
   try {
-    await setDoc(docRef, newOrder);
-
-    // Attempt to decrement stock for each purchased watch (if allowed or handled)
-    for (const item of newOrder.items) {
-      if (item.productId) {
-        try {
-          await decrementStock(item.productId, item.quantity);
-        } catch (stockErr) {
-          console.warn('Stock decrement note:', stockErr);
+    // 5. ATOMIC TRANSACTION: Decrement stock & record order in a single transaction
+    await runTransaction(db, async (transaction) => {
+      // Step A: Read phase in transaction
+      const productReads: { ref: any; currentStock: number; currentOrders: number; currentSold: number; qtyToDeduct: number }[] = [];
+      
+      for (const item of verifiedItems) {
+        const pRef = doc(db, PRODUCTS_COLLECTION, item.productId);
+        const pSnap = await transaction.get(pRef);
+        if (!pSnap.exists()) {
+          throw new Error(`Produit #${item.productId} introuvable.`);
         }
+        const pData = pSnap.data();
+        const currentStock = Math.max(0, Math.floor(Number(pData.stock) || 0));
+        if (currentStock < item.quantity) {
+          throw new Error(`Stock épuisé entre-temps pour "${pData.name}". Transaction annulée.`);
+        }
+        const currentOrders = Number(pData.totalOrders ?? pData.orderCount ?? 0);
+        const currentSold = Number(pData.totalQuantitySold ?? 0);
+
+        productReads.push({
+          ref: pRef,
+          currentStock,
+          currentOrders,
+          currentSold,
+          qtyToDeduct: item.quantity
+        });
       }
-    }
+
+      // Step B: Write phase in transaction
+      for (const p of productReads) {
+        transaction.update(p.ref, {
+          stock: p.currentStock - p.qtyToDeduct,
+          totalOrders: p.currentOrders + 1,
+          orderCount: p.currentOrders + 1,
+          totalQuantitySold: p.currentSold + p.qtyToDeduct,
+          updatedAt: nowIso
+        });
+      }
+
+      // Set order document
+      transaction.set(orderDocRef, newOrder);
+    });
 
     return newOrder;
   } catch (error) {
-    handleFirestoreError(error, OperationType.CREATE, `${ORDERS_COLLECTION}/${docRef.id}`);
+    console.error('Order creation transaction failed:', error);
+    handleFirestoreError(error, OperationType.CREATE, `${ORDERS_COLLECTION}/${orderDocRef.id}`);
   }
 }
 
@@ -169,11 +261,13 @@ export async function getOrderById(id: string): Promise<Order | null> {
  * Update order tracking status
  */
 export async function updateOrderStatus(id: string, status: OrderStatus): Promise<void> {
+  await ensureAdminAuth();
   const path = `${ORDERS_COLLECTION}/${id}`;
   try {
     const docRef = doc(db, ORDERS_COLLECTION, id);
     await updateDoc(docRef, {
       status,
+      orderStatus: status,
       updatedAt: new Date().toISOString()
     });
   } catch (error) {
@@ -185,6 +279,7 @@ export async function updateOrderStatus(id: string, status: OrderStatus): Promis
  * Update payment settlement status
  */
 export async function updatePaymentStatus(id: string, paymentStatus: PaymentStatus): Promise<void> {
+  await ensureAdminAuth();
   const path = `${ORDERS_COLLECTION}/${id}`;
   try {
     const docRef = doc(db, ORDERS_COLLECTION, id);
@@ -201,6 +296,7 @@ export async function updatePaymentStatus(id: string, paymentStatus: PaymentStat
  * Delete an order document
  */
 export async function deleteOrder(id: string): Promise<void> {
+  await ensureAdminAuth();
   const path = `${ORDERS_COLLECTION}/${id}`;
   try {
     const docRef = doc(db, ORDERS_COLLECTION, id);

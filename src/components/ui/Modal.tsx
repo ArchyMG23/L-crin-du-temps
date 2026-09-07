@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -38,7 +39,7 @@ export const Modal: React.FC<ModalProps> = ({
     '4xl': 'max-w-4xl'
   };
 
-  return (
+  const modalNode = (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
@@ -48,7 +49,7 @@ export const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-[var(--modal-backdrop)] backdrop-blur-xs transition-opacity"
           />
 
           {/* Modal Card */}
@@ -66,7 +67,7 @@ export const Modal: React.FC<ModalProps> = ({
                   type="button"
                   id="modal-close-btn"
                   onClick={onClose}
-                  className="p-1.5 text-[var(--text-soft)] hover:text-[var(--text)] hover:bg-[var(--badge-bg)] rounded-full transition-colors"
+                  className="p-1.5 text-[var(--text-soft)] hover:text-[var(--text)] hover:bg-[var(--badge-bg)] rounded-full transition-colors cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -78,7 +79,7 @@ export const Modal: React.FC<ModalProps> = ({
                 type="button"
                 id="modal-direct-close-btn"
                 onClick={onClose}
-                className="absolute top-4 right-4 z-20 p-2 bg-[var(--carte-bg)]/80 hover:bg-[var(--carte-bg)] text-[var(--text-soft)] hover:text-[var(--text)] rounded-full backdrop-blur-xs transition-colors border border-[var(--sep)]"
+                className="absolute top-4 right-4 z-20 p-2 bg-[var(--carte-bg)]/80 hover:bg-[var(--carte-bg)] text-[var(--text-soft)] hover:text-[var(--text)] rounded-full backdrop-blur-xs transition-colors border border-[var(--sep)] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -90,4 +91,6 @@ export const Modal: React.FC<ModalProps> = ({
       )}
     </AnimatePresence>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode;
 };

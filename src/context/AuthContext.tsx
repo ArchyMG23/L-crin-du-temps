@@ -56,23 +56,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if authenticated via verified CMS session in sessionStorage
-    const isLocalAdminSession = sessionStorage.getItem('hp_cms_auth') === 'true';
-    if (isLocalAdminSession) {
-      setIsAdmin(true);
-    }
-
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       if (currentUser) {
         try {
           const adminStatus = await checkIsAdmin(currentUser);
+          setIsAdmin(adminStatus);
           if (adminStatus) {
-            setIsAdmin(true);
             sessionStorage.setItem('hp_cms_auth', 'true');
-          }
-          if (adminStatus && currentUser.email) {
-            await registerAdmin(currentUser.uid, currentUser.email, 'owner', currentUser.displayName || undefined).catch(() => {});
+            if (currentUser.email) {
+              await registerAdmin(currentUser.uid, currentUser.email, 'owner', currentUser.displayName || undefined).catch(() => {});
+            }
+          } else {
+            sessionStorage.removeItem('hp_cms_auth');
           }
 
           // Fetch or populate user profile
@@ -98,10 +94,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             await createUserProfile(fallbackProfile).catch(() => {});
           }
         } catch {
-          if (!isLocalAdminSession) setIsAdmin(false);
+          setIsAdmin(false);
+          sessionStorage.removeItem('hp_cms_auth');
         }
       } else {
-        if (!isLocalAdminSession) setIsAdmin(false);
+        setIsAdmin(false);
+        sessionStorage.removeItem('hp_cms_auth');
         // Only clear profile if not in local guest mode
         if (!localStorage.getItem('hp_customer_profile')) {
           setUserProfile(null);

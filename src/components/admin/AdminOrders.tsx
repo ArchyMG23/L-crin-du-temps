@@ -47,6 +47,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
   const statusLabels: Record<OrderStatus, { label: string; variant: 'gold' | 'success' | 'warning' | 'danger' | 'info' | 'secondary' }> = {
     pending: { label: 'En attente', variant: 'warning' },
     confirmed: { label: 'Confirmée', variant: 'gold' },
+    processing: { label: 'En traitement', variant: 'info' },
     preparing: { label: 'En préparation', variant: 'info' },
     shipped: { label: 'Expédiée', variant: 'secondary' },
     delivered: { label: 'Livrée', variant: 'success' },
