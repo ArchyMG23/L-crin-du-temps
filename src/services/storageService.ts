@@ -1,5 +1,6 @@
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../lib/firebase';
+import { ensureAdminAuth } from './adminService';
 
 const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',
@@ -12,6 +13,75 @@ const ALLOWED_IMAGE_TYPES = [
 
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.avif'];
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
+
+/**
+ * Uploads a product image directly to Firebase Cloud Storage.
+ * Path: products/{productId}/{timestamp}_{index}_{cleanFileName}
+ * Logs all steps: [PRODUCT_CREATE] Storage upload and [PRODUCT_CREATE] getDownloadURL
+ */
+export async function uploadProductImage(
+  file: File,
+  productId: string,
+  index: number
+): Promise<string> {
+  console.log(`[PRODUCT_CREATE] Storage upload: Starting upload for image #${index + 1} (${file.name}, ${(file.size / 1024).toFixed(1)} KB) for product ${productId}`);
+  
+  // 1. Ensure authenticated session for Firebase Storage Security Rules
+  await ensureAdminAuth();
+
+  // 2. Validate file size
+  if (file.size > MAX_FILE_SIZE_BYTES) {
+    const errorMsg = `Le fichier "${file.name}" dépasse la taille maximale autorisée de 20 Mo (${(file.size / (1024 * 1024)).toFixed(1)} Mo).`;
+    console.error(`[PRODUCT_CREATE] Storage upload validation error:`, errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // 3. Validate MIME type or extension
+  const lowerName = file.name.toLowerCase();
+  const hasValidExtension = ALLOWED_EXTENSIONS.some(ext => lowerName.endsWith(ext));
+  const hasValidMime = ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase()) || file.type.startsWith('image/');
+  
+  if (!hasValidExtension && !hasValidMime) {
+    const errorMsg = `Format de fichier non autorisé pour "${file.name}". Formats acceptés : JPG, PNG, WebP, GIF, SVG.`;
+    console.error(`[PRODUCT_CREATE] Storage upload validation error:`, errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  const timestamp = Date.now();
+  const cleanFileName = file.name
+    .replace(/[^a-zA-Z0-9._-]/g, '_')
+    .slice(0, 60);
+  const storagePath = `products/${productId}/${timestamp}_${index}_${cleanFileName}`;
+  const storageRef = ref(storage, storagePath);
+
+  try {
+    const snapshot = await uploadBytes(storageRef, file, {
+      contentType: file.type || 'image/jpeg',
+      customMetadata: {
+        productId,
+        index: String(index),
+        originalName: cleanFileName,
+        uploadedAt: new Date().toISOString()
+      }
+    });
+
+    console.log(`[PRODUCT_CREATE] Storage upload: Finished byte upload for ${file.name} to ${storagePath}`);
+
+    const downloadUrl = await getDownloadURL(snapshot.ref);
+    console.log(`[PRODUCT_CREATE] getDownloadURL: Obtained download URL: ${downloadUrl}`);
+    return downloadUrl;
+  } catch (error: any) {
+    console.error(`[PRODUCT_CREATE] Storage upload error:`, {
+      code: error?.code || 'unknown',
+      message: error?.message || String(error),
+      operation: 'uploadBytes / getDownloadURL',
+      file: file.name,
+      path: storagePath,
+      details: error
+    });
+    throw new Error(`Échec du téléversement de "${file.name}" sur Firebase Storage : ${error?.message || error?.code || 'Erreur réseau/droits'}`);
+  }
+}
 
 /**
  * Compresses an image file client-side to an optimized Data URL.
