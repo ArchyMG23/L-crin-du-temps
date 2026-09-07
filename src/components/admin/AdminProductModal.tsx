@@ -111,7 +111,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         description: '',
         featured: false,
         active: true,
-        images: ['https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&q=80&w=1000'],
+        images: [URL.createObjectURL(file)],
         specifications: {
           movement: 'Automatique Suisse',
           caseDiameter: '41 mm',
