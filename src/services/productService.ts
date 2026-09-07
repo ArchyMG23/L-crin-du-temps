@@ -75,11 +75,16 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
         active: isActive,
         isFeatured,
         featured: isFeatured,
+        isArchived: Boolean(data.isArchived),
+        archivedAt: data.archivedAt,
         isPopular: Boolean(data.isPopular || (data.totalOrders && data.totalOrders > 3) || (data.orderCount && data.orderCount > 3)),
         totalOrders: Number(data.totalOrders ?? data.orderCount ?? 0),
         totalQuantitySold: Number(data.totalQuantitySold ?? 0)
       } as Product;
     });
+
+    // Exclude archived/deleted products from standard catalog
+    products = products.filter(p => !p.isArchived);
 
     if (onlyActive) {
       products = products.filter(p => p.isActive && p.active);
@@ -307,21 +312,69 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 }
 
 /**
- * Delete a product from Firestore
+ * Delete or safely archive a product from Firestore.
+ * Preserves historical orders: If orders reference this product, marks as isArchived: true
+ * instead of breaking historical customer receipts.
+ * Otherwise, permanently removes the document via deleteDoc().
  */
-export async function deleteProduct(id: string): Promise<void> {
+export async function deleteProduct(id: string): Promise<{ archived: boolean }> {
   await ensureAdminAuth();
   const path = `${PRODUCTS_COLLECTION}/${id}`;
+
   try {
     const docRef = doc(db, PRODUCTS_COLLECTION, id);
-    await deleteDoc(docRef);
+
+    // 1. Check if the product is referenced in historical customer orders
+    let isReferencedInOrders = false;
+    try {
+      const ordersRef = collection(db, 'orders');
+      const ordersSnap = await getDocs(ordersRef);
+      if (!ordersSnap.empty) {
+        isReferencedInOrders = ordersSnap.docs.some(d => {
+          const items = d.data()?.items;
+          return Array.isArray(items) && items.some((it: any) => it?.productId === id);
+        });
+      }
+    } catch (orderCheckErr) {
+      console.warn('Could not inspect orders prior to product delete, will proceed with direct delete:', orderCheckErr);
+    }
+
+    if (isReferencedInOrders) {
+      // Archive to preserve historical order invoice details
+      await updateDoc(docRef, {
+        active: false,
+        isActive: false,
+        isArchived: true,
+        archivedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      console.log('[SUPPRESSION PRODUIT]', {
+        id,
+        collection: PRODUCTS_COLLECTION,
+        statut: 'ARCHIVÉ (Garde-temps référencé dans l\'historique des commandes)',
+      });
+
+      return { archived: true };
+    } else {
+      // Permanent deletion from Firestore
+      await deleteDoc(docRef);
+
+      console.log('[SUPPRESSION PRODUIT]', {
+        id,
+        collection: PRODUCTS_COLLECTION,
+        statut: 'SUCCÈS (Supprimé définitivement de Firestore)',
+      });
+
+      return { archived: false };
+    }
   } catch (error: any) {
-    console.error(
-      '[ADMIN ERROR]\nproducts.delete\ncode:',
-      error?.code || 'unknown',
-      '\nmessage:',
-      error?.message || String(error)
-    );
+    console.error('[SUPPRESSION PRODUIT]', {
+      id,
+      collection: PRODUCTS_COLLECTION,
+      statut: 'ÉCHEC',
+      erreur: error?.message || String(error)
+    });
     handleFirestoreError(error, OperationType.DELETE, path);
   }
 }

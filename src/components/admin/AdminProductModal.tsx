@@ -4,7 +4,6 @@ import {
   Eye, Star, ZoomIn, ChevronLeft, ChevronRight, Link as LinkIcon, CheckCircle2
 } from 'lucide-react';
 import { Product, Category, Gender, StoreSettings } from '../../types';
-import { DEFAULT_CATEGORIES } from '../../data/defaultData';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { uploadImageFile, compressImageToDataUrl } from '../../services/storageService';
@@ -26,7 +25,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   settings,
   onSave
 }) => {
-  const availableCategories = categories && categories.length > 0 ? categories : DEFAULT_CATEGORIES;
+  const availableCategories = categories || [];
 
   const [formData, setFormData] = useState({
     name: '',
@@ -66,7 +65,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const defaultCatId = (categories && categories.length > 0 ? categories[0]?.id : DEFAULT_CATEGORIES[0]?.id) || '';
+    const defaultCatId = (categories && categories.length > 0 ? categories[0]?.id : '') || '';
 
     if (product) {
       setFormData({
@@ -295,15 +294,16 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       return;
     }
 
-    const chosenCategoryId = formData.categoryId || availableCategories[0]?.id || '';
-    if (!chosenCategoryId) {
+    const chosenCategoryId = formData.categoryId || (availableCategories.length > 0 ? availableCategories[0]?.id : '');
+    if (availableCategories.length > 0 && !chosenCategoryId) {
       setError('Veuillez sélectionner une collection.');
       return;
     }
 
     const cleanImages = formData.images.map(img => img.trim()).filter(Boolean);
     if (cleanImages.length === 0) {
-      cleanImages.push('https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=1000');
+      setError('Veuillez ajouter au moins une photo pour ce garde-temps (téléversement de fichier ou lien URL direct).');
+      return;
     }
 
     try {
@@ -311,7 +311,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
 
       const descText = formData.shortDescription.trim() || formData.description.trim() || '';
       const chosenCollection = availableCategories.find(c => c.id === chosenCategoryId);
-      const collectionName = chosenCollection ? chosenCollection.name : '';
+      const collectionName = chosenCollection ? chosenCollection.name : (chosenCategoryId ? '' : 'Générale');
 
       const payload: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
         name: formData.name.trim(),
@@ -420,17 +420,23 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               </label>
               <select
                 id="admin-product-category"
-                required
+                required={availableCategories.length > 0}
                 value={formData.categoryId}
                 onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs cursor-pointer"
               >
-                <option value="">Sélectionner une collection</option>
-                {availableCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
+                {availableCategories.length === 0 ? (
+                  <option value="">-- Aucune collection enregistrée (Générale) --</option>
+                ) : (
+                  <>
+                    <option value="">Sélectionner une collection</option>
+                    {availableCategories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
             </div>
 

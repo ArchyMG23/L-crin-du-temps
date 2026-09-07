@@ -64,6 +64,8 @@ export interface Product {
   reference?: string;
   specifications?: WatchSpecifications;
   isDemo?: boolean; // Tag identifying demo/seed fixture data
+  isArchived?: boolean;
+  archivedAt?: string;
   createdAt: string;
   updatedAt: string;
 }

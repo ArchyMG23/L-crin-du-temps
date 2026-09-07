@@ -41,14 +41,12 @@ import {
 interface AdminSettingsProps {
   settings: StoreSettings;
   onSaveSettings: (newSettings: Partial<StoreSettings>) => Promise<void>;
-  onReSeedDemoData: () => Promise<void>;
   onResetStore?: () => Promise<void>;
 }
 
 export const AdminSettings: React.FC<AdminSettingsProps> = ({
   settings,
   onSaveSettings,
-  onReSeedDemoData,
   onResetStore
 }) => {
   const { user } = useAuth();
@@ -56,7 +54,6 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
-  const [seeding, setSeeding] = useState(false);
   const [resetModalOpen, setResetModalOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -141,21 +138,6 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
       setErrorMsg('Erreur lors de l\'enregistrement des paramètres.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSeed = async () => {
-    if (window.confirm('Voulez-vous recharger le catalogue avec les montres et catégories d\'origine ?')) {
-      try {
-        setSeeding(true);
-        await onReSeedDemoData();
-        setSuccessMsg('Catalogue de démonstration rechargé avec succès.');
-        setTimeout(() => setSuccessMsg(null), 3000);
-      } catch (err) {
-        setErrorMsg('Erreur lors du rechargement des données.');
-      } finally {
-        setSeeding(false);
-      }
     }
   };
 
@@ -717,19 +699,7 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         </div>
 
         {/* Action Controls & Save */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[var(--sep)]">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleSeed}
-            loading={seeding}
-            icon={RotateCcw}
-            className="text-xs"
-          >
-            Recharger le catalogue de démo
-          </Button>
-
+        <div className="flex flex-col sm:flex-row items-center justify-end gap-4 pt-4 border-t border-[var(--sep)]">
           <Button
             type="submit"
             variant="gold"

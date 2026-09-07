@@ -5,7 +5,6 @@ import { CartProvider } from './context/CartContext';
 import { ThemeProvider } from './context/ThemeContext';
 
 // Services
-import { seedInitialDataIfEmpty, forceSeedData } from './services/seedService';
 import {
   getProducts,
   createProduct,
@@ -426,10 +425,19 @@ const MainApp: React.FC = () => {
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    const prod = products.find(p => p.id === productId);
-    await deleteProduct(productId);
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
-    addToast('info', `Montre "${prod?.name || ''}" supprimée du catalogue.`);
+    try {
+      const prod = products.find(p => p.id === productId);
+      const res = await deleteProduct(productId);
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+      if (res?.archived) {
+        addToast('info', `Montre "${prod?.name || ''}" archivée (commandes existantes préservées).`);
+      } else {
+        addToast('success', `Montre "${prod?.name || ''}" définitivement supprimée du catalogue.`);
+      }
+    } catch (err: any) {
+      console.error('[SUPPRESSION PRODUIT ERREUR]', err);
+      addToast('error', `Échec de la suppression : ${err?.message || 'Erreur inconnue'}`);
+    }
   };
 
   const handleToggleProductActive = async (productId: string, currentActive: boolean) => {
@@ -489,10 +497,15 @@ const MainApp: React.FC = () => {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    const cat = categories.find(c => c.id === id);
-    await deleteCategory(id);
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-    addToast('info', `Collection "${cat?.name || ''}" supprimée.`);
+    try {
+      const cat = categories.find(c => c.id === id);
+      await deleteCategory(id);
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      addToast('success', `Collection "${cat?.name || ''}" supprimée.`);
+    } catch (err: any) {
+      console.error('[SUPPRESSION COLLECTION ERREUR]', err);
+      addToast('error', err?.message || 'Erreur lors de la suppression de la collection.');
+    }
   };
 
   const handleToggleCategoryActive = async (id: string, currentActive: boolean) => {
@@ -558,12 +571,6 @@ const MainApp: React.FC = () => {
     await updateStoreSettings(newSettings);
     setSettings((prev) => ({ ...prev, ...newSettings }));
     addToast('success', 'Paramètres de la boutique enregistrés avec succès.');
-  };
-
-  const handleReSeedData = async () => {
-    await forceSeedData();
-    await loadData();
-    addToast('info', 'Données de démonstration réinitialisées.');
   };
 
   const handleResetData = async () => {
@@ -686,7 +693,6 @@ const MainApp: React.FC = () => {
             <AdminSettings
               settings={settings}
               onSaveSettings={handleSaveSettings}
-              onReSeedDemoData={handleReSeedData}
               onResetStore={handleResetData}
             />
           )}

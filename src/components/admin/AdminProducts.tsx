@@ -182,7 +182,24 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
       </div>
 
       {/* Products Content: Desktop Table & Mobile Cards */}
-      {filteredProducts.length === 0 ? (
+      {products.length === 0 ? (
+        <div className="bg-[var(--carte-bg)] border border-[var(--sep)] rounded-2xl p-12 text-center text-xs text-[var(--text-muted)] space-y-3 shadow-sm">
+          <Watch className="w-12 h-12 text-[var(--or)] opacity-60 mx-auto" />
+          <h3 className="text-base font-serif font-bold text-[var(--text)]">Catalogue vide</h3>
+          <p className="text-xs text-[var(--text-soft)] max-w-md mx-auto">
+            Aucun garde-temps n'est actuellement présent dans votre boutique. L'application est prête à recevoir vos vraies données.
+          </p>
+          <Button
+            variant="gold"
+            size="sm"
+            onClick={onOpenNewModal}
+            icon={Plus}
+            className="mt-3 text-xs"
+          >
+            Ajouter votre première montre
+          </Button>
+        </div>
+      ) : filteredProducts.length === 0 ? (
         <div className="bg-[var(--carte-bg)] border border-[var(--sep)] rounded-2xl p-12 text-center text-xs text-[var(--text-muted)] space-y-3 shadow-sm">
           <Watch className="w-10 h-10 text-[var(--text-muted)] mx-auto" />
           <p className="text-[var(--text)] font-medium text-sm">Aucune montre ne correspond aux filtres actuels.</p>

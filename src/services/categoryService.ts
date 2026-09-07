@@ -11,14 +11,14 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Category } from '../types';
-import { DEFAULT_CATEGORIES } from '../data/defaultData';
 import { ensureAdminAuth } from './adminService';
 
 const PRIMARY_COLLECTION = 'collections';
 const LEGACY_COLLECTION = 'categories';
 
 /**
- * Fetch all collections, optionally filtered by active state
+ * Fetch all collections, optionally filtered by active state.
+ * Strictly returns empty array [] when no collections exist in Firestore.
  */
 export async function getCategories(onlyActive = true): Promise<Category[]> {
   try {
@@ -32,7 +32,7 @@ export async function getCategories(onlyActive = true): Promise<Category[]> {
     }
 
     if (!snapshot || snapshot.empty) {
-      return DEFAULT_CATEGORIES;
+      return [];
     }
 
     let categories = snapshot.docs.map(d => {
@@ -52,13 +52,13 @@ export async function getCategories(onlyActive = true): Promise<Category[]> {
     }
 
     if (categories.length === 0) {
-      return DEFAULT_CATEGORIES;
+      return [];
     }
 
     return categories.sort((a, b) => a.name.localeCompare(b.name));
   } catch (error) {
-    console.warn('Collections fetch notice:', error);
-    return DEFAULT_CATEGORIES;
+    console.warn('Collections fetch notice (Firestore vide ou non initialisé):', error);
+    return [];
   }
 }
 
@@ -170,13 +170,20 @@ export async function updateCategory(id: string, updates: Partial<Category>): Pr
 }
 
 /**
- * Delete a collection
+ * Delete a collection from Firestore
  */
 export async function deleteCategory(id: string): Promise<void> {
   await ensureAdminAuth();
   const hasProducts = await collectionHasProducts(id);
   if (hasProducts) {
-    throw new Error('Impossible de supprimer une collection qui contient encore des garde-temps.');
+    const errorMsg = 'Impossible de supprimer cette collection car des montres y sont encore associées. Réassignez ou supprimez d\'abord ces modèles.';
+    console.warn('[SUPPRESSION COLLECTION]', {
+      id,
+      collection: PRIMARY_COLLECTION,
+      statut: 'REFUSÉ',
+      erreur: errorMsg
+    });
+    throw new Error(errorMsg);
   }
 
   const path = `${PRIMARY_COLLECTION}/${id}`;
@@ -184,13 +191,18 @@ export async function deleteCategory(id: string): Promise<void> {
     const docRef = doc(db, PRIMARY_COLLECTION, id);
     await deleteDoc(docRef);
     await deleteDoc(doc(db, LEGACY_COLLECTION, id)).catch(() => {});
+    console.log('[SUPPRESSION COLLECTION]', {
+      id,
+      collection: PRIMARY_COLLECTION,
+      statut: 'SUCCÈS (supprimée définitivement de Firestore)'
+    });
   } catch (error: any) {
-    console.error(
-      '[ADMIN ERROR]\ncollections.delete\ncode:',
-      error?.code || 'unknown',
-      '\nmessage:',
-      error?.message || String(error)
-    );
+    console.error('[SUPPRESSION COLLECTION]', {
+      id,
+      collection: PRIMARY_COLLECTION,
+      statut: 'ÉCHEC',
+      erreur: error?.message || String(error)
+    });
     handleFirestoreError(error, OperationType.DELETE, path);
   }
 }
