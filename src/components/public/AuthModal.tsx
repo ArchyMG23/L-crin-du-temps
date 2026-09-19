@@ -160,7 +160,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ? 'Création de Compte Client'
           : 'Récupération de Mot de Passe'
       }
-      maxWidth="max-w-md"
+      maxWidth="md"
     >
       <div className="space-y-5 text-[var(--text)]">
         <div className="flex justify-center pb-1">

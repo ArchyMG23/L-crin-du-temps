@@ -61,6 +61,7 @@ import { AdminStock } from './components/admin/AdminStock';
 import { AdminOrders } from './components/admin/AdminOrders';
 import { AdminCustomers } from './components/admin/AdminCustomers';
 import { AdminSettings } from './components/admin/AdminSettings';
+import { AdminErrorBoundary } from './components/common/AdminErrorBoundary';
 
 const MainApp: React.FC = () => {
   const { isAdmin, userProfile } = useAuth();
@@ -359,7 +360,8 @@ const MainApp: React.FC = () => {
   // Admin CRUD Handlers
   const handleSaveProduct = async (
     productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>,
-    id?: string
+    id?: string,
+    targetDocId?: string
   ) => {
     const nowIso = new Date().toISOString();
     if (id) {
@@ -369,7 +371,7 @@ const MainApp: React.FC = () => {
       );
       addToast('success', `Montre "${productData.name}" mise à jour avec succès.`);
     } else {
-      const newId = await createProduct(productData);
+      const newId = await createProduct(productData, targetDocId);
       const newProd: Product = {
         ...productData,
         id: newId,
@@ -609,7 +611,7 @@ const MainApp: React.FC = () => {
     }
 
     return (
-      <>
+      <AdminErrorBoundary onReset={() => loadData(true)}>
         <ToastContainer toasts={toasts} onDismiss={removeToast} />
         <AdminLayout
           activeTab={adminTab}
@@ -710,12 +712,12 @@ const MainApp: React.FC = () => {
             onSave={handleSaveProduct}
           />
         </AdminLayout>
-      </>
+      </AdminErrorBoundary>
     );
   }
 
   // ================= PUBLIC STORE RENDERING =================
-  const cleanWhatsApp = settings.whatsappNumber.replace(/[^0-9]/g, '');
+  const cleanWhatsApp = (settings?.whatsappNumber || '').replace(/[^0-9]/g, '');
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col font-sans selection:bg-[var(--or)] selection:text-black relative z-10 isolate transition-colors duration-300">

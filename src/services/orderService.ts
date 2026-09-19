@@ -209,6 +209,37 @@ export async function createOrder(
   }
 }
 
+function normalizeOrder(id: string, raw: any): Order {
+  const data = raw || {};
+  const customer = data.customer || {};
+  return {
+    id,
+    ...data,
+    orderNumber: data.orderNumber || `CMD-${id.slice(0, 6)}`,
+    status: data.status || 'pending',
+    orderStatus: data.orderStatus || data.status || 'pending',
+    paymentStatus: data.paymentStatus || 'pending',
+    currency: data.currency || '€',
+    total: Number(data.total) || 0,
+    subtotal: Number(data.subtotal) || 0,
+    shipping: Number(data.shipping ?? data.shippingCost ?? 0),
+    items: Array.isArray(data.items) ? data.items : [],
+    customer: {
+      name: customer.name || data.customerName || 'Client',
+      email: customer.email || data.customerEmail || '',
+      phone: customer.phone || data.customerPhone || '',
+      city: customer.city || '',
+      address: customer.address || '',
+      notes: customer.notes || data.notes || ''
+    },
+    customerName: data.customerName || customer.name || 'Client',
+    customerEmail: data.customerEmail || customer.email || '',
+    customerPhone: data.customerPhone || customer.phone || '',
+    createdAt: data.createdAt || new Date().toISOString(),
+    updatedAt: data.updatedAt || new Date().toISOString()
+  } as Order;
+}
+
 /**
  * Fetch all orders for the administrator dashboard
  */
@@ -217,7 +248,7 @@ export async function getOrders(): Promise<Order[]> {
     const colRef = collection(db, ORDERS_COLLECTION);
     const q = query(colRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
+    return snapshot.docs.map(d => normalizeOrder(d.id, d.data()));
   } catch (error: any) {
     // If user is unauthenticated or has insufficient permissions (e.g. public visitor), return empty
     if (error?.code === 'permission-denied' || String(error?.message).includes('insufficient permissions')) {
@@ -228,7 +259,7 @@ export async function getOrders(): Promise<Order[]> {
     try {
       const colRef = collection(db, ORDERS_COLLECTION);
       const snapshot = await getDocs(colRef);
-      const orders = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
+      const orders = snapshot.docs.map(d => normalizeOrder(d.id, d.data()));
       return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (e2: any) {
       if (e2?.code === 'permission-denied' || String(e2?.message).includes('insufficient permissions')) {
@@ -330,7 +361,7 @@ export function buildWhatsAppOrderUrl(
  * Format message for admin to follow up with customer on WhatsApp
  */
 export function buildWhatsAppAdminToClientUrl(order: Order, storeName: string): string {
-  const cleanPhone = normalizeWhatsAppNumber(order.customer.phone);
+  const cleanPhone = normalizeWhatsAppNumber(order.customer?.phone || order.customerPhone || '');
   const message = buildAdminFollowUpMessage(order, storeName);
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }

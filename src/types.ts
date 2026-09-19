@@ -58,10 +58,13 @@ export interface Product {
   isFeatured?: boolean;
   featured: boolean; // Dual-key compatibility
   isPopular?: boolean;
+  orderCount?: number;
+  categoryName?: string;
   totalOrders?: number;
   totalQuantitySold?: number;
   slug?: string;
   reference?: string;
+  productUrl?: string | null;
   specifications?: WatchSpecifications;
   isDemo?: boolean; // Tag identifying demo/seed fixture data
   isArchived?: boolean;
@@ -135,6 +138,7 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   shippingCost?: number;
+  shippingFee?: number;
   shipping: number;
   total: number;
   currency: string;

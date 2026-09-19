@@ -40,12 +40,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const storeName = settings?.storeName || 'Horlogerie de Prestige';
 
   // Metrics Calculations
-  const validOrders = orders.filter(o => o.status !== 'cancelled');
-  const totalRevenue = validOrders.reduce((sum, o) => sum + o.total, 0);
-  const pendingOrders = orders.filter(o => o.status === 'pending');
-  const activeProducts = products.filter(p => p.active);
-  const outOfStockProducts = products.filter(p => p.stock <= 0);
-  const lowStockProducts = products.filter(p => p.stock > 0 && p.stock <= (p.lowStockThreshold || 2));
+  const safeOrders = orders || [];
+  const safeProducts = products || [];
+  const validOrders = safeOrders.filter(o => o && o.status !== 'cancelled');
+  const totalRevenue = validOrders.reduce((sum, o) => sum + (Number(o?.total) || 0), 0);
+  const pendingOrders = safeOrders.filter(o => o && o.status === 'pending');
+  const activeProducts = safeProducts.filter(p => p && (p.active || p.isActive));
+  const outOfStockProducts = safeProducts.filter(p => (p?.stock ?? 0) <= 0);
+  const lowStockProducts = safeProducts.filter(p => (p?.stock ?? 0) > 0 && (p?.stock ?? 0) <= (p?.lowStockThreshold || 2));
   const totalStockAlerts = outOfStockProducts.length + lowStockProducts.length;
 
   return (
@@ -226,13 +228,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
 
                       <div className="text-xs text-[var(--text)] mt-1 font-semibold">
-                        {order.customer.name} {order.customer.city ? `(${order.customer.city})` : ''}
+                        {order.customer?.name || order.customerName || 'Client'} {order.customer?.city ? `(${order.customer.city})` : ''}
                       </div>
 
                       <div className="text-[11px] text-[var(--text-soft)] mt-0.5">
-                        {order.items.length} article{order.items.length > 1 ? 's' : ''} • Total:{' '}
+                        {(order.items || []).length} article{((order.items || []).length > 1) ? 's' : ''} • Total:{' '}
                         <span className="font-bold text-[var(--text)]">
-                          {order.total.toLocaleString('fr-FR')} {order.currency}
+                          {(Number(order.total) || 0).toLocaleString('fr-FR')} {order.currency || currency}
                         </span>
                       </div>
                     </div>

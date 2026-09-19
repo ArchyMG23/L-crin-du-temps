@@ -178,12 +178,14 @@ export function buildAdminFollowUpMessage(
     cancelled: 'Annulée'
   };
 
-  const currentStatusText = statusLabels[order.status] || order.status;
+  const currentStatusText = statusLabels[order.status] || order.status || 'En cours';
+  const customerName = order.customer?.name || order.customerName || 'Client';
+  const totalAmount = Number(order.total) || 0;
 
   const lines = [
-    `Bonjour ${order.customer.name},`,
+    `Bonjour ${customerName},`,
     ``,
-    `C'est la Maison *${storeName}* concernant votre commande *#${order.orderNumber}* d'un montant de *${order.total.toLocaleString('fr-FR')} ${order.currency}*.`,
+    `C'est la Maison *${storeName}* concernant votre commande *#${order.orderNumber || ''}* d'un montant de *${totalAmount.toLocaleString('fr-FR')} ${order.currency || '€'}*.`,
     ``,
     `📌 *Statut actuel de votre commande :* ${currentStatusText}`,
     ``,

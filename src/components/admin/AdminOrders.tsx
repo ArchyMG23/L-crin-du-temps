@@ -44,12 +44,12 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
   const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null);
 
   // Status mapping
-  const statusLabels: Record<OrderStatus, { label: string; variant: 'gold' | 'success' | 'warning' | 'danger' | 'info' | 'secondary' }> = {
+  const statusLabels: Record<OrderStatus, { label: string; variant: 'gold' | 'success' | 'warning' | 'danger' | 'default' | 'outline' }> = {
     pending: { label: 'En attente', variant: 'warning' },
     confirmed: { label: 'Confirmée', variant: 'gold' },
-    processing: { label: 'En traitement', variant: 'info' },
-    preparing: { label: 'En préparation', variant: 'info' },
-    shipped: { label: 'Expédiée', variant: 'secondary' },
+    processing: { label: 'En traitement', variant: 'default' },
+    preparing: { label: 'En préparation', variant: 'default' },
+    shipped: { label: 'Expédiée', variant: 'outline' },
     delivered: { label: 'Livrée', variant: 'success' },
     cancelled: { label: 'Annulée', variant: 'danger' }
   };
@@ -218,7 +218,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
       ) : (
         <div className="space-y-4">
           {filteredOrders.map((order) => {
-            const statusConfig = statusLabels[order.status] || { label: order.status, variant: 'secondary' };
+            const statusConfig = statusLabels[order.status] || { label: order.status, variant: 'outline' as const };
 
             return (
               <div
@@ -410,7 +410,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             <div className="p-3 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] flex justify-between items-center">
               <div>
                 <span className="text-[var(--text-muted)] block text-[10px] uppercase">Client</span>
-                <span className="font-semibold text-sm">{selectedOrder.customer.name}</span>
+                <span className="font-semibold text-sm">{selectedOrder.customer?.name || selectedOrder.customerName || 'Client'}</span>
               </div>
               <div className="text-right">
                 <span className="text-[var(--text-muted)] block text-[10px] uppercase">Date d'enregistrement</span>
@@ -422,18 +422,18 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             <div className="space-y-1.5 p-3 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)]">
               <div className="text-[var(--text-soft)] flex items-center gap-2">
                 <Phone className="w-3.5 h-3.5 text-[var(--or)]" />
-                <strong className="text-[var(--text-muted)]">Téléphone :</strong> {selectedOrder.customer.phone}
+                <strong className="text-[var(--text-muted)]">Téléphone :</strong> {selectedOrder.customer?.phone || selectedOrder.customerPhone || 'N/A'}
               </div>
-              {selectedOrder.customer.email && (
+              {(selectedOrder.customer?.email || selectedOrder.customerEmail) && (
                 <div className="text-[var(--text-soft)] flex items-center gap-2">
-                  <strong className="text-[var(--text-muted)]">Email :</strong> {selectedOrder.customer.email}
+                  <strong className="text-[var(--text-muted)]">Email :</strong> {selectedOrder.customer?.email || selectedOrder.customerEmail}
                 </div>
               )}
               <div className="text-[var(--text-soft)] flex items-center gap-2">
                 <MapPin className="w-3.5 h-3.5 text-[var(--or)]" />
-                <strong className="text-[var(--text-muted)]">Adresse de livraison :</strong> {selectedOrder.customer.address}, {selectedOrder.customer.city}
+                <strong className="text-[var(--text-muted)]">Adresse de livraison :</strong> {selectedOrder.customer?.address || 'N/A'}{selectedOrder.customer?.city ? `, ${selectedOrder.customer.city}` : ''}
               </div>
-              {selectedOrder.customer.notes && (
+              {selectedOrder.customer?.notes && (
                 <div className="text-[var(--or)] mt-2 pt-2 border-t border-[var(--sep)]">
                   <strong className="text-[var(--text-muted)]">Notes du client :</strong> "{selectedOrder.customer.notes}"
                 </div>
@@ -476,7 +476,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
               <div className="flex justify-between text-[var(--text-muted)]">
                 <span>Frais de livraison</span>
                 <span className="font-mono">
-                  {selectedOrder.shippingFee === 0 ? 'Gratuit' : `${selectedOrder.shippingFee.toLocaleString('fr-FR')} ${selectedOrder.currency}`}
+                  {(selectedOrder.shipping ?? selectedOrder.shippingFee ?? 0) === 0 ? 'Gratuit' : `${(selectedOrder.shipping ?? selectedOrder.shippingFee ?? 0).toLocaleString('fr-FR')} ${selectedOrder.currency}`}
                 </span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-[var(--sep)] text-sm font-serif font-bold">

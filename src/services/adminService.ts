@@ -59,37 +59,62 @@ export async function ensureAdminAuth(): Promise<void> {
  * Verifies against Firestore /admins/{uid} doc or super admin email list.
  */
 export async function checkIsAdmin(user: User | null): Promise<boolean> {
-  if (!user) return false;
+  const isCmsSession =
+    sessionStorage.getItem('hp_cms_auth') === 'true' ||
+    localStorage.getItem('hp_cms_auth') === 'true';
+
+  if (!user) {
+    console.log('[ADMIN] Admin authorization checked', { authorized: isCmsSession, reason: isCmsSession ? 'valid-cms-session' : 'no-user' });
+    return isCmsSession;
+  }
 
   // 1. Check custom claims (e.g. { admin: true }) set via Firebase Admin SDK
   try {
-    const tokenResult = await user.getIdTokenResult();
-    if (tokenResult.claims && (tokenResult.claims.admin === true || tokenResult.claims.role === 'admin' || tokenResult.claims.role === 'owner')) {
-      return true;
+    const tokenResult = await user.getIdTokenResult(false);
+    if (tokenResult?.claims) {
+      if (
+        tokenResult.claims.admin === true ||
+        tokenResult.claims.role === 'admin' ||
+        tokenResult.claims.role === 'owner'
+      ) {
+        console.log('[ADMIN] Admin authorization checked', { authorized: true, reason: 'custom-claims' });
+        return true;
+      }
     }
-  } catch (claimErr) {
-    console.warn('Error reading auth custom claims:', claimErr);
+  } catch (claimErr: any) {
+    console.warn('[ADMIN] Custom claims check notice:', claimErr?.message || claimErr);
   }
 
   // 2. Check known super-admin email list
   if (user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+    console.log('[ADMIN] Admin authorization checked', { authorized: true, reason: 'super-admin-email', email: user.email });
     return true;
   }
 
-  // 3. Check Firestore /admins/{uid} document
+  // 3. Check active CMS passcode session (e.g. validated via PIN code)
+  if (isCmsSession) {
+    console.log('[ADMIN] Admin authorization checked', { authorized: true, reason: 'cms-passcode-session' });
+    return true;
+  }
+
+  // 4. Check Firestore /admins/{uid} document
   try {
     const adminDocRef = doc(db, ADMINS_COLLECTION, user.uid);
     const snap = await getDoc(adminDocRef);
     if (snap.exists()) {
       const data = snap.data();
-      return Boolean(data && (data.role === 'owner' || data.role === 'admin' || data.role === 'manager'));
+      const isRoleAdmin = Boolean(
+        data && (data.role === 'owner' || data.role === 'admin' || data.role === 'manager')
+      );
+      console.log('[ADMIN] Admin authorization checked', { authorized: isRoleAdmin, reason: 'firestore-admin-doc' });
+      return isRoleAdmin;
     }
-    return false;
-  } catch (error) {
-    console.warn('Error verifying admin document:', error);
-    // If checking by email succeeded above, it already returned true
-    return false;
+  } catch (error: any) {
+    console.warn('[ADMIN] Firestore /admins check notice:', error?.message || error);
   }
+
+  console.log('[ADMIN] Admin authorization checked', { authorized: false, reason: 'unauthorized-user' });
+  return false;
 }
 
 /**

@@ -3,10 +3,19 @@ import {
   X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Upload, Loader2,
   Eye, Star, ZoomIn, ChevronLeft, ChevronRight, Link as LinkIcon, CheckCircle2
 } from 'lucide-react';
+import { collection, doc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { Product, Category, Gender, StoreSettings } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { uploadImageFile, compressImageToDataUrl } from '../../services/storageService';
+import { uploadProductImage } from '../../services/storageService';
+
+export interface ProductModalImage {
+  id: string;
+  previewUrl: string;
+  file?: File;
+  isNew: boolean;
+}
 
 interface AdminProductModalProps {
   isOpen: boolean;
@@ -14,7 +23,11 @@ interface AdminProductModalProps {
   product: Product | null;
   categories: Category[];
   settings: StoreSettings;
-  onSave: (productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>, id?: string) => Promise<void>;
+  onSave: (
+    productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>,
+    id?: string,
+    targetDocId?: string
+  ) => Promise<void>;
 }
 
 export const AdminProductModal: React.FC<AdminProductModalProps> = ({
@@ -36,14 +49,13 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     gender: 'homme' as Gender,
     price: 0,
     promotionalPrice: '' as string | number,
-    currency: settings.currency || '€',
+    currency: settings?.currency || '€',
     stock: 1,
-    lowStockThreshold: settings.defaultLowStockThreshold || 2,
+    lowStockThreshold: settings?.defaultLowStockThreshold || 2,
     shortDescription: '',
     description: '',
     featured: false,
     active: true,
-    images: [] as string[],
     specifications: {
       movement: '',
       caseDiameter: '',
@@ -54,8 +66,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     }
   });
 
+  const [imageItems, setImageItems] = useState<ProductModalImage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -84,7 +96,6 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         description: product.description || '',
         featured: product.featured ?? false,
         active: product.active ?? true,
-        images: product.images && product.images.length > 0 ? product.images : [],
         specifications: {
           movement: product.specifications?.movement || '',
           caseDiameter: product.specifications?.caseDiameter || '',
@@ -94,6 +105,18 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
           strapMaterial: product.specifications?.strapMaterial || ''
         }
       });
+
+      if (product.images && product.images.length > 0) {
+        setImageItems(
+          product.images.filter(Boolean).map((url, i) => ({
+            id: `existing_${i}_${url.slice(-10)}`,
+            previewUrl: url,
+            isNew: false
+          }))
+        );
+      } else {
+        setImageItems([]);
+      }
     } else {
       setFormData({
         name: '',
@@ -104,14 +127,13 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         gender: 'homme',
         price: 950,
         promotionalPrice: '',
-        currency: settings.currency || '€',
+        currency: settings?.currency || '€',
         stock: 5,
-        lowStockThreshold: settings.defaultLowStockThreshold || 2,
+        lowStockThreshold: settings?.defaultLowStockThreshold || 2,
         shortDescription: '',
         description: '',
         featured: false,
         active: true,
-        images: [URL.createObjectURL(file)],
         specifications: {
           movement: 'Automatique Suisse',
           caseDiameter: '41 mm',
@@ -121,6 +143,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
           strapMaterial: 'Cuir véritable'
         }
       });
+      setImageItems([]);
     }
   }, [product, categories, settings, isOpen]);
 
@@ -145,63 +168,22 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     }
   };
 
-  const processFiles = async (files: FileList | File[]) => {
+  const processFiles = (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
+    setError(null);
 
-    try {
-      setUploadingImage(true);
-      setError(null);
-      setUploadNotice("Prévisualisation instantanée et optimisation...");
+    const fileList = Array.from(files);
+    const newItems: ProductModalImage[] = fileList.map((file, idx) => ({
+      id: `new_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 7)}`,
+      previewUrl: URL.createObjectURL(file),
+      file,
+      isNew: true
+    }));
 
-      const fileList = Array.from(files);
-      // Instant high-res compressed local previews (0ms perceptible lag)
-      const previewUrls = await Promise.all(
-        fileList.map((f) => compressImageToDataUrl(f, 1280, 0.85))
-      );
-      const validPreviews = previewUrls.filter(Boolean);
-
-      if (validPreviews.length === 0) {
-        setError("Impossible de charger les photos sélectionnées.");
-        return;
-      }
-
-      // Add to gallery immediately so user sees the preview immediately
-      setFormData((prev) => {
-        const existingClean = prev.images.filter((img) => img && img.trim().length > 0);
-        return {
-          ...prev,
-          images: [...existingClean, ...validPreviews]
-        };
-      });
-
-      setUploadNotice(`${validPreviews.length} photo(s) ajoutée(s) avec succès !`);
-      setTimeout(() => setUploadNotice(null), 3000);
-
-      // In background, upload to Firebase Storage if available (non-blocking)
-      for (let i = 0; i < fileList.length; i++) {
-        const file = fileList[i];
-        const localPreview = validPreviews[i];
-        if (!file || !localPreview) continue;
-
-        try {
-          const storageUrl = await uploadImageFile(file, 'products');
-          if (storageUrl && storageUrl !== localPreview) {
-            setFormData((prev) => ({
-              ...prev,
-              images: prev.images.map((img) => (img === localPreview ? storageUrl : img))
-            }));
-          }
-        } catch {
-          // Optimized local data URL is already safely preserved
-        }
-      }
-    } catch (err: any) {
-      console.error('File upload error:', err);
-      setError("Erreur lors de l'importation de l'image.");
-    } finally {
-      setUploadingImage(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
+    setImageItems((prev) => [...prev, ...newItems]);
+    setUploadNotice(`${newItems.length} photo(s) sélectionnée(s). Téléversement Storage lors de la validation.`);
+    setTimeout(() => setUploadNotice(null), 3500);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,18 +216,27 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   const handleAddUrlImage = () => {
     const trimmed = urlInputValue.trim();
     if (!trimmed) return;
-    setFormData((prev) => ({
+    setImageItems((prev) => [
       ...prev,
-      images: [...prev.images.filter(Boolean), trimmed]
-    }));
+      {
+        id: `url_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        previewUrl: trimmed,
+        isNew: false
+      }
+    ]);
     setUrlInputValue('');
     setShowUrlInput(false);
   };
 
   const handleRemoveImage = (index: number) => {
-    setFormData((prev) => {
-      const updated = prev.images.filter((_, i) => i !== index);
-      return { ...prev, images: updated };
+    setImageItems((prev) => {
+      const item = prev[index];
+      if (item?.isNew && item.previewUrl.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(item.previewUrl);
+        } catch {}
+      }
+      return prev.filter((_, i) => i !== index);
     });
     if (previewImageIndex === index) {
       setPreviewImageIndex(null);
@@ -256,11 +247,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
 
   const handleSetMainImage = (index: number) => {
     if (index === 0) return;
-    setFormData((prev) => {
-      const updated = [...prev.images];
+    setImageItems((prev) => {
+      const updated = [...prev];
       const selected = updated.splice(index, 1)[0];
       updated.unshift(selected);
-      return { ...prev, images: updated };
+      return updated;
     });
     if (previewImageIndex !== null) {
       setPreviewImageIndex(0);
@@ -271,44 +262,67 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     e.preventDefault();
     setError(null);
 
-    if (!formData.name.trim()) {
-      setError('Le nom de la montre est obligatoire.');
-      return;
-    }
-    if (Number(formData.price) <= 0 || isNaN(Number(formData.price))) {
-      setError('Le prix public doit être supérieur à 0.');
-      return;
-    }
-
-    const promoNum = formData.promotionalPrice !== '' && Number(formData.promotionalPrice) > 0
-      ? Number(formData.promotionalPrice)
-      : null;
-
-    if (promoNum !== null && promoNum >= Number(formData.price)) {
-      setError('Le prix promotionnel doit être strictement inférieur au prix standard.');
-      return;
-    }
-
-    if (Number(formData.stock) < 0 || isNaN(Number(formData.stock)) || !Number.isInteger(Number(formData.stock))) {
-      setError('Le stock doit être un nombre entier positif ou nul (ex: 0, 1, 2...).');
-      return;
-    }
-
-    const chosenCategoryId = formData.categoryId || (availableCategories.length > 0 ? availableCategories[0]?.id : '');
-    if (availableCategories.length > 0 && !chosenCategoryId) {
-      setError('Veuillez sélectionner une collection.');
-      return;
-    }
-
-    const cleanImages = formData.images.map(img => img.trim()).filter(Boolean);
-    if (cleanImages.length === 0) {
-      setError('Veuillez ajouter au moins une photo pour ce garde-temps (téléversement de fichier ou lien URL direct).');
-      return;
-    }
-
     try {
       setLoading(true);
+      console.log('[WATCH_CREATE] START');
 
+      // 1. Validation
+      if (!formData.name.trim()) {
+        setError('Le nom de la montre est obligatoire.');
+        return;
+      }
+      const priceNum = Number(formData.price);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        setError('Le prix public doit être supérieur à 0.');
+        return;
+      }
+
+      const promoNum = formData.promotionalPrice !== '' && formData.promotionalPrice !== null && Number(formData.promotionalPrice) > 0
+        ? Number(formData.promotionalPrice)
+        : null;
+
+      if (promoNum !== null && promoNum >= priceNum) {
+        setError('Le prix promotionnel doit être strictement inférieur au prix standard.');
+        return;
+      }
+
+      const stockNum = Math.max(0, Math.floor(Number(formData.stock) || 0));
+      const lowStockThresholdNum = Math.max(0, Math.floor(Number(formData.lowStockThreshold) || 2));
+
+      const chosenCategoryId = formData.categoryId || (availableCategories.length > 0 ? availableCategories[0]?.id : '');
+      if (availableCategories.length > 0 && !chosenCategoryId) {
+        setError('Veuillez sélectionner une collection.');
+        return;
+      }
+
+      console.log('[WATCH_CREATE] FORM VALIDATED');
+
+      // 2. Target Firestore document ID
+      const targetDocId = product?.id || doc(collection(db, 'products')).id;
+
+      // 3. Upload images if needed
+      console.log('[WATCH_CREATE] IMAGE UPLOAD START');
+      const finalImages: string[] = [];
+
+      for (let i = 0; i < imageItems.length; i++) {
+        const item = imageItems[i];
+        if (item.isNew && item.file) {
+          try {
+            const downloadUrl = await uploadProductImage(item.file, targetDocId, i);
+            finalImages.push(downloadUrl);
+          } catch (uploadErr: any) {
+            console.error('[WATCH_CREATE] ERROR\ncode:', uploadErr?.code || 'storage-error', '\nmessage:', uploadErr?.message);
+            throw new Error(`Échec du téléversement de l'image "${item.file.name}" sur Firebase Storage : ${uploadErr?.message || uploadErr?.code || 'Erreur Storage'}`);
+          }
+        } else if (item.previewUrl && !item.previewUrl.startsWith('blob:')) {
+          finalImages.push(item.previewUrl);
+        }
+      }
+
+      console.log('[WATCH_CREATE] IMAGE UPLOAD SUCCESS');
+
+      // 4. Construction du document
+      console.log('[WATCH_CREATE] FIRESTORE WRITE START');
       const descText = formData.shortDescription.trim() || formData.description.trim() || '';
       const chosenCollection = availableCategories.find(c => c.id === chosenCategoryId);
       const collectionName = chosenCollection ? chosenCollection.name : (chosenCategoryId ? '' : 'Générale');
@@ -318,20 +332,21 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         slug: formData.slug.trim() || generateSlug(formData.name),
         brand: formData.brand.trim() || 'Maison Horlogère',
         reference: formData.reference ? formData.reference.trim() : '',
-        collectionId: chosenCategoryId,
+        collectionId: chosenCategoryId || null,
         collectionName,
-        categoryId: chosenCategoryId, // Dual-key compatibility
+        categoryId: chosenCategoryId || null, // Dual-key compatibility
         gender: formData.gender,
-        price: Number(formData.price),
+        price: priceNum,
         promoPrice: promoNum,
         promotionalPrice: promoNum, // Dual-key compatibility
         currency: formData.currency,
-        stock: Number(formData.stock),
-        lowStockThreshold: Number(formData.lowStockThreshold),
+        stock: stockNum,
+        lowStockThreshold: lowStockThresholdNum,
         shortDescription: descText,
         description: descText,
-        images: cleanImages,
-        coverImage: cleanImages[0] || '',
+        images: finalImages,
+        coverImage: finalImages[0] || '',
+        productUrl: null,
         isActive: formData.active,
         active: formData.active, // Dual-key compatibility
         isFeatured: formData.featured,
@@ -340,25 +355,28 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         totalOrders: product?.totalOrders || 0,
         totalQuantitySold: product?.totalQuantitySold || 0,
         specifications: {
-          movement: formData.specifications.movement.trim(),
-          caseDiameter: formData.specifications.caseDiameter.trim(),
-          caseMaterial: formData.specifications.caseMaterial.trim(),
-          waterResistance: formData.specifications.waterResistance.trim(),
-          glass: formData.specifications.glass.trim(),
-          strapMaterial: formData.specifications.strapMaterial.trim()
+          movement: formData.specifications.movement.trim() || 'Automatique Suisse',
+          caseDiameter: formData.specifications.caseDiameter.trim() || '41 mm',
+          caseMaterial: formData.specifications.caseMaterial.trim() || 'Acier 316L',
+          waterResistance: formData.specifications.waterResistance.trim() || '10 ATM',
+          glass: formData.specifications.glass.trim() || 'Verre Saphir',
+          strapMaterial: formData.specifications.strapMaterial.trim() || 'Cuir véritable'
         }
       };
 
-      await onSave(payload, product?.id);
+      // 5. Écriture Firestore & Confirmation
+      await onSave(payload, product?.id, targetDocId);
+
+      console.log('[WATCH_CREATE] FIRESTORE WRITE SUCCESS');
+      console.log('[WATCH_CREATE] COMPLETE');
+
       onClose();
     } catch (err: any) {
       console.error(
-        '[ADMIN ERROR]\nproducts.createModal\ncode:',
+        '[WATCH_CREATE] ERROR\ncode:',
         err?.code || 'unknown',
         '\nmessage:',
-        err?.message || String(err),
-        '\ndetails:',
-        err
+        err?.message || String(err)
       );
       const userMessage = err?.message || 'Erreur lors de l\'enregistrement de la montre.';
       setError(userMessage);
@@ -596,17 +614,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
           >
             <div className="flex flex-col items-center justify-center gap-2">
               <div className="w-10 h-10 rounded-full bg-[var(--or)]/10 flex items-center justify-center text-[var(--or)]">
-                {uploadingImage ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Upload className="w-5 h-5" />
-                )}
+                <Upload className="w-5 h-5" />
               </div>
               <div className="space-y-0.5">
                 <p className="text-xs font-semibold text-[var(--text)]">
-                  {uploadingImage
-                    ? 'Chargement et optimisation des photos...'
-                    : 'Cliquez pour importer des photos ou glissez-déposez ici'}
+                  Cliquez pour importer des photos ou glissez-déposez ici
                 </p>
                 <p className="text-[11px] text-[var(--text-muted)]">
                   Formats acceptés : JPG, PNG, WEBP, GIF. Import multiple supporté.
@@ -624,11 +636,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
           )}
 
           {/* Interactive Photo Gallery with Previews */}
-          {formData.images.filter(Boolean).length > 0 && (
+          {imageItems.length > 0 && (
             <div className="space-y-2 pt-1">
               <div className="flex items-center justify-between text-[11px] text-[var(--text-soft)]">
                 <span>
-                  {formData.images.filter(Boolean).length} photo{formData.images.filter(Boolean).length > 1 ? 's' : ''} dans la galerie (cliquez pour prévisualiser en grand)
+                  {imageItems.length} photo{imageItems.length > 1 ? 's' : ''} dans la galerie (cliquez pour prévisualiser en grand)
                 </span>
                 <span className="text-[var(--text-muted)]">
                   ⭐ Première = Couverture
@@ -636,11 +648,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {formData.images.filter(Boolean).map((imgUrl, idx) => {
+                {imageItems.map((item, idx) => {
                   const isMain = idx === 0;
                   return (
                     <div
-                      key={`${imgUrl.slice(0, 40)}-${idx}`}
+                      key={item.id}
                       className={`group relative rounded-xl overflow-hidden border transition-all duration-200 aspect-square bg-black/5 dark:bg-black/30 ${
                         isMain
                           ? 'border-[var(--or)] ring-2 ring-[var(--or)]/30 shadow-md'
@@ -649,7 +661,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                     >
                       {/* Watch Image */}
                       <img
-                        src={imgUrl}
+                        src={item.previewUrl}
                         alt={`Photo montre ${idx + 1}`}
                         onClick={() => setPreviewImageIndex(idx)}
                         className="w-full h-full object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
@@ -873,7 +885,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       </form>
 
       {/* Fullscreen HD Preview Lightbox */}
-      {previewImageIndex !== null && formData.images.filter(Boolean)[previewImageIndex] && (
+      {previewImageIndex !== null && imageItems[previewImageIndex] && (
         <div
           role="dialog"
           aria-modal="true"
@@ -890,7 +902,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                 Aperçu HD de la montre
               </span>
               <span className="text-xs text-white/60">
-                Photo {previewImageIndex + 1} sur {formData.images.filter(Boolean).length}
+                Photo {previewImageIndex + 1} sur {imageItems.length}
               </span>
               {previewImageIndex === 0 && (
                 <span className="bg-[var(--or)] text-black font-semibold text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -916,14 +928,12 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {/* Prev arrow */}
-            {formData.images.filter(Boolean).length > 1 && (
+            {imageItems.length > 1 && (
               <button
                 type="button"
                 onClick={() =>
                   setPreviewImageIndex(
-                    (prev) =>
-                      (prev! - 1 + formData.images.filter(Boolean).length) %
-                      formData.images.filter(Boolean).length
+                    (prev) => (prev! - 1 + imageItems.length) % imageItems.length
                   )
                 }
                 className="absolute left-2 sm:left-4 z-10 p-3 bg-black/60 hover:bg-black text-white rounded-full transition-all border border-white/10 hover:scale-105 cursor-pointer"
@@ -935,18 +945,18 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
 
             {/* Main high-res picture */}
             <img
-              src={formData.images.filter(Boolean)[previewImageIndex]}
+              src={imageItems[previewImageIndex]?.previewUrl}
               alt={`Aperçu grand format ${previewImageIndex + 1}`}
               className="max-h-[70vh] sm:max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl border border-white/10"
             />
 
             {/* Next arrow */}
-            {formData.images.filter(Boolean).length > 1 && (
+            {imageItems.length > 1 && (
               <button
                 type="button"
                 onClick={() =>
                   setPreviewImageIndex(
-                    (prev) => (prev! + 1) % formData.images.filter(Boolean).length
+                    (prev) => (prev! + 1) % imageItems.length
                   )
                 }
                 className="absolute right-2 sm:right-4 z-10 p-3 bg-black/60 hover:bg-black text-white rounded-full transition-all border border-white/10 hover:scale-105 cursor-pointer"

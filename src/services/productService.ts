@@ -199,10 +199,15 @@ export async function getProductById(id: string): Promise<Product | null> {
 /**
  * Create a new product in Firestore according to Master Prompt architectural specifications
  */
-export async function createProduct(productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+export async function createProduct(
+  productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>,
+  preferredId?: string
+): Promise<string> {
   await ensureAdminAuth();
 
-  const docRef = doc(collection(db, PRODUCTS_COLLECTION));
+  const docRef = preferredId
+    ? doc(db, PRODUCTS_COLLECTION, preferredId)
+    : doc(collection(db, PRODUCTS_COLLECTION));
   const nowIso = new Date().toISOString();
 
   // Validate mandatory fields
@@ -216,28 +221,29 @@ export async function createProduct(productData: Omit<Product, 'id' | 'createdAt
 
   const rawPromo = productData.promoPrice !== undefined ? productData.promoPrice : productData.promotionalPrice;
   const promoPrice = rawPromo !== null && rawPromo !== undefined && Number(rawPromo) > 0 ? Number(rawPromo) : null;
-  const collectionId = productData.collectionId || productData.categoryId || 'classiques';
+  const collectionId = productData.collectionId || productData.categoryId || null;
   const coverImage = productData.coverImage || cleanImages[0] || '';
 
-  const newProduct: Product = {
-    ...productData,
+  const newProduct: any = {
     id: docRef.id,
     name: productData.name.trim(),
     brand: productData.brand ? productData.brand.trim() : 'Maison Horlogère',
+    reference: productData.reference ? productData.reference.trim() : '',
     collectionId,
-    collectionName: productData.collectionName || '',
+    collectionName: productData.collectionName || null,
     categoryId: collectionId, // Dual-key compatibility
-    gender: productData.gender || 'unisex',
+    gender: productData.gender || 'homme',
     description: productData.description ? productData.description.trim() : '',
     shortDescription: productData.shortDescription || productData.description || '',
     price: Math.max(0, Number(productData.price) || 0),
     promoPrice,
     promotionalPrice: promoPrice, // Dual-key compatibility
-    currency: productData.currency || 'FCFA',
+    currency: productData.currency || '€',
     stock: Math.max(0, Math.floor(Number(productData.stock) || 0)),
     lowStockThreshold: Math.max(0, Math.floor(Number(productData.lowStockThreshold) || 2)),
     images: cleanImages,
     coverImage,
+    productUrl: productData.productUrl || null,
     isActive: productData.isActive !== undefined ? Boolean(productData.isActive) : true,
     active: productData.isActive !== undefined ? Boolean(productData.isActive) : true, // Dual-key compatibility
     isFeatured: Boolean(productData.isFeatured || productData.featured),
@@ -246,9 +252,24 @@ export async function createProduct(productData: Omit<Product, 'id' | 'createdAt
     totalOrders: Number(productData.totalOrders ?? 0),
     totalQuantitySold: Number(productData.totalQuantitySold ?? 0),
     slug: productData.slug || productData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+    specifications: {
+      movement: productData.specifications?.movement?.trim() || 'Automatique Suisse',
+      caseDiameter: productData.specifications?.caseDiameter?.trim() || '41 mm',
+      caseMaterial: productData.specifications?.caseMaterial?.trim() || 'Acier 316L',
+      waterResistance: productData.specifications?.waterResistance?.trim() || '10 ATM',
+      glass: productData.specifications?.glass?.trim() || 'Verre Saphir',
+      strapMaterial: productData.specifications?.strapMaterial?.trim() || 'Cuir véritable'
+    },
     createdAt: nowIso,
     updatedAt: nowIso,
   };
+
+  // Remove any remaining undefined properties to satisfy Firestore constraints
+  Object.keys(newProduct).forEach(key => {
+    if (newProduct[key] === undefined) {
+      delete newProduct[key];
+    }
+  });
 
   try {
     await setDoc(docRef, newProduct);

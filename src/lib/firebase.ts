@@ -29,19 +29,11 @@ if (typeof window !== 'undefined' && config.recaptchaSiteKey) {
   }
 }
 
-const databaseId = config.firestoreDatabaseId && config.firestoreDatabaseId !== '(default)'
-  ? config.firestoreDatabaseId
-  : undefined;
-
-// Initialize Firestore with force long polling for reliable operation in web sandbox and iframe environments
-export const db = initializeFirestore(
-  app,
-  {
-    experimentalForceLongPolling: true,
-    ignoreUndefinedProperties: true
-  },
-  databaseId
-);
+// Initialize Firestore directly on the (default) database with force long polling for reliable operation in web sandbox and iframe environments
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+  ignoreUndefinedProperties: true
+});
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);

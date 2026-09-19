@@ -43,19 +43,25 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
       userMap.set(c.uid || c.email, { ...c });
     });
 
-    orders.forEach((o) => {
-      const key = o.customerId || o.customer.email || o.customer.phone;
+    (orders || []).forEach((o) => {
+      if (!o) return;
+      const custPhone = o.customer?.phone || o.customerPhone || '';
+      const custEmail = o.customer?.email || o.customerEmail || '';
+      const custName = o.customer?.name || o.customerName || 'Client Invité';
+      const key = o.customerId || custEmail || custPhone || o.id;
       if (!userMap.has(key)) {
         userMap.set(key, {
-          uid: o.customerId || `guest_${o.customer.phone}`,
-          fullName: o.customer.name,
-          email: o.customer.email || 'N/A',
-          phone: o.customer.phone,
-          city: o.customer.city,
-          address: o.customer.address,
+          uid: o.customerId || `guest_${custPhone || o.id}`,
+          id: o.customerId || `guest_${custPhone || o.id}`,
+          fullName: custName,
+          email: custEmail || 'N/A',
+          phone: custPhone,
+          city: o.customer?.city || '',
+          address: o.customer?.address || '',
+          country: 'Côte d’Ivoire',
           role: 'customer',
-          createdAt: o.createdAt,
-          updatedAt: o.updatedAt
+          createdAt: o.createdAt || new Date().toISOString(),
+          updatedAt: o.updatedAt || new Date().toISOString()
         });
       }
     });
@@ -63,15 +69,16 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
     const list = Array.from(userMap.values());
 
     return list.map((cust) => {
-      const customerOrders = orders.filter(
+      const customerOrders = (orders || []).filter(
         (o) =>
-          (o.customerId && o.customerId === cust.uid) ||
-          (cust.email && o.customer.email === cust.email) ||
-          (cust.phone && o.customer.phone.replace(/[^0-9]/g, '') === cust.phone.replace(/[^0-9]/g, ''))
+          o &&
+          ((o.customerId && o.customerId === cust.uid) ||
+          (cust.email && cust.email !== 'N/A' && (o.customer?.email === cust.email || o.customerEmail === cust.email)) ||
+          (cust.phone && (o.customer?.phone || o.customerPhone || '').replace(/[^0-9]/g, '') === cust.phone.replace(/[^0-9]/g, '')))
       );
 
       const nonCancelled = customerOrders.filter((o) => o.status !== 'cancelled');
-      const totalSpent = nonCancelled.reduce((sum, o) => sum + o.total, 0);
+      const totalSpent = nonCancelled.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
       return {
         ...cust,
@@ -85,9 +92,9 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
   const filteredCustomers = customersWithStats.filter((c) => {
     const term = searchTerm.toLowerCase();
     return (
-      c.fullName.toLowerCase().includes(term) ||
-      c.email.toLowerCase().includes(term) ||
-      c.phone.includes(term) ||
+      (c.fullName || '').toLowerCase().includes(term) ||
+      (c.email || '').toLowerCase().includes(term) ||
+      (c.phone || '').includes(term) ||
       (c.city && c.city.toLowerCase().includes(term))
     );
   });
@@ -191,8 +198,8 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
                       </td>
 
                       <td className="px-5 py-4 text-center">
-                        <Badge variant={cust.ordersCount > 0 ? 'gold' : 'secondary'}>
-                          {cust.ordersCount} commande{cust.ordersCount > 1 ? 's' : ''}
+                        <Badge variant={cust.ordersCount && cust.ordersCount > 0 ? 'gold' : 'default'}>
+                          {cust.ordersCount || 0} commande{(cust.ordersCount || 0) > 1 ? 's' : ''}
                         </Badge>
                       </td>
 
@@ -240,7 +247,7 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
           isOpen={Boolean(selectedCustomer)}
           onClose={() => setSelectedCustomer(null)}
           title={`Fiche Client • ${selectedCustomer.fullName}`}
-          maxWidth="max-w-2xl"
+          maxWidth="2xl"
         >
           <div className="space-y-6 text-[var(--text)]">
             {/* Info Grid */}
