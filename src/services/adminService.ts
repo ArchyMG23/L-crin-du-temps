@@ -10,6 +10,7 @@ import {
 import { User, signInAnonymously } from 'firebase/auth';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { AdminUser } from '../types';
+import { withTimeout } from '../utils/async';
 
 const ADMINS_COLLECTION = 'admins';
 
@@ -59,12 +60,13 @@ export async function ensureAdminAuth(): Promise<void> {
  * Verifies against Firestore /admins/{uid} doc or super admin email list.
  */
 export async function checkIsAdmin(user: User | null): Promise<boolean> {
+  console.log('[ADMIN] authorization started');
   const isCmsSession =
     sessionStorage.getItem('hp_cms_auth') === 'true' ||
     localStorage.getItem('hp_cms_auth') === 'true';
 
   if (!user) {
-    console.log('[ADMIN] Admin authorization checked', { authorized: isCmsSession, reason: isCmsSession ? 'valid-cms-session' : 'no-user' });
+    console.log('[ADMIN] authorization finished', { authorized: isCmsSession, reason: isCmsSession ? 'valid-cms-session' : 'no-user' });
     return isCmsSession;
   }
 
@@ -77,7 +79,7 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
         tokenResult.claims.role === 'admin' ||
         tokenResult.claims.role === 'owner'
       ) {
-        console.log('[ADMIN] Admin authorization checked', { authorized: true, reason: 'custom-claims' });
+        console.log('[ADMIN] authorization finished', { authorized: true, reason: 'custom-claims' });
         return true;
       }
     }
@@ -87,33 +89,38 @@ export async function checkIsAdmin(user: User | null): Promise<boolean> {
 
   // 2. Check known super-admin email list
   if (user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-    console.log('[ADMIN] Admin authorization checked', { authorized: true, reason: 'super-admin-email', email: user.email });
+    console.log('[ADMIN] authorization finished', { authorized: true, reason: 'super-admin-email', email: user.email });
     return true;
   }
 
   // 3. Check active CMS passcode session (e.g. validated via PIN code)
   if (isCmsSession) {
-    console.log('[ADMIN] Admin authorization checked', { authorized: true, reason: 'cms-passcode-session' });
+    console.log('[ADMIN] authorization finished', { authorized: true, reason: 'cms-passcode-session' });
     return true;
   }
 
-  // 4. Check Firestore /admins/{uid} document
+  // 4. Check Firestore /admins/{uid} document with timeout protection
   try {
     const adminDocRef = doc(db, ADMINS_COLLECTION, user.uid);
-    const snap = await getDoc(adminDocRef);
-    if (snap.exists()) {
+    const snap = await withTimeout(
+      getDoc(adminDocRef),
+      2500,
+      null,
+      'firestore-admin-check'
+    );
+    if (snap && snap.exists()) {
       const data = snap.data();
       const isRoleAdmin = Boolean(
         data && (data.role === 'owner' || data.role === 'admin' || data.role === 'manager')
       );
-      console.log('[ADMIN] Admin authorization checked', { authorized: isRoleAdmin, reason: 'firestore-admin-doc' });
+      console.log('[ADMIN] authorization finished', { authorized: isRoleAdmin, reason: 'firestore-admin-doc' });
       return isRoleAdmin;
     }
   } catch (error: any) {
     console.warn('[ADMIN] Firestore /admins check notice:', error?.message || error);
   }
 
-  console.log('[ADMIN] Admin authorization checked', { authorized: false, reason: 'unauthorized-user' });
+  console.log('[ADMIN] authorization finished', { authorized: false, reason: 'unauthorized-user' });
   return false;
 }
 

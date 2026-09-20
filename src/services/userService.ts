@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { UserProfile } from '../types';
+import { withTimeout } from '../utils/async';
 
 const PRIMARY_COLLECTION = 'customers';
 const LEGACY_COLLECTION = 'users';
@@ -22,14 +23,14 @@ const LEGACY_COLLECTION = 'users';
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   try {
     const docRef = doc(db, PRIMARY_COLLECTION, uid);
-    let snap = await getDoc(docRef);
+    let snap = await withTimeout(getDoc(docRef), 2500, null, 'firestore-user-profile');
 
-    if (!snap.exists()) {
+    if (!snap || !snap.exists()) {
       const legacyRef = doc(db, LEGACY_COLLECTION, uid);
-      snap = await getDoc(legacyRef);
+      snap = await withTimeout(getDoc(legacyRef), 2000, null, 'firestore-user-profile-legacy');
     }
 
-    if (snap.exists()) {
+    if (snap && snap.exists()) {
       const data = snap.data();
       return {
         uid,
@@ -131,11 +132,11 @@ export async function updateUserProfile(uid: string, data: Partial<UserProfile>)
 export async function getAllCustomers(): Promise<UserProfile[]> {
   try {
     const colRef = collection(db, PRIMARY_COLLECTION);
-    let snapshot = await getDocs(colRef).catch(() => null);
+    let snapshot = await withTimeout(getDocs(colRef), 3000, null, 'firestore-customers-primary');
 
     if (!snapshot || snapshot.empty) {
       const legacyRef = collection(db, LEGACY_COLLECTION);
-      snapshot = await getDocs(legacyRef).catch(() => null);
+      snapshot = await withTimeout(getDocs(legacyRef), 2000, null, 'firestore-customers-legacy');
     }
 
     if (!snapshot || snapshot.empty) {

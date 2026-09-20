@@ -14,6 +14,7 @@ import {
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Order, OrderStatus, PaymentStatus, PaymentMethod } from '../types';
 import { ensureAdminAuth } from './adminService';
+import { withTimeout } from '../utils/async';
 
 const ORDERS_COLLECTION = 'orders';
 const PRODUCTS_COLLECTION = 'products';
@@ -247,27 +248,24 @@ export async function getOrders(): Promise<Order[]> {
   try {
     const colRef = collection(db, ORDERS_COLLECTION);
     const q = query(colRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(d => normalizeOrder(d.id, d.data()));
+    const snapshot = await withTimeout(getDocs(q), 3000, null, 'firestore-orders-ordered');
+    if (snapshot) {
+      return snapshot.docs.map(d => normalizeOrder(d.id, d.data()));
+    }
   } catch (error: any) {
-    // If user is unauthenticated or has insufficient permissions (e.g. public visitor), return empty
     if (error?.code === 'permission-denied' || String(error?.message).includes('insufficient permissions')) {
-      console.info('Public guest session: orders collection access restricted to admins.');
       return [];
     }
-    
-    try {
-      const colRef = collection(db, ORDERS_COLLECTION);
-      const snapshot = await getDocs(colRef);
-      const orders = snapshot.docs.map(d => normalizeOrder(d.id, d.data()));
-      return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    } catch (e2: any) {
-      if (e2?.code === 'permission-denied' || String(e2?.message).includes('insufficient permissions')) {
-        return [];
-      }
-      console.warn('Orders fetch warning:', e2);
-      return [];
-    }
+  }
+  
+  try {
+    const colRef = collection(db, ORDERS_COLLECTION);
+    const snapshot = await withTimeout(getDocs(colRef), 2500, null, 'firestore-orders-fallback');
+    if (!snapshot) return [];
+    const orders = snapshot.docs.map(d => normalizeOrder(d.id, d.data()));
+    return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch (e2: any) {
+    return [];
   }
 }
 

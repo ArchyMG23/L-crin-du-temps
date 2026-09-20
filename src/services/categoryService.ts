@@ -12,6 +12,7 @@ import {
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Category } from '../types';
 import { ensureAdminAuth } from './adminService';
+import { withTimeout } from '../utils/async';
 
 const PRIMARY_COLLECTION = 'collections';
 const LEGACY_COLLECTION = 'categories';
@@ -21,17 +22,19 @@ const LEGACY_COLLECTION = 'categories';
  * Strictly returns empty array [] when no collections exist in Firestore.
  */
 export async function getCategories(onlyActive = true): Promise<Category[]> {
+  console.log('[FIRESTORE] collections started');
   try {
     const colRef = collection(db, PRIMARY_COLLECTION);
-    let snapshot = await getDocs(colRef).catch(() => null);
+    let snapshot = await withTimeout(getDocs(colRef), 3000, null, 'firestore-collections-primary');
 
     // Fallback to legacy categories if primary is empty or fails
     if (!snapshot || snapshot.empty) {
       const legacyRef = collection(db, LEGACY_COLLECTION);
-      snapshot = await getDocs(legacyRef).catch(() => null);
+      snapshot = await withTimeout(getDocs(legacyRef), 2000, null, 'firestore-collections-legacy');
     }
 
     if (!snapshot || snapshot.empty) {
+      console.log('[FIRESTORE] collections finished', { count: 0 });
       return [];
     }
 
@@ -52,12 +55,16 @@ export async function getCategories(onlyActive = true): Promise<Category[]> {
     }
 
     if (categories.length === 0) {
+      console.log('[FIRESTORE] collections finished', { count: 0 });
       return [];
     }
 
-    return categories.sort((a, b) => a.name.localeCompare(b.name));
+    const sorted = categories.sort((a, b) => a.name.localeCompare(b.name));
+    console.log('[FIRESTORE] collections finished', { count: sorted.length });
+    return sorted;
   } catch (error) {
     console.warn('Collections fetch notice (Firestore vide ou non initialisé):', error);
+    console.log('[FIRESTORE] collections finished', { count: 0, error: true });
     return [];
   }
 }

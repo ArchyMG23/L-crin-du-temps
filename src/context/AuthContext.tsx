@@ -56,8 +56,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[AUTH] listener started');
+    let hasResolved = false;
+
+    // Failsafe timeout: never leave auth in infinite loading state even if network is offline
+    const safetyTimer = setTimeout(() => {
+      if (!hasResolved) {
+        console.warn('[TIMEOUT] operation: auth-listener (exceeded 2500ms) - unblocking auth loading');
+        setLoading(false);
+      }
+    }, 2500);
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      hasResolved = true;
+      clearTimeout(safetyTimer);
+      console.log('[AUTH] auth resolved');
       setUser(currentUser);
+      // Immediately unblock auth loading state as required by Section 2
+      setLoading(false);
+
       if (currentUser) {
         try {
           const adminStatus = await checkIsAdmin(currentUser);
@@ -71,8 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             sessionStorage.removeItem('hp_cms_auth');
           }
 
-          // Fetch or populate user profile
-          const profile = await getUserProfile(currentUser.uid);
+          // Fetch or populate user profile asynchronously
+          const profile = await getUserProfile(currentUser.uid).catch(() => null);
           if (profile) {
             setUserProfile(profile);
             localStorage.setItem('hp_customer_profile', JSON.stringify(profile));
@@ -93,7 +110,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             localStorage.setItem('hp_customer_profile', JSON.stringify(fallbackProfile));
             await createUserProfile(fallbackProfile).catch(() => {});
           }
-        } catch {
+        } catch (err) {
+          console.warn('[AUTH] Background profile/admin check notice:', err);
           setIsAdmin(false);
           sessionStorage.removeItem('hp_cms_auth');
         }
@@ -105,10 +123,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserProfile(null);
         }
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      unsubscribe();
+    };
   }, []);
 
   const registerCustomer = async (

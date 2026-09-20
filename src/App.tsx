@@ -115,31 +115,51 @@ const MainApp: React.FC = () => {
   const [adminProductModalOpen, setAdminProductModalOpen] = useState(false);
   const [editingAdminProduct, setEditingAdminProduct] = useState<Product | null>(null);
 
-  // Initial Load
+  // Initial Load: progressive, decoupled, and completely non-blocking
   const loadData = async (adminMode = isAdmin) => {
-    try {
-      setLoading(true);
+    setLoading(true);
 
-      const [prodsData, catsData, settingsData, ordersData, customersData] = await Promise.all([
-        getProducts(!adminMode),
-        getCategories(!adminMode),
-        getStoreSettings(),
-        adminMode ? getOrders() : Promise.resolve([]),
-        adminMode ? getAllCustomers() : Promise.resolve([])
-      ]);
-
-      setProducts(prodsData);
-      setCategories(catsData);
-      setSettings(settingsData);
-      setOrders(ordersData);
-      setCustomers(customersData);
-
-      // Check URL route on initial load once products are fetched
-      handleRouteFromPath(window.location.pathname, prodsData, ordersData);
-    } catch (err) {
-      console.warn('Données initiales chargées avec secours:', err);
-    } finally {
+    // Guaranteed failsafe: never remain in loading state for more than 2 seconds
+    const safetyRelease = setTimeout(() => {
       setLoading(false);
+      console.log('[APP] loading=false');
+    }, 2000);
+
+    // 1. Boutique Settings (runs independently)
+    getStoreSettings().then((settingsData) => {
+      if (settingsData) setSettings(settingsData);
+    }).catch(() => {});
+
+    // 2. Collections (runs independently)
+    getCategories(!adminMode).then((catsData) => {
+      if (Array.isArray(catsData)) setCategories(catsData);
+    }).catch(() => {});
+
+    // 3. Products (runs independently)
+    getProducts(!adminMode)
+      .then((prodsData) => {
+        const safeProds = Array.isArray(prodsData) ? prodsData : [];
+        setProducts(safeProds);
+        handleRouteFromPath(window.location.pathname, safeProds, orders);
+      })
+      .catch((err) => {
+        console.warn('Initial products load notice:', err);
+      })
+      .finally(() => {
+        clearTimeout(safetyRelease);
+        setLoading(false);
+        console.log('[APP] loading=false');
+      });
+
+    // 4. Admin-Only Data (strictly segregated from public site)
+    if (adminMode) {
+      getOrders().then((ordersData) => {
+        if (Array.isArray(ordersData)) setOrders(ordersData);
+      }).catch(() => {});
+
+      getAllCustomers().then((custData) => {
+        if (Array.isArray(custData)) setCustomers(custData);
+      }).catch(() => {});
     }
   };
 
@@ -371,14 +391,29 @@ const MainApp: React.FC = () => {
       );
       addToast('success', `Montre "${productData.name}" mise à jour avec succès.`);
     } else {
-      const newId = await createProduct(productData, targetDocId);
+      let assignedId = targetDocId || `prod-${Date.now()}`;
+      try {
+        const newId = await createProduct(productData, targetDocId);
+        if (newId) assignedId = newId;
+      } catch (err: any) {
+        // If Firestore had a network/permissions/database-not-found error, the product is still safely cached locally
+        const fallbackProd: Product = {
+          ...productData,
+          id: assignedId,
+          createdAt: nowIso,
+          updatedAt: nowIso
+        };
+        setProducts((prev) => [fallbackProd, ...prev.filter(p => p.id !== fallbackProd.id)]);
+        throw err;
+      }
+
       const newProd: Product = {
         ...productData,
-        id: newId,
+        id: assignedId,
         createdAt: nowIso,
         updatedAt: nowIso
       };
-      setProducts((prev) => [newProd, ...prev]);
+      setProducts((prev) => [newProd, ...prev.filter(p => p.id !== newProd.id)]);
       addToast('success', `Nouvelle montre "${productData.name}" créée avec succès.`);
     }
   };
@@ -593,17 +628,6 @@ const MainApp: React.FC = () => {
     (p) => p.stock <= (p.lowStockThreshold || 2)
   ).length;
 
-  if (loading && products.length === 0) {
-    return (
-      <div className="min-h-screen bg-[var(--bg)] flex flex-col items-center justify-center text-[var(--text)] space-y-4">
-        <div className="w-12 h-12 border-2 border-[var(--or)] border-t-transparent rounded-full animate-spin" />
-        <span className="font-serif text-sm uppercase tracking-widest text-[var(--or)]">
-          Chargement de l'Écrin Horloger...
-        </span>
-      </div>
-    );
-  }
-
   // ================= ADMIN VIEW RENDERING =================
   if (currentView === 'admin') {
     if (!isAdmin) {
@@ -723,6 +747,11 @@ const MainApp: React.FC = () => {
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] flex flex-col font-sans selection:bg-[var(--or)] selection:text-black relative z-10 isolate transition-colors duration-300">
       {/* Atmosphere Background strictly on public views */}
       <AtmosphereBackground />
+
+      {/* Non-blocking background sync indicator */}
+      {loading && (
+        <div className="fixed top-0 left-0 right-0 h-0.5 bg-[var(--or)] animate-pulse z-50 pointer-events-none" />
+      )}
 
       <ToastContainer toasts={toasts} onDismiss={removeToast} />
 

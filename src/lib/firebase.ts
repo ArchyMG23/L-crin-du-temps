@@ -5,14 +5,40 @@ import { getStorage } from 'firebase/storage';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import config from '../../firebase-applet-config.json';
 
-const firebaseConfig = {
-  apiKey: config.apiKey,
-  authDomain: config.authDomain,
-  projectId: config.projectId,
-  storageBucket: config.storageBucket,
-  messagingSenderId: config.messagingSenderId,
-  appId: config.appId,
+// Determine Firebase configuration (supporting local console project override if set)
+const getEffectiveFirebaseConfig = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('hp_custom_firebase_config');
+      if (stored) {
+        const custom = JSON.parse(stored);
+        if (custom.projectId) {
+          return {
+            apiKey: custom.apiKey || config.apiKey,
+            authDomain: custom.authDomain || `${custom.projectId}.firebaseapp.com`,
+            projectId: custom.projectId,
+            storageBucket: custom.storageBucket || `${custom.projectId}.firebasestorage.app`,
+            messagingSenderId: custom.messagingSenderId || config.messagingSenderId,
+            appId: custom.appId || config.appId,
+          };
+        }
+      }
+    } catch {}
+  }
+  return {
+    apiKey: config.apiKey,
+    authDomain: config.authDomain,
+    projectId: config.projectId,
+    storageBucket: config.storageBucket,
+    messagingSenderId: config.messagingSenderId,
+    appId: config.appId,
+  };
 };
+
+export const activeFirebaseConfig = getEffectiveFirebaseConfig();
+console.log(`[Firebase]\nprojectId = ${activeFirebaseConfig.projectId}`);
+
+const firebaseConfig = activeFirebaseConfig;
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
@@ -38,6 +64,8 @@ export const db = initializeFirestore(app, {
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
+
+console.log('[BOOT] Firebase initialized');
 
 export enum OperationType {
   CREATE = 'create',
@@ -66,8 +94,13 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const rawMsg = error instanceof Error ? error.message : String(error);
+  const errCode = (error as any)?.code || (rawMsg.includes('NOT_FOUND') ? 'not-found' : 'unknown');
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: rawMsg,
+    operationType,
+    path,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -78,15 +111,26 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
         providerId: provider.providerId,
         email: provider.email,
       })) || []
-    },
-    operationType,
-    path
+    }
   };
-  console.error('Firestore Error:', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  console.error('[FIRESTORE ERROR]', JSON.stringify(errInfo, null, 2));
+
+  let readableMessage = rawMsg;
+  if (errCode === 'permission-denied' || rawMsg.includes('Missing or insufficient permissions')) {
+    readableMessage = `Permission Firestore refusée (${errCode}) sur le chemin "${path}". Un compte administrateur est requis.`;
+  } else if (errCode === 'not-found' || rawMsg.includes('does not exist') || rawMsg.includes('NOT_FOUND')) {
+    readableMessage = `La base Firestore "(default)" n'existe pas sur le projet "${activeFirebaseConfig.projectId}". Veuillez vérifier le projet dans la console Firebase.`;
+  } else if (rawMsg.includes('timeout')) {
+    readableMessage = `Délai d'attente Firestore dépassé lors de l'opération ${operationType} sur "${path}".`;
+  }
+
+  const enhancedError = new Error(readableMessage);
+  (enhancedError as any).details = errInfo;
+  (enhancedError as any).code = errCode;
+  throw enhancedError;
 }
 
-// Connection test on boot as required by the Firebase Integration Skill
+// Connection test helper (only called on demand, not blocking boot)
 export async function testConnection(): Promise<boolean> {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
@@ -100,8 +144,6 @@ export async function testConnection(): Promise<boolean> {
     return false;
   }
 }
-
-testConnection().catch(() => {});
 
 export default app;
 

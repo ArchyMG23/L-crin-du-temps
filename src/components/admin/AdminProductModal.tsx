@@ -4,7 +4,7 @@ import {
   Eye, Star, ZoomIn, ChevronLeft, ChevronRight, Link as LinkIcon, CheckCircle2
 } from 'lucide-react';
 import { collection, doc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { db, activeFirebaseConfig } from '../../lib/firebase';
 import { Product, Category, Gender, StoreSettings } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -378,7 +378,19 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         '\nmessage:',
         err?.message || String(err)
       );
-      const userMessage = err?.message || 'Erreur lors de l\'enregistrement de la montre.';
+      let userMessage = err?.message || 'Erreur lors de l\'enregistrement de la montre.';
+      try {
+        if (userMessage.startsWith('{') && userMessage.endsWith('}')) {
+          const parsed = JSON.parse(userMessage);
+          if (parsed.error) userMessage = parsed.error;
+        }
+      } catch {}
+
+      if (userMessage.includes('permission') || userMessage.includes('Missing or insufficient permissions')) {
+        userMessage = 'Permission Firestore refusée : un compte administrateur est requis pour créer un produit.';
+      } else if (userMessage.includes('not-found') || userMessage.includes('does not exist')) {
+        userMessage = `La base Firestore "(default)" n'existe pas sur le projet "${activeFirebaseConfig.projectId}". Veuillez vérifier le projet Firebase.`;
+      }
       setError(userMessage);
     } finally {
       setLoading(false);
@@ -862,25 +874,43 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
           </label>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--sep)]">
-          <Button
-            type="button"
-            variant="outline"
-            size="md"
-            onClick={onClose}
-          >
-            Annuler
-          </Button>
-          <Button
-            type="submit"
-            variant="gold"
-            size="md"
-            loading={loading}
-            id="admin-product-save-btn"
-          >
-            {product ? 'Enregistrer les modifications' : 'Créer la montre'}
-          </Button>
+        {/* Error notification right above buttons so it is immediately visible without scrolling */}
+        {error && (
+          <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-200 text-xs rounded-xl flex items-start gap-2.5 shadow-sm">
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <span className="font-semibold block mb-0.5">Impossible d'enregistrer la montre</span>
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Actions & Firebase Project Diagnostics */}
+        <div className="pt-4 border-t border-[var(--sep)] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-[11px] font-mono text-[var(--text-muted)] flex items-center gap-1.5 self-start sm:self-center">
+            <span className="w-2 h-2 rounded-full bg-emerald-500" />
+            <span>[Firebase] projectId = <strong className="text-[var(--text)]">{activeFirebaseConfig.projectId}</strong></span>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="md"
+              onClick={onClose}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              variant="gold"
+              size="md"
+              loading={loading}
+              id="admin-product-save-btn"
+            >
+              {product ? 'Enregistrer les modifications' : 'Créer la montre'}
+            </Button>
+          </div>
         </div>
       </form>
 

@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { WatchEmblem } from '../common/BrandLogo';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { activeFirebaseConfig } from '../../lib/firebase';
 
 interface AdminLayoutProps {
   activeTab: string;
@@ -251,6 +252,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
           <div className="flex items-center gap-3">
             <span className="text-xs uppercase tracking-[0.2em] text-[var(--or)] font-serif font-bold">
               Administration • {currentTabLabel}
+            </span>
+            <span className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-[var(--bg-2)] border border-[var(--sep)] text-[var(--text-muted)]">
+              [Firebase] projectId = <strong className="text-[var(--text)]">{activeFirebaseConfig.projectId}</strong>
             </span>
           </div>
 

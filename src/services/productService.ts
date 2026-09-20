@@ -14,38 +14,63 @@ import { signInAnonymously } from 'firebase/auth';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Product } from '../types';
 import { ensureAdminAuth } from './adminService';
+import { withTimeout } from '../utils/async';
 
 const PRODUCTS_COLLECTION = 'products';
+const LOCAL_CUSTOM_PRODUCTS_KEY = 'hp_custom_products';
+
+export function getLocalCustomProducts(): Product[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_CUSTOM_PRODUCTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function persistLocalProduct(product: Product): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = getLocalCustomProducts();
+    const filtered = existing.filter(p => p.id !== product.id);
+    localStorage.setItem(LOCAL_CUSTOM_PRODUCTS_KEY, JSON.stringify([product, ...filtered]));
+  } catch {}
+}
+
+export function removeLocalProduct(id: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = getLocalCustomProducts();
+    const filtered = existing.filter(p => p.id !== id);
+    localStorage.setItem(LOCAL_CUSTOM_PRODUCTS_KEY, JSON.stringify(filtered));
+  } catch {}
+}
 
 /**
  * Fetch all products, with optional filtering for public active ones
  */
 export async function getProducts(onlyActive = true): Promise<Product[]> {
+  console.log('[FIRESTORE] products started');
   try {
     const colRef = collection(db, PRODUCTS_COLLECTION);
     const q = onlyActive ? query(colRef, where('active', '==', true)) : colRef;
     
-    let snapshot;
-    try {
-      snapshot = await getDocs(q);
-    } catch (permError) {
+    let snapshot = await withTimeout(getDocs(q), 3500, null, 'firestore-products');
+    if (!snapshot) {
       if (onlyActive) {
-        // Try fallback query with isActive if active was not indexed or differs
         try {
           const activeQ = query(colRef, where('isActive', '==', true));
-          snapshot = await getDocs(activeQ);
+          snapshot = await withTimeout(getDocs(activeQ), 2500, null, 'firestore-products-isActive');
         } catch {
-          throw permError;
+          snapshot = null;
         }
-      } else {
-        // If full access query fails because user is not yet logged in as admin, fallback to active
-        const activeQ = query(colRef, where('active', '==', true));
-        snapshot = await getDocs(activeQ);
       }
     }
     
-    if (snapshot.empty) {
-      return [];
+    if (!snapshot || snapshot.empty) {
+      console.log('[FIRESTORE] products finished', { count: 0 });
+      return getLocalCustomProducts();
     }
 
     let products = snapshot.docs.map(d => {
@@ -83,6 +108,17 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
       } as Product;
     });
 
+    // Merge any custom local products
+    const localProds = getLocalCustomProducts();
+    if (localProds.length > 0) {
+      const existingIds = new Set(products.map(p => p.id));
+      for (const lp of localProds) {
+        if (!existingIds.has(lp.id) && !lp.isArchived) {
+          products.unshift(lp);
+        }
+      }
+    }
+
     // Exclude archived/deleted products from standard catalog
     products = products.filter(p => !p.isArchived);
 
@@ -91,14 +127,17 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
     }
     
     // Sort by featured first, then name
-    return products.sort((a, b) => {
+    const sorted = products.sort((a, b) => {
       if (a.isFeatured && !b.isFeatured) return -1;
       if (!a.isFeatured && b.isFeatured) return 1;
       return a.name.localeCompare(b.name);
     });
+    console.log('[FIRESTORE] products finished', { count: sorted.length });
+    return sorted;
   } catch (error) {
-    console.warn('Firestore products fetch error:', error);
-    return [];
+    console.warn('Firestore products fetch notice:', error);
+    console.log('[FIRESTORE] products finished (local fallback)', { count: getLocalCustomProducts().length });
+    return getLocalCustomProducts();
   }
 }
 
@@ -271,8 +310,12 @@ export async function createProduct(
     }
   });
 
+  // Synchronize immediately to resilient local store so data is never lost
+  persistLocalProduct(newProduct);
+
   try {
-    await setDoc(docRef, newProduct);
+    await withTimeout(setDoc(docRef, newProduct), 5000, null, 'firestore-setdoc-product');
+    console.log(`[WATCH_CREATE] FIRESTORE WRITE SUCCESS for ${docRef.id}`);
     return docRef.id;
   } catch (error: any) {
     console.error(
@@ -380,6 +423,7 @@ export async function deleteProduct(id: string): Promise<{ archived: boolean }> 
     } else {
       // Permanent deletion from Firestore
       await deleteDoc(docRef);
+      removeLocalProduct(id);
 
       console.log('[SUPPRESSION PRODUIT]', {
         id,

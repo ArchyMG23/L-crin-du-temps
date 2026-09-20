@@ -3,6 +3,7 @@ import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { StoreSettings } from '../types';
 import { DEFAULT_SETTINGS } from '../data/defaultData';
 import { ensureAdminAuth } from './adminService';
+import { withTimeout } from '../utils/async';
 
 const SETTINGS_COLLECTION = 'settings';
 const PRIMARY_DOC_ID = 'store';
@@ -26,14 +27,14 @@ export async function getStoreSettings(): Promise<StoreSettings> {
 
   try {
     let docRef = doc(db, SETTINGS_COLLECTION, PRIMARY_DOC_ID);
-    let snap = await getDoc(docRef);
+    let snap = await withTimeout(getDoc(docRef), 2500, null, 'firestore-settings-primary');
 
-    if (!snap.exists()) {
+    if (!snap || !snap.exists()) {
       docRef = doc(db, SETTINGS_COLLECTION, LEGACY_DOC_ID);
-      snap = await getDoc(docRef);
+      snap = await withTimeout(getDoc(docRef), 2000, null, 'firestore-settings-legacy');
     }
 
-    if (snap.exists()) {
+    if (snap && snap.exists()) {
       const data = snap.data();
       const merged: StoreSettings = {
         ...DEFAULT_SETTINGS,

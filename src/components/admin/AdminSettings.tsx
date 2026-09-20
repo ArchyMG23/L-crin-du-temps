@@ -31,6 +31,7 @@ import { useAuth } from '../../context/AuthContext';
 import { uploadImageFile } from '../../services/storageService';
 import { AdminResetModal } from './AdminResetModal';
 import { WatchEmblem } from '../common/BrandLogo';
+import { activeFirebaseConfig } from '../../lib/firebase';
 import {
   normalizeWhatsAppNumber,
   formatDisplayWhatsAppNumber,
@@ -641,32 +642,50 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         {/* 5. SÉCURITÉ & ZONE DE RÉINITIALISATION               */}
         {/* ==================================================== */}
         <div className="p-5 bg-[var(--carte-bg)] border border-[var(--sep)] rounded-2xl shadow-sm space-y-4">
-          <div className="flex items-center gap-2 text-[var(--text)] font-serif text-sm font-semibold">
-            <ShieldCheck className="w-4 h-4 text-[var(--or)]" />
-            <span>Sécurité & Rôle Administrateur</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[var(--text)] font-serif text-sm font-semibold">
+              <ShieldCheck className="w-4 h-4 text-[var(--or)]" />
+              <span>Sécurité & Projet Firebase</span>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--bg-2)] border border-[var(--sep)] text-[var(--or)] font-bold">
+              [Firebase] projectId = {activeFirebaseConfig.projectId}
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
             <div className="p-3.5 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] space-y-1">
               <div className="flex items-center gap-1.5 text-[var(--text)] font-medium">
                 <UserCheck className="w-3.5 h-3.5 text-[var(--or)]" />
-                <span>Session Administrateur Active</span>
+                <span>Session Administrateur</span>
               </div>
               <p className="text-[var(--text-soft)] font-mono text-[11px] truncate">
-                {user?.email || 'Compte Propriétaire Authentifié'}
+                {user?.email || 'Gérant (Code PIN 2026)'}
               </p>
               <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                Règles de sécurité Firestore actives (CRUD réservé à l'administrateur)
+                Règles de sécurité Firestore actives
+              </p>
+            </div>
+
+            <div className="p-3.5 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] space-y-1">
+              <span className="text-[var(--text)] font-medium block">Configuration Cloud</span>
+              <p className="text-[var(--text-soft)] font-mono text-[10px] truncate">
+                Database: (default)
+              </p>
+              <p className="text-[var(--text-soft)] font-mono text-[10px] truncate">
+                Bucket: {activeFirebaseConfig.storageBucket}
+              </p>
+              <p className="text-[10px] text-[var(--text-muted)]">
+                Projet: {activeFirebaseConfig.projectId}
               </p>
             </div>
 
             <div className="p-3.5 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] space-y-1">
               <span className="text-[var(--text)] font-medium block">Collections Protégées</span>
               <p className="text-[var(--text-soft)] text-[11px]">
-                /products, /categories, /orders, /settings, /admins
+                /products, /categories, /orders, /settings
               </p>
-              <p className="text-[10px] text-[var(--text-muted)]">
-                Synchronisation temps réel Firestore activée
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                Persistance locale & Cloud synchronisée
               </p>
             </div>
           </div>

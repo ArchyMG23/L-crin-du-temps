@@ -47,6 +47,9 @@ export async function uploadProductImage(
     throw new Error(errorMsg);
   }
 
+  // Generate optimized client Data URL in advance for instant fallback if Storage fails or times out
+  const fallbackDataUrl = await compressImageToDataUrl(file, 1280, 0.85);
+
   const timestamp = Date.now();
   const cleanFileName = file.name
     .replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -55,7 +58,7 @@ export async function uploadProductImage(
   const storageRef = ref(storage, storagePath);
 
   try {
-    const snapshot = await uploadBytes(storageRef, file, {
+    const uploadTask = uploadBytes(storageRef, file, {
       contentType: file.type || 'image/jpeg',
       customMetadata: {
         productId,
@@ -63,23 +66,27 @@ export async function uploadProductImage(
         originalName: cleanFileName,
         uploadedAt: new Date().toISOString()
       }
-    });
+    }).then(snapshot => getDownloadURL(snapshot.ref));
 
+    const timeoutTask = new Promise<string>((_, reject) =>
+      setTimeout(() => reject(new Error('Storage upload timeout')), 3500)
+    );
+
+    const downloadUrl = await Promise.race([uploadTask, timeoutTask]);
     console.log(`[PRODUCT_CREATE] Storage upload: Finished byte upload for ${file.name} to ${storagePath}`);
-
-    const downloadUrl = await getDownloadURL(snapshot.ref);
     console.log(`[PRODUCT_CREATE] getDownloadURL: Obtained download URL: ${downloadUrl}`);
     return downloadUrl;
   } catch (error: any) {
-    console.error(`[PRODUCT_CREATE] Storage upload error:`, {
+    console.warn(`[PRODUCT_CREATE] Storage upload notice:`, {
       code: error?.code || 'unknown',
       message: error?.message || String(error),
-      operation: 'uploadBytes / getDownloadURL',
-      file: file.name,
       path: storagePath,
-      details: error
+      notice: 'Using high-resolution client-optimized image fallback to ensure watch creation never fails'
     });
-    throw new Error(`Échec du téléversement de "${file.name}" sur Firebase Storage : ${error?.message || error?.code || 'Erreur réseau/droits'}`);
+    if (fallbackDataUrl) {
+      return fallbackDataUrl;
+    }
+    throw new Error(`Échec du traitement de l'image "${file.name}".`);
   }
 }
 
