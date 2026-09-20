@@ -17,56 +17,140 @@ import { withTimeout } from '../utils/async';
 const PRIMARY_COLLECTION = 'collections';
 const LEGACY_COLLECTION = 'categories';
 
+export interface FetchCategoriesResult {
+  categories: Category[];
+  error: Error | null;
+  errorMessage: string | null;
+  isRealEmpty: boolean;
+}
+
 /**
- * Fetch all collections, optionally filtered by active state.
- * Strictly returns empty array [] when no collections exist in Firestore.
+ * Robust fetch for collections with diagnostic status.
+ * Distinguishes between truly empty collections (0 docs) and Firestore connection/provisioning errors.
  */
-export async function getCategories(onlyActive = true): Promise<Category[]> {
-  console.log('[FIRESTORE] collections started');
+export async function fetchCategoriesWithStatus(onlyActive = false): Promise<FetchCategoriesResult> {
+  console.log('[FIRESTORE] collections fetch with status started');
+  let caughtError: Error | null = null;
+  let snapshot: any = null;
+
   try {
     const colRef = collection(db, PRIMARY_COLLECTION);
-    let snapshot = await withTimeout(getDocs(colRef), 3000, null, 'firestore-collections-primary');
+    snapshot = await Promise.race([
+      getDocs(colRef),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT_FIRESTORE_COLLECTIONS')), 4500)
+      )
+    ]);
+  } catch (err: any) {
+    caughtError = err;
+    console.warn('[FIRESTORE] Primary collections query note:', err?.code || err?.message || err);
+  }
 
-    // Fallback to legacy categories if primary is empty or fails
-    if (!snapshot || snapshot.empty) {
+  // Fallback to legacy categories collection if primary was empty or failed
+  if (!snapshot || snapshot.empty) {
+    try {
       const legacyRef = collection(db, LEGACY_COLLECTION);
-      snapshot = await withTimeout(getDocs(legacyRef), 2000, null, 'firestore-collections-legacy');
+      const legacySnapshot: any = await Promise.race([
+        getDocs(legacyRef),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('TIMEOUT_FIRESTORE_LEGACY_COLLECTIONS')), 3000)
+        )
+      ]);
+      if (legacySnapshot && !legacySnapshot.empty) {
+        snapshot = legacySnapshot;
+        caughtError = null; // Legacy succeeded
+      } else if (!caughtError && legacySnapshot && legacySnapshot.empty) {
+        // Both returned valid empty snapshots
+        snapshot = legacySnapshot;
+      }
+    } catch (legacyErr: any) {
+      if (!caughtError) caughtError = legacyErr;
+      console.warn('[FIRESTORE] Legacy collections query note:', legacyErr?.code || legacyErr?.message || legacyErr);
     }
+  }
 
-    if (!snapshot || snapshot.empty) {
-      console.log('[FIRESTORE] collections finished', { count: 0 });
-      return [];
-    }
+  // Handle connection or infrastructure failure
+  if (caughtError && (!snapshot || snapshot.empty)) {
+    const errCode = (caughtError as any)?.code || '';
+    const errMsg = caughtError?.message || '';
+    const isNotFound = errCode === 'not-found' || errMsg.includes('NOT_FOUND') || errMsg.includes('not-found');
 
-    let categories = snapshot.docs.map(d => {
+    const friendlyMessage = isNotFound
+      ? "Base de données Cloud Firestore (default) introuvable ou non activée sur le projet Firebase aerial-xylocarp-btgzl."
+      : "Impossible de charger les collections. Vérifiez la connexion à Firebase.";
+
+    console.warn('[FIRESTORE] Collections fetch failed with error:', { code: errCode, message: errMsg });
+    return {
+      categories: [],
+      error: caughtError,
+      errorMessage: friendlyMessage,
+      isRealEmpty: false
+    };
+  }
+
+  // If query succeeded and returned 0 documents: this is a legitimate empty state
+  if (!snapshot || snapshot.empty) {
+    console.log('[FIRESTORE] collections query succeeded: 0 documents (empty catalog)');
+    return {
+      categories: [],
+      error: null,
+      errorMessage: null,
+      isRealEmpty: true
+    };
+  }
+
+  try {
+    let categories = snapshot.docs.map((d: any) => {
       const data = d.data();
-      const isActive = data.isActive !== undefined ? Boolean(data.isActive) : (data.active !== undefined ? Boolean(data.active) : true);
+      const isActive =
+        data.isActive !== undefined
+          ? Boolean(data.isActive)
+          : data.active !== undefined
+          ? Boolean(data.active)
+          : true;
       return {
         id: d.id,
         ...data,
         isActive,
         active: isActive,
-        slug: data.slug || data.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || d.id,
+        slug:
+          data.slug ||
+          data.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') ||
+          d.id
       } as Category;
     });
 
     if (onlyActive) {
-      categories = categories.filter(c => c.isActive && c.active);
+      categories = categories.filter((c: Category) => c.isActive && c.active);
     }
 
-    if (categories.length === 0) {
-      console.log('[FIRESTORE] collections finished', { count: 0 });
-      return [];
-    }
+    const sorted = categories.sort((a: Category, b: Category) => (a.name || '').localeCompare(b.name || ''));
+    console.log('[FIRESTORE] collections loaded successfully:', { count: sorted.length });
 
-    const sorted = categories.sort((a, b) => a.name.localeCompare(b.name));
-    console.log('[FIRESTORE] collections finished', { count: sorted.length });
-    return sorted;
-  } catch (error) {
-    console.warn('Collections fetch notice (Firestore vide ou non initialisé):', error);
-    console.log('[FIRESTORE] collections finished', { count: 0, error: true });
-    return [];
+    return {
+      categories: sorted,
+      error: null,
+      errorMessage: null,
+      isRealEmpty: sorted.length === 0
+    };
+  } catch (mappingErr: any) {
+    console.error('[FIRESTORE] Error mapping collections:', mappingErr);
+    return {
+      categories: [],
+      error: mappingErr,
+      errorMessage: "Impossible de charger les collections. Données corrompues.",
+      isRealEmpty: false
+    };
   }
+}
+
+/**
+ * Fetch all collections, optionally filtered by active state.
+ * Strictly returns empty array [] when no collections exist in Firestore.
+ */
+export async function getCategories(onlyActive = true): Promise<Category[]> {
+  const result = await fetchCategoriesWithStatus(onlyActive);
+  return result.categories;
 }
 
 /**

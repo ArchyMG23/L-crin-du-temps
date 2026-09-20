@@ -51,16 +51,16 @@ service cloud.firestore {
     }
 
     // Collections collection:
-    // Public can read active collections. Admin has full management access.
+    // Public can read collections. Admin has full management access.
     match /collections/{collectionId} {
-      allow get, list: if resource.data.isActive == true || resource.data.active == true || isAdmin();
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 
     // Categories collection (backward compatibility):
-    // Public can read active categories. Admin has full management access.
+    // Public can read categories. Admin has full management access.
     match /categories/{categoryId} {
-      allow get, list: if resource.data.isActive == true || resource.data.active == true || isAdmin();
+      allow read: if true;
       allow create, update, delete: if isAdmin();
     }
 

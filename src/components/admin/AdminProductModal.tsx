@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   X, Plus, Trash2, Image as ImageIcon, Sparkles, AlertCircle, Upload, Loader2,
-  Eye, Star, ZoomIn, ChevronLeft, ChevronRight, Link as LinkIcon, CheckCircle2
+  Eye, Star, ZoomIn, ChevronLeft, ChevronRight, Link as LinkIcon, CheckCircle2,
+  Layers, AlertTriangle, RefreshCw
 } from 'lucide-react';
 import { collection, doc } from 'firebase/firestore';
 import { db, activeFirebaseConfig } from '../../lib/firebase';
@@ -9,6 +10,7 @@ import { Product, Category, Gender, StoreSettings } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { uploadProductImage } from '../../services/storageService';
+import { fetchCategoriesWithStatus } from '../../services/categoryService';
 
 export interface ProductModalImage {
   id: string;
@@ -28,6 +30,7 @@ interface AdminProductModalProps {
     id?: string,
     targetDocId?: string
   ) => Promise<void>;
+  onNavigateToCategories?: () => void;
 }
 
 export const AdminProductModal: React.FC<AdminProductModalProps> = ({
@@ -36,9 +39,39 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   product,
   categories,
   settings,
-  onSave
+  onSave,
+  onNavigateToCategories
 }) => {
-  const availableCategories = categories || [];
+  // Collections state management: dynamic and resilient
+  const [collectionsList, setCollectionsList] = useState<Category[]>(categories || []);
+  const [collectionsLoading, setCollectionsLoading] = useState(false);
+  const [collectionsError, setCollectionsError] = useState<string | null>(null);
+  const [isCollectionsRealEmpty, setIsCollectionsRealEmpty] = useState(false);
+
+  const refreshCollections = useCallback(async () => {
+    setCollectionsLoading(true);
+    setCollectionsError(null);
+    try {
+      const res = await fetchCategoriesWithStatus(false);
+      if (res.error) {
+        setCollectionsError(
+          res.errorMessage || 'Impossible de charger les collections. Vérifiez la connexion à Firebase.'
+        );
+        setCollectionsList([]);
+        setIsCollectionsRealEmpty(false);
+      } else {
+        setCollectionsList(res.categories);
+        setCollectionsError(null);
+        setIsCollectionsRealEmpty(res.isRealEmpty);
+      }
+    } catch (err: any) {
+      setCollectionsError('Impossible de charger les collections. Vérifiez la connexion à Firebase.');
+      setCollectionsList([]);
+      setIsCollectionsRealEmpty(false);
+    } finally {
+      setCollectionsLoading(false);
+    }
+  }, []);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -77,19 +110,30 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const defaultCatId = (categories && categories.length > 0 ? categories[0]?.id : '') || '';
+    if (!isOpen) return;
+
+    // Synchronize or load collections from Firestore
+    if (categories && categories.length > 0) {
+      setCollectionsList(categories);
+      setCollectionsError(null);
+      setIsCollectionsRealEmpty(false);
+      setCollectionsLoading(false);
+    } else {
+      refreshCollections();
+    }
 
     if (product) {
+      const currentCatId = product.collectionId || product.categoryId || '';
       setFormData({
         name: product.name || '',
         slug: product.slug || '',
         brand: product.brand || '',
         reference: product.reference || '',
-        categoryId: product.categoryId || defaultCatId,
+        categoryId: currentCatId,
         gender: product.gender || 'homme',
         price: product.price || 0,
         promotionalPrice: product.promotionalPrice ?? '',
-        currency: product.currency || settings.currency || '€',
+        currency: product.currency || settings?.currency || '€',
         stock: product.stock ?? 0,
         lowStockThreshold: product.lowStockThreshold ?? 2,
         shortDescription: product.shortDescription || '',
@@ -118,12 +162,13 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         setImageItems([]);
       }
     } else {
+      // Creation: categoryId starts empty (unselected) so user explicitly selects one
       setFormData({
         name: '',
         slug: '',
         brand: '',
         reference: '',
-        categoryId: defaultCatId,
+        categoryId: '',
         gender: 'homme',
         price: 950,
         promotionalPrice: '',
@@ -145,7 +190,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       });
       setImageItems([]);
     }
-  }, [product, categories, settings, isOpen]);
+  }, [product, categories, settings, isOpen, refreshCollections]);
 
   const generateSlug = (text: string) => {
     return text
@@ -289,11 +334,22 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       const stockNum = Math.max(0, Math.floor(Number(formData.stock) || 0));
       const lowStockThresholdNum = Math.max(0, Math.floor(Number(formData.lowStockThreshold) || 2));
 
-      const chosenCategoryId = formData.categoryId || (availableCategories.length > 0 ? availableCategories[0]?.id : '');
-      if (availableCategories.length > 0 && !chosenCategoryId) {
+      // Strict validation for Collection / Catégorie
+      if (!formData.categoryId || formData.categoryId.trim() === '') {
         setError('Veuillez sélectionner une collection.');
+        const selectElem = document.getElementById('admin-product-category');
+        if (selectElem) selectElem.focus();
         return;
       }
+
+      const chosenCollection = collectionsList.find(c => c.id === formData.categoryId);
+      if (!chosenCollection) {
+        setError('Veuillez sélectionner une collection valide enregistrée dans Firestore.');
+        return;
+      }
+
+      const collectionId = chosenCollection.id;
+      const collectionName = chosenCollection.name;
 
       console.log('[WATCH_CREATE] FORM VALIDATED');
 
@@ -324,17 +380,15 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       // 4. Construction du document
       console.log('[WATCH_CREATE] FIRESTORE WRITE START');
       const descText = formData.shortDescription.trim() || formData.description.trim() || '';
-      const chosenCollection = availableCategories.find(c => c.id === chosenCategoryId);
-      const collectionName = chosenCollection ? chosenCollection.name : (chosenCategoryId ? '' : 'Générale');
 
       const payload: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
         name: formData.name.trim(),
         slug: formData.slug.trim() || generateSlug(formData.name),
         brand: formData.brand.trim() || 'Maison Horlogère',
         reference: formData.reference ? formData.reference.trim() : '',
-        collectionId: chosenCategoryId || null,
-        collectionName,
-        categoryId: chosenCategoryId || null, // Dual-key compatibility
+        collectionId: collectionId,
+        collectionName: collectionName,
+        categoryId: collectionId, // Dual-key compatibility
         gender: formData.gender,
         price: priceNum,
         promoPrice: promoNum,
@@ -444,30 +498,112 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               />
             </div>
 
+            {/* Collection / Catégorie */}
             <div>
-              <label className="block text-xs text-[var(--text)] font-semibold mb-1">
-                Collection / Catégorie <span className="text-[var(--or)]">*</span>
-              </label>
-              <select
-                id="admin-product-category"
-                required={availableCategories.length > 0}
-                value={formData.categoryId}
-                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs cursor-pointer"
-              >
-                {availableCategories.length === 0 ? (
-                  <option value="">-- Aucune collection enregistrée (Générale) --</option>
-                ) : (
-                  <>
-                    <option value="">Sélectionner une collection</option>
-                    {availableCategories.map((c) => (
+              <div className="flex items-center justify-between mb-1">
+                <label htmlFor="admin-product-category" className="text-xs text-[var(--text)] font-semibold flex items-center gap-1">
+                  Collection / Catégorie <span className="text-[var(--or)]">*</span>
+                </label>
+                {onNavigateToCategories && (
+                  <button
+                    type="button"
+                    onClick={onNavigateToCategories}
+                    className="text-[11px] text-[var(--or)] hover:underline inline-flex items-center gap-1 font-medium cursor-pointer transition-colors"
+                    title="Gérer les collections dans le CMS"
+                  >
+                    <Layers className="w-3 h-3" />
+                    Gérer les collections
+                  </button>
+                )}
+              </div>
+
+              {collectionsLoading ? (
+                <div className="relative">
+                  <select
+                    id="admin-product-category"
+                    disabled
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text-muted)] rounded-xl px-3 py-2.5 text-xs focus:outline-none shadow-xs cursor-wait"
+                  >
+                    <option value="">Chargement des collections depuis Firestore...</option>
+                  </select>
+                  <div className="absolute right-3 top-3">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--or)]" />
+                  </div>
+                </div>
+              ) : collectionsError ? (
+                <div>
+                  <select
+                    id="admin-product-category"
+                    disabled
+                    className="w-full bg-[var(--input-bg)] border border-rose-500/40 text-[var(--text-muted)] rounded-xl px-3 py-2.5 text-xs focus:outline-none shadow-xs"
+                  >
+                    <option value="">-- Impossible de charger les collections --</option>
+                  </select>
+                  <div className="mt-1.5 p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start justify-between gap-2 text-[11px] text-rose-600 dark:text-rose-400">
+                    <div className="flex items-start gap-1.5">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{collectionsError}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={refreshCollections}
+                      className="text-xs font-semibold underline shrink-0 hover:text-rose-700 dark:hover:text-rose-300 cursor-pointer"
+                    >
+                      Réessayer
+                    </button>
+                  </div>
+                </div>
+              ) : collectionsList.length === 0 ? (
+                <div>
+                  <select
+                    id="admin-product-category"
+                    disabled
+                    className="w-full bg-[var(--input-bg)] border border-amber-500/40 text-[var(--text-muted)] rounded-xl px-3 py-2.5 text-xs focus:outline-none shadow-xs"
+                  >
+                    <option value="">-- Aucune collection disponible --</option>
+                  </select>
+                  <div className="mt-1.5 p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start justify-between gap-2 text-[11px] text-amber-700 dark:text-amber-300">
+                    <div className="flex items-start gap-1.5">
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold">Aucune collection disponible.</p>
+                        <p className="text-[10px] opacity-90 mt-0.5">
+                          Créez d'abord une collection depuis Collections & Catégories.
+                        </p>
+                      </div>
+                    </div>
+                    {onNavigateToCategories && (
+                      <button
+                        type="button"
+                        onClick={onNavigateToCategories}
+                        className="px-2.5 py-1 bg-amber-600 text-white rounded-lg text-xs font-medium shrink-0 hover:bg-amber-700 transition-colors shadow-xs cursor-pointer"
+                      >
+                        Gérer les collections
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="relative">
+                  <select
+                    id="admin-product-category"
+                    required
+                    value={formData.categoryId}
+                    onChange={(e) => {
+                      setFormData({ ...formData, categoryId: e.target.value });
+                      if (error && error.includes('collection')) setError(null);
+                    }}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs cursor-pointer"
+                  >
+                    <option value="">Sélectionner une collection...</option>
+                    {collectionsList.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
                       </option>
                     ))}
-                  </>
-                )}
-              </select>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div>

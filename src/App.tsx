@@ -734,6 +734,11 @@ const MainApp: React.FC = () => {
             categories={categories}
             settings={settings}
             onSave={handleSaveProduct}
+            onNavigateToCategories={() => {
+              setAdminProductModalOpen(false);
+              setEditingAdminProduct(null);
+              setAdminTab('categories');
+            }}
           />
         </AdminLayout>
       </AdminErrorBoundary>
