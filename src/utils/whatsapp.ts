@@ -86,11 +86,18 @@ export function buildProductInquiryMessage(
   customDefaultMessage?: string,
   quantity = 1
 ): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
   const effectivePrice = product.promotionalPrice && product.promotionalPrice > 0
     ? product.promotionalPrice
     : product.price;
 
   const defaultIntro = customDefaultMessage?.trim() || "Bonjour, je souhaite obtenir des informations sur cette montre d'exception et connaître sa disponibilité.";
+
+  let watchImgUrl = product.images?.[0] || product.coverImage || '';
+  if (watchImgUrl.startsWith('/') && origin) {
+    watchImgUrl = `${origin}${watchImgUrl}`;
+  }
+  const hasValidImg = watchImgUrl && !watchImgUrl.startsWith('blob:') && !watchImgUrl.startsWith('data:');
 
   const lines = [
     `👑 *DEMANDE D'INFORMATION & RÉSERVATION - ${storeName.toUpperCase()}*`,
@@ -104,6 +111,7 @@ export function buildProductInquiryMessage(
     `▪ *Prix :* ${effectivePrice.toLocaleString('fr-FR')} ${product.currency || '€'}`,
     quantity > 1 ? `▪ *Quantité souhaitée :* ${quantity}` : null,
     product.specifications?.movement ? `▪ *Mouvement :* ${product.specifications.movement}` : null,
+    hasValidImg ? `📸 *Photo de la montre :* ${watchImgUrl}` : null,
     ``,
     `━━━━━━━━━━━━━━━━━━━━━`,
     `Pouvez-vous me confirmer la disponibilité sous écrin et les délais de livraison svp ?`
@@ -120,11 +128,18 @@ export function buildOrderWhatsAppMessage(
   storeName = "L'Écrin du Temps",
   customDefaultMessage?: string
 ): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+
   const itemsText = order.items
-    .map(
-      (item) =>
-        `▪ *${item.quantity}x* ${item.name}\n   Prix: ${item.price.toLocaleString('fr-FR')} ${order.currency} (Sous-total: ${item.subtotal.toLocaleString('fr-FR')} ${order.currency})`
-    )
+    .map((item) => {
+      let imgUrl = item.image || '';
+      if (imgUrl.startsWith('/') && origin) {
+        imgUrl = `${origin}${imgUrl}`;
+      }
+      const hasValidImg = imgUrl && !imgUrl.startsWith('blob:') && !imgUrl.startsWith('data:');
+      const imgLine = hasValidImg ? `\n   📸 *Photo :* ${imgUrl}` : '';
+      return `▪ *${item.quantity}x* ${item.name}\n   Prix: ${item.price.toLocaleString('fr-FR')} ${order.currency} (Sous-total: ${item.subtotal.toLocaleString('fr-FR')} ${order.currency})${imgLine}`;
+    })
     .join('\n\n');
 
   const greeting = customDefaultMessage?.trim() || "Bonjour ! Je viens de réserver ces garde-temps sur votre boutique en ligne et je souhaite finaliser ma commande avec vous.";

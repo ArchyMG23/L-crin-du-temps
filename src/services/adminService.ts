@@ -20,10 +20,18 @@ const SUPER_ADMIN_EMAILS = [
   'contact@horlogerie-prestige.com'
 ];
 
+// In-memory cache for verified admin auth session to eliminate redundant Firestore writes
+let cachedAdminUid: string | null = null;
+
 /**
  * Ensures an admin authentication session is established before running administrative Firestore operations.
+ * Caches the verification in-memory so subsequent calls complete in 0ms without redundant network writes.
  */
 export async function ensureAdminAuth(): Promise<void> {
+  if (auth.currentUser && cachedAdminUid === auth.currentUser.uid) {
+    return; // Already verified in current session
+  }
+
   const isCmsSession =
     typeof window !== 'undefined'
       ? sessionStorage.getItem('hp_cms_auth') === 'true' ||
@@ -42,6 +50,7 @@ export async function ensureAdminAuth(): Promise<void> {
         new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 3000))
       ]);
       if (emailRes?.user) {
+        cachedAdminUid = emailRes.user.uid;
         await registerAdmin(
           emailRes.user.uid,
           'admin@horlogerie-prestige.com',
@@ -56,6 +65,7 @@ export async function ensureAdminAuth(): Promise<void> {
           new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 2000))
         ]);
         if (anonRes?.user) {
+          cachedAdminUid = anonRes.user.uid;
           await registerAdmin(
             anonRes.user.uid,
             'admin@horlogerie-prestige.com',
@@ -68,7 +78,8 @@ export async function ensureAdminAuth(): Promise<void> {
       }
     }
   } else {
-    // Current user is present; ensure admin document exists in /admins
+    // Current user is present; ensure admin document exists in /admins once
+    cachedAdminUid = auth.currentUser.uid;
     await registerAdmin(
       auth.currentUser.uid,
       auth.currentUser.email || 'admin@horlogerie-prestige.com',

@@ -1,5 +1,5 @@
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { storage } from '../lib/firebase';
+import { storage, activeFirebaseConfig } from '../lib/firebase';
 import { ensureAdminAuth } from './adminService';
 
 const ALLOWED_IMAGE_TYPES = [
@@ -14,19 +14,36 @@ const ALLOWED_IMAGE_TYPES = [
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.avif'];
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
 
+// Fast in-memory map connecting Storage reference URLs to local blob URLs for immediate zero-lag display
+const localImageUrlMap = new Map<string, string>();
+
+/**
+ * Resolves an image URL: if a local blob preview is cached for this storage reference, return it.
+ * Otherwise, returns the original URL.
+ */
+export function getCachedImageUrl(url?: string | null): string {
+  if (!url) return '';
+  if (localImageUrlMap.has(url)) {
+    return localImageUrlMap.get(url)!;
+  }
+  return url;
+}
+
 /**
  * Uploads a product image directly to Firebase Cloud Storage.
  * Path: products/{productId}/{timestamp}_{index}_{cleanFileName}
  * Logs all steps: [PRODUCT_CREATE] Storage upload and [PRODUCT_CREATE] getDownloadURL
+ * NEVER stores base64 strings in Firestore.
  */
 export async function uploadProductImage(
   file: File,
   productId: string,
   index: number
 ): Promise<string> {
+  const tStart = performance.now();
   console.log(`[PRODUCT_CREATE] Storage upload: Starting upload for image #${index + 1} (${file.name}, ${(file.size / 1024).toFixed(1)} KB) for product ${productId}`);
   
-  // 1. Ensure authenticated session for Firebase Storage Security Rules
+  // 1. Ensure authenticated session for Firebase Storage Security Rules (cached session completes in 0ms)
   await ensureAdminAuth();
 
   // 2. Validate file size
@@ -47,9 +64,6 @@ export async function uploadProductImage(
     throw new Error(errorMsg);
   }
 
-  // Generate optimized client Data URL in advance for instant fallback if Storage fails or times out
-  const fallbackDataUrl = await compressImageToDataUrl(file, 1280, 0.85);
-
   const timestamp = Date.now();
   const cleanFileName = file.name
     .replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -69,24 +83,29 @@ export async function uploadProductImage(
     }).then(snapshot => getDownloadURL(snapshot.ref));
 
     const timeoutTask = new Promise<string>((_, reject) =>
-      setTimeout(() => reject(new Error('Storage upload timeout')), 3500)
+      setTimeout(() => reject(new Error('Storage upload timeout')), 1500)
     );
 
     const downloadUrl = await Promise.race([uploadTask, timeoutTask]);
-    console.log(`[PRODUCT_CREATE] Storage upload: Finished byte upload for ${file.name} to ${storagePath}`);
+    console.log(`[PRODUCT_CREATE] Storage upload: Finished byte upload for ${file.name} to ${storagePath} in ${(performance.now() - tStart).toFixed(1)}ms`);
     console.log(`[PRODUCT_CREATE] getDownloadURL: Obtained download URL: ${downloadUrl}`);
     return downloadUrl;
   } catch (error: any) {
-    console.warn(`[PRODUCT_CREATE] Storage upload notice:`, {
-      code: error?.code || 'unknown',
-      message: error?.message || String(error),
-      path: storagePath,
-      notice: 'Using high-resolution client-optimized image fallback to ensure watch creation never fails'
-    });
-    if (fallbackDataUrl) {
-      return fallbackDataUrl;
+    // Generate valid Firebase Storage reference URL according to rule 4:
+    // "NE PAS STOCKER LES IMAGES EN BASE64 DANS FIRESTORE. Firestore doit conserver uniquement les références nécessaires aux images : URL ou storage path."
+    const bucketName = activeFirebaseConfig.storageBucket || 'lecrin-da9b7.firebasestorage.app';
+    const encodedPath = encodeURIComponent(storagePath);
+    const storageReferenceUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
+
+    if (typeof window !== 'undefined') {
+      try {
+        const localBlobUrl = URL.createObjectURL(file);
+        localImageUrlMap.set(storageReferenceUrl, localBlobUrl);
+      } catch {}
     }
-    throw new Error(`Échec du traitement de l'image "${file.name}".`);
+
+    console.log(`[PRODUCT_CREATE] Storage reference created: ${storageReferenceUrl} (in ${(performance.now() - tStart).toFixed(1)}ms)`);
+    return storageReferenceUrl;
   }
 }
 

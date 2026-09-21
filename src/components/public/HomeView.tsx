@@ -62,7 +62,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
       return hasValidImage && isAvailable;
     });
 
-    return [...valid].sort((a, b) => {
+    const pool = valid.length > 0 ? valid : activeProducts;
+
+    return [...pool].sort((a, b) => {
       if (a.featured && !b.featured) return -1;
       if (!a.featured && b.featured) return 1;
 

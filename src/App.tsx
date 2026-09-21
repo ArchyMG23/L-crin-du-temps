@@ -28,7 +28,7 @@ import {
   updateStoreSettings
 } from './services/settingsService';
 import { getAllCustomers } from './services/userService';
-import { DEFAULT_SETTINGS } from './data/defaultData';
+import { DEFAULT_SETTINGS, DEFAULT_PRODUCTS, DEFAULT_CATEGORIES } from './data/defaultData';
 import { normalizeWhatsAppNumber, buildWhatsAppChatUrl } from './utils/whatsapp';
 
 // UI
@@ -63,16 +63,47 @@ import { AdminCustomers } from './components/admin/AdminCustomers';
 import { AdminSettings } from './components/admin/AdminSettings';
 import { AdminErrorBoundary } from './components/common/AdminErrorBoundary';
 
+// Immediate sync cache loader to display featured watches on first paint
+const getInitialProducts = (): Product[] => {
+  if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem('hp_products_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+  return DEFAULT_PRODUCTS;
+};
+
+const getInitialCategories = (): Category[] => {
+  if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem('hp_categories_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+  return DEFAULT_CATEGORIES;
+};
+
 const MainApp: React.FC = () => {
   const { isAdmin, userProfile } = useAuth();
 
-  // Core Data States
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  // Core Data States: initialized synchronously so featured watches are immediately visible
+  const [products, setProducts] = useState<Product[]>(getInitialProducts);
+  const [categories, setCategories] = useState<Category[]>(getInitialCategories);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customers, setCustomers] = useState<UserProfile[]>([]);
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Toast Notifications
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -132,14 +163,20 @@ const MainApp: React.FC = () => {
 
     // 2. Collections (runs independently)
     getCategories(!adminMode).then((catsData) => {
-      if (Array.isArray(catsData)) setCategories(catsData);
+      if (Array.isArray(catsData) && catsData.length > 0) {
+        setCategories(catsData);
+        try { localStorage.setItem('hp_categories_cache', JSON.stringify(catsData)); } catch {}
+      }
     }).catch(() => {});
 
     // 3. Products (runs independently)
     getProducts(!adminMode)
       .then((prodsData) => {
         const safeProds = Array.isArray(prodsData) ? prodsData : [];
-        setProducts(safeProds);
+        if (safeProds.length > 0) {
+          setProducts(safeProds);
+          try { localStorage.setItem('hp_products_cache', JSON.stringify(safeProds)); } catch {}
+        }
         handleRouteFromPath(window.location.pathname, safeProds, orders);
       })
       .catch((err) => {
@@ -386,9 +423,11 @@ const MainApp: React.FC = () => {
     const nowIso = new Date().toISOString();
     if (id) {
       await updateProduct(id, productData);
-      setProducts((prev) =>
-        prev.map((p) => (p.id === id ? { ...p, ...productData, updatedAt: nowIso } : p))
-      );
+      setProducts((prev) => {
+        const next = prev.map((p) => (p.id === id ? { ...p, ...productData, updatedAt: nowIso } : p));
+        try { localStorage.setItem('hp_products_cache', JSON.stringify(next)); } catch {}
+        return next;
+      });
       addToast('success', `Montre "${productData.name}" mise à jour avec succès.`);
     } else {
       let assignedId = targetDocId || `prod-${Date.now()}`;
@@ -403,7 +442,11 @@ const MainApp: React.FC = () => {
           createdAt: nowIso,
           updatedAt: nowIso
         };
-        setProducts((prev) => [fallbackProd, ...prev.filter(p => p.id !== fallbackProd.id)]);
+        setProducts((prev) => {
+          const next = [fallbackProd, ...prev.filter(p => p.id !== fallbackProd.id)];
+          try { localStorage.setItem('hp_products_cache', JSON.stringify(next)); } catch {}
+          return next;
+        });
         throw err;
       }
 
@@ -413,7 +456,11 @@ const MainApp: React.FC = () => {
         createdAt: nowIso,
         updatedAt: nowIso
       };
-      setProducts((prev) => [newProd, ...prev.filter(p => p.id !== newProd.id)]);
+      setProducts((prev) => {
+        const next = [newProd, ...prev.filter(p => p.id !== newProd.id)];
+        try { localStorage.setItem('hp_products_cache', JSON.stringify(next)); } catch {}
+        return next;
+      });
       addToast('success', `Nouvelle montre "${productData.name}" créée avec succès.`);
     }
   };

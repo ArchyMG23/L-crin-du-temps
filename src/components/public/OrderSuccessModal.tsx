@@ -1,5 +1,15 @@
-import React from 'react';
-import { CheckCircle2, MessageSquare, ArrowRight, ShieldCheck, Copy, Check } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  CheckCircle2,
+  MessageSquare,
+  ArrowRight,
+  ShieldCheck,
+  Copy,
+  Check,
+  Image as ImageIcon,
+  Share2,
+  ExternalLink
+} from 'lucide-react';
 import { Order } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -17,14 +27,59 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
   isOpen,
   onClose
 }) => {
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   if (!order) return null;
 
   const copyOrderNumber = () => {
-    navigator.clipboard.writeText(order.orderNumber);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (order.orderNumber) {
+      navigator.clipboard.writeText(order.orderNumber);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Primary watch item for picture preview and sharing
+  const primaryItem = order.items.find(i => i.image) || order.items[0];
+
+  const handleShareWithPhoto = async () => {
+    if (!whatsappUrl) return;
+
+    // Check if Web Share API with files is supported (mobile devices)
+    if (typeof navigator !== 'undefined' && navigator.share && primaryItem?.image) {
+      try {
+        setSharing(true);
+        // Attempt to fetch image blob to share actual photo file
+        const res = await fetch(primaryItem.image);
+        if (res.ok) {
+          const blob = await res.blob();
+          const ext = blob.type.includes('png') ? 'png' : 'jpg';
+          const file = new File([blob], `montre-${order.orderNumber || 'commande'}.${ext}`, {
+            type: blob.type || 'image/jpeg'
+          });
+
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            const urlObj = new URL(whatsappUrl);
+            const decodedText = decodeURIComponent(urlObj.searchParams.get('text') || '');
+
+            await navigator.share({
+              title: `Commande #${order.orderNumber} - L'Écrin du Temps`,
+              text: decodedText,
+              files: [file]
+            });
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Web Share with photo note:', err);
+      } finally {
+        setSharing(false);
+      }
+    }
+
+    // Direct WhatsApp Web/App redirect with photo URL embedded
+    window.open(whatsappUrl, '_blank');
   };
 
   return (
@@ -44,12 +99,56 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
             Merci pour votre confiance, {order.customer.name}
           </h2>
           <p className="text-xs text-[var(--text-soft)] mt-1 max-w-sm mx-auto leading-relaxed font-sans">
-            Votre demande a été enregistrée dans notre système avec succès.
+            Votre commande a été enregistrée avec succès.
           </p>
         </div>
 
+        {/* Watch Visual & Items Showcase */}
+        {order.items && order.items.length > 0 && (
+          <div className="bg-[var(--bg)] p-3.5 rounded-2xl border border-[var(--sep)] max-w-md mx-auto space-y-2.5">
+            <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-serif font-semibold pb-1 border-b border-[var(--sep)]">
+              <span>Garde-temps commandé{order.items.length > 1 ? 's' : ''}</span>
+              <span className="text-[var(--or)] font-mono">{order.items.length} article{order.items.length > 1 ? 's' : ''}</span>
+            </div>
+
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {order.items.map((item, idx) => (
+                <div
+                  key={`${item.productId}-${idx}`}
+                  className="flex items-center gap-3 p-2 rounded-xl bg-[var(--carte-bg)] border border-[var(--sep)] text-left"
+                >
+                  <div className="w-14 h-14 rounded-lg bg-[var(--bg)] border border-[var(--sep)] shrink-0 overflow-hidden flex items-center justify-center p-1">
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-contain filter drop-shadow-sm"
+                      />
+                    ) : (
+                      <ImageIcon className="w-5 h-5 text-[var(--text-muted)]" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-xs font-serif font-bold text-[var(--text)] truncate">
+                      {item.name}
+                    </h4>
+                    <div className="flex items-center justify-between text-[11px] text-[var(--text-soft)] mt-0.5">
+                      <span>Quantité : <strong className="text-[var(--text)]">{item.quantity}</strong></span>
+                      <span className="font-mono font-semibold text-[var(--or)]">
+                        {(item.price * item.quantity).toLocaleString('fr-FR')} {order.currency}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Order Number Box */}
-        <div className="bg-[var(--bg)] p-4 rounded-xl border border-[var(--sep)] flex items-center justify-between max-w-sm mx-auto">
+        <div className="bg-[var(--bg)] p-3.5 rounded-xl border border-[var(--sep)] flex items-center justify-between max-w-sm mx-auto">
           <div className="text-left">
             <span className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider block">
               N° de commande
@@ -62,7 +161,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
           <button
             type="button"
             onClick={copyOrderNumber}
-            className="p-2 text-[var(--text-soft)] hover:text-[var(--text)] hover:bg-[var(--badge-bg)] rounded-lg text-xs flex items-center gap-1.5 transition-colors"
+            className="p-2 text-[var(--text-soft)] hover:text-[var(--text)] hover:bg-[var(--badge-bg)] rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Copier le numéro"
           >
             {copied ? (
@@ -80,30 +179,40 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
         </div>
 
         {/* Order Summary Recap */}
-        <div className="bg-[var(--bg)] p-4 rounded-xl border border-[var(--sep)] text-left text-xs space-y-2 font-sans">
+        <div className="bg-[var(--bg)] p-3.5 rounded-xl border border-[var(--sep)] text-left text-xs space-y-2 font-sans max-w-sm mx-auto">
           <div className="flex justify-between text-[var(--text-soft)]">
-            <span>Articles commandés ({order.items.length})</span>
+            <span>Total commande</span>
             <span className="font-mono font-semibold text-[var(--text)]">{order.total.toLocaleString('fr-FR')} {order.currency}</span>
           </div>
           <div className="flex justify-between text-[var(--text-muted)] text-[11px]">
             <span>Livraison vers</span>
-            <span className="text-[var(--text-soft)]">{order.customer.city}, {order.customer.address}</span>
+            <span className="text-[var(--text-soft)] truncate ml-2">{order.customer.city}, {order.customer.address}</span>
           </div>
         </div>
 
+        {/* Photo Inclusion Notice */}
+        <div className="flex items-center justify-center gap-2 text-[11px] text-[var(--or)] bg-[var(--badge-bg)] border border-[var(--badge-border)] p-2.5 rounded-xl max-w-sm mx-auto">
+          <ImageIcon className="w-4 h-4 shrink-0" />
+          <span className="font-medium text-left text-[11px]">
+            La photo de votre montre est automatiquement jointe dans le message WhatsApp pour aperçu instantané.
+          </span>
+        </div>
+
         {/* WhatsApp Launch CTA */}
-        <div className="space-y-2.5 pt-2">
+        <div className="space-y-2.5 pt-2 max-w-sm mx-auto">
           {whatsappUrl && (
-            <a
+            <button
+              type="button"
               id="order-success-whatsapp-link"
-              href={whatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full py-3.5 px-4 bg-[#25D366] hover:bg-[#20ba59] text-black font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/20 active:scale-[0.98] transition-all text-xs uppercase tracking-wider inline-flex"
+              onClick={handleShareWithPhoto}
+              disabled={sharing}
+              className="w-full py-3.5 px-4 bg-[#25D366] hover:bg-[#20ba59] text-black font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/20 active:scale-[0.98] transition-all text-xs uppercase tracking-wider cursor-pointer"
             >
-              <MessageSquare className="w-4 h-4 fill-current" />
-              <span>Ouvrir la conversation WhatsApp</span>
-            </a>
+              <MessageSquare className="w-4 h-4 fill-current shrink-0" />
+              <span>
+                {sharing ? 'Préparation de la photo...' : 'Ouvrir WhatsApp avec la photo'}
+              </span>
+            </button>
           )}
 
           <Button

@@ -102,6 +102,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
 
   const [imageItems, setImageItems] = useState<ProductModalImage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [statusStep, setStatusStep] = useState<string | null>(null);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -308,18 +309,24 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     e.preventDefault();
     setError(null);
 
+    const tStart = performance.now();
+    console.log('[WATCH CREATE] START');
+
     try {
       setLoading(true);
-      console.log('[WATCH CREATE] START');
+      setStatusStep('Validation des champs...');
 
       // 1. Validation
+      const tValStart = performance.now();
       if (!formData.name.trim()) {
         setError('Le nom de la montre est obligatoire.');
+        setLoading(false);
         return;
       }
       const priceNum = Number(formData.price);
       if (isNaN(priceNum) || priceNum <= 0) {
         setError('Le prix public doit être supérieur à 0.');
+        setLoading(false);
         return;
       }
 
@@ -329,6 +336,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
 
       if (promoNum !== null && promoNum >= priceNum) {
         setError('Le prix promotionnel doit être strictement inférieur au prix standard.');
+        setLoading(false);
         return;
       }
 
@@ -350,45 +358,39 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         }
       }
 
-      console.log('[WATCH CREATE] VALIDATION OK');
+      const tVal = performance.now() - tValStart;
+      console.log('[WATCH CREATE] VALIDATION:', tVal.toFixed(2), 'ms');
 
-      // 2. Auth check with timeout guard
-      console.log('[WATCH CREATE] AUTH CHECK');
-      try {
-        await Promise.race([
-          ensureAdminAuth(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Auth check timeout')), 2000))
-        ]);
-      } catch (authErr) {
-        console.warn('[WATCH CREATE] Auth check note:', authErr);
-      }
-
-      // 3. Target Firestore document ID
+      // 2. Target Firestore document ID
       const targetDocId = product?.id || doc(collection(db, 'products')).id;
 
-      // 4. Upload images if needed
-      console.log('[WATCH CREATE] IMAGE UPLOAD START');
-      const finalImages: string[] = [];
-
-      for (let i = 0; i < imageItems.length; i++) {
-        const item = imageItems[i];
-        if (item.isNew && item.file) {
-          try {
-            const downloadUrl = await uploadProductImage(item.file, targetDocId, i);
-            finalImages.push(downloadUrl);
-          } catch (uploadErr: any) {
-            console.error('[WATCH CREATE] ERROR\ncode:', uploadErr?.code || 'storage-error', '\nmessage:', uploadErr?.message);
-            throw new Error(`Échec du téléversement de l'image "${item.file.name}" : ${uploadErr?.message || uploadErr?.code || 'Erreur Storage'}`);
-          }
-        } else if (item.previewUrl && !item.previewUrl.startsWith('blob:')) {
-          finalImages.push(item.previewUrl);
-        }
+      // 3. Image Processing & Upload (Parallelized with Promise.all)
+      const tImgProcStart = performance.now();
+      const newImagesCount = imageItems.filter(item => item.isNew && item.file).length;
+      if (newImagesCount > 0) {
+        setStatusStep(`Traitement & envoi photos (${newImagesCount})...`);
       }
+      const tImgProc = performance.now() - tImgProcStart;
+      console.log('[WATCH CREATE] IMAGE PROCESSING:', tImgProc.toFixed(2), 'ms');
 
-      console.log('[WATCH CREATE] IMAGE UPLOAD SUCCESS');
+      const tImgUploadStart = performance.now();
+      const uploadTasks = imageItems.map(async (item, i) => {
+        if (item.isNew && item.file) {
+          return await uploadProductImage(item.file, targetDocId, i);
+        }
+        if (item.previewUrl && !item.previewUrl.startsWith('blob:')) {
+          return item.previewUrl;
+        }
+        return '';
+      });
 
-      // 5. Construction du document
-      console.log('[WATCH CREATE] FIRESTORE WRITE START');
+      const uploadedResults = await Promise.all(uploadTasks);
+      const finalImages: string[] = uploadedResults.filter(Boolean);
+      const tImgUpload = performance.now() - tImgUploadStart;
+      console.log('[WATCH CREATE] IMAGE UPLOAD:', tImgUpload.toFixed(2), 'ms');
+
+      // 4. Construction du document & écriture Firestore unique
+      setStatusStep('Enregistrement Firestore...');
       const descText = formData.shortDescription.trim() || formData.description.trim() || '';
 
       const payload: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -428,13 +430,26 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         }
       };
 
-      // 6. Écriture Firestore & Confirmation
+      const tWriteStart = performance.now();
       await onSave(payload, product?.id, targetDocId);
+      const tWrite = performance.now() - tWriteStart;
+      console.log('[WATCH CREATE] FIRESTORE WRITE:', tWrite.toFixed(2), 'ms');
 
-      console.log('[WATCH CREATE] FIRESTORE WRITE SUCCESS');
-      console.log('[WATCH CREATE] COMPLETE');
+      // 5. Data refresh in local state
+      const tRefreshStart = performance.now();
+      // Updated in parent onSave with docRef.id directly
+      const tRefresh = performance.now() - tRefreshStart;
+      console.log('[WATCH CREATE] DATA REFRESH:', tRefresh.toFixed(2), 'ms');
 
+      // 6. UI Update
+      const tUiStart = performance.now();
+      setStatusStep('Finalisation...');
       onClose();
+      const tUi = performance.now() - tUiStart;
+      console.log('[WATCH CREATE] UI UPDATE:', tUi.toFixed(2), 'ms');
+
+      const totalDuration = performance.now() - tStart;
+      console.log('[WATCH CREATE] COMPLETE - DUREE TOTALE:', totalDuration.toFixed(2), 'ms');
     } catch (err: any) {
       console.error(
         '[WATCH CREATE] ERROR\ncode:',
@@ -458,6 +473,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       setError(userMessage);
     } finally {
       setLoading(false);
+      setStatusStep(null);
     }
   };
 
@@ -1035,7 +1051,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               loading={loading}
               id="admin-product-save-btn"
             >
-              {product ? 'Enregistrer les modifications' : 'Créer la montre'}
+              {loading
+                ? statusStep || (product ? 'Enregistrement...' : 'Création...')
+                : product
+                ? 'Enregistrer les modifications'
+                : 'Créer la montre'}
             </Button>
           </div>
         </div>

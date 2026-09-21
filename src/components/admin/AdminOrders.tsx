@@ -94,22 +94,31 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
 
     const storeName = settings?.storeName || settings?.name || 'Notre Maison Horlogère';
     const totalFormatted = `${order.total.toLocaleString('fr-FR')} ${order.currency}`;
+    const firstItem = order.items?.[0];
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    let watchImg = firstItem?.image || '';
+    if (watchImg.startsWith('/') && origin) {
+      watchImg = `${origin}${watchImg}`;
+    }
+    const watchImgLine = watchImg && !watchImg.startsWith('blob:') && !watchImg.startsWith('data:')
+      ? `\n📸 Visuel : ${watchImg}`
+      : '';
 
     switch (type) {
       case 'confirm':
-        text = `Bonjour ${order.customer.name},\n\nNous confirmons la bonne réception de votre commande *#${order.orderNumber}* chez ${storeName}.\n\nMontant total : *${totalFormatted}*.\nNotre conciergerie prend en charge votre commande dès aujourd'hui.`;
+        text = `Bonjour ${order.customer.name},\n\nNous confirmons la bonne réception de votre commande *#${order.orderNumber}* chez ${storeName}.\n\nMontant total : *${totalFormatted}*.${watchImgLine}\nNotre conciergerie prend en charge votre commande dès aujourd'hui.`;
         break;
       case 'preparing':
-        text = `Bonjour ${order.customer.name},\n\nVotre garde-temps pour la commande *#${order.orderNumber}* est actuellement en cours de préparation et de contrôle minutieux dans notre atelier horloger.\n\nNous vous informerons dès son expédition.`;
+        text = `Bonjour ${order.customer.name},\n\nVotre garde-temps pour la commande *#${order.orderNumber}* est actuellement en cours de préparation et de contrôle minutieux dans notre atelier horloger.${watchImgLine}\n\nNous vous informerons dès son expédition.`;
         break;
       case 'shipped':
-        text = `Bonjour ${order.customer.name},\n\nExcellente nouvelle ! Votre commande *#${order.orderNumber}* a été expédiée et est en cours d'acheminement vers ${order.customer.city}.\n\nPréparez-vous à recevoir votre écrin.`;
+        text = `Bonjour ${order.customer.name},\n\nExcellente nouvelle ! Votre commande *#${order.orderNumber}* a été expédiée et est en cours d'acheminement vers ${order.customer.city}.${watchImgLine}\n\nPréparez-vous à recevoir votre écrin.`;
         break;
       case 'delivered':
-        text = `Bonjour ${order.customer.name},\n\nVotre commande *#${order.orderNumber}* a bien été livrée. Nous espérons que votre montre vous apporte entière satisfaction et nous tenons à votre disposition pour toute question.`;
+        text = `Bonjour ${order.customer.name},\n\nVotre commande *#${order.orderNumber}* a bien été livrée. Nous espérons que votre montre vous apporte entière satisfaction et nous tenons à votre disposition pour toute question.${watchImgLine}`;
         break;
       default:
-        text = `Bonjour ${order.customer.name},\n\nJe vous contacte au sujet de votre commande *#${order.orderNumber}* chez ${storeName} (${totalFormatted}).`;
+        text = `Bonjour ${order.customer.name},\n\nJe vous contacte au sujet de votre commande *#${order.orderNumber}* chez ${storeName} (${totalFormatted}).${watchImgLine}`;
         break;
     }
 
