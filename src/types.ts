@@ -53,6 +53,7 @@ export interface Product {
   lowStockThreshold: number;
   images: string[];
   coverImage?: string;
+  image?: string; // Direct base64/URL image field
   isActive?: boolean;
   active: boolean; // Dual-key compatibility
   isFeatured?: boolean;

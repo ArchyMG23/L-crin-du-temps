@@ -26,7 +26,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
     addToCart(product, 1);
   };
 
-  const primaryImage = product.images?.[0] || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800';
+  const primaryImage = product.image || product.images?.[0] || product.coverImage || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800';
 
   return (
     <motion.div

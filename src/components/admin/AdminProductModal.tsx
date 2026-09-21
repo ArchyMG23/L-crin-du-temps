@@ -9,7 +9,7 @@ import { db, activeFirebaseConfig } from '../../lib/firebase';
 import { Product, Category, Gender, StoreSettings } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { uploadProductImage } from '../../services/storageService';
+import { uploadProductImage, convertFileToBase64 } from '../../services/storageService';
 import { fetchCategoriesWithStatus } from '../../services/categoryService';
 import { ensureAdminAuth } from '../../services/adminService';
 
@@ -215,22 +215,35 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     }
   };
 
-  const processFiles = (files: FileList | File[]) => {
+  const processFiles = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
     setError(null);
+    setUploadNotice("Lecture et conversion de l'image en base64...");
 
     const fileList = Array.from(files);
-    const newItems: ProductModalImage[] = fileList.map((file, idx) => ({
-      id: `new_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 7)}`,
-      previewUrl: URL.createObjectURL(file),
-      file,
-      isNew: true
-    }));
+    try {
+      const newItems: ProductModalImage[] = await Promise.all(
+        fileList.map(async (file, idx) => {
+          // Conversion systématique en base64 Data URL via FileReader et readAsDataURL()
+          const base64Url = await convertFileToBase64(file);
+          return {
+            id: `new_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 7)}`,
+            previewUrl: base64Url,
+            file,
+            isNew: true
+          };
+        })
+      );
 
-    setImageItems((prev) => [...prev, ...newItems]);
-    setUploadNotice(`${newItems.length} photo(s) sélectionnée(s). Téléversement Storage lors de la validation.`);
-    setTimeout(() => setUploadNotice(null), 3500);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+      setImageItems((prev) => [...prev, ...newItems]);
+      setUploadNotice(`${newItems.length} photo(s) convertie(s) en base64 et prête(s) à l'enregistrement.`);
+      setTimeout(() => setUploadNotice(null), 3500);
+    } catch (err: any) {
+      console.error('Erreur lecture image base64:', err);
+      setError("Impossible de lire et convertir l'image sélectionnée en base64.");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -276,15 +289,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   };
 
   const handleRemoveImage = (index: number) => {
-    setImageItems((prev) => {
-      const item = prev[index];
-      if (item?.isNew && item.previewUrl.startsWith('blob:')) {
-        try {
-          URL.revokeObjectURL(item.previewUrl);
-        } catch {}
-      }
-      return prev.filter((_, i) => i !== index);
-    });
+    setImageItems((prev) => prev.filter((_, i) => i !== index));
     if (previewImageIndex === index) {
       setPreviewImageIndex(null);
     } else if (previewImageIndex !== null && previewImageIndex > index) {
@@ -364,20 +369,19 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       // 2. Target Firestore document ID
       const targetDocId = product?.id || doc(collection(db, 'products')).id;
 
-      // 3. Image Processing & Upload (Parallelized with Promise.all)
-      const tImgProcStart = performance.now();
-      const newImagesCount = imageItems.filter(item => item.isNew && item.file).length;
-      if (newImagesCount > 0) {
-        setStatusStep(`Traitement & envoi photos (${newImagesCount})...`);
-      }
-      const tImgProc = performance.now() - tImgProcStart;
-      console.log('[WATCH CREATE] IMAGE PROCESSING:', tImgProc.toFixed(2), 'ms');
-
+      // 3. Image Processing & Upload (Conversion en base64 via FileReader.readAsDataURL())
       const tImgUploadStart = performance.now();
-      const uploadTasks = imageItems.map(async (item, i) => {
-        if (item.isNew && item.file) {
-          return await uploadProductImage(item.file, targetDocId, i);
+      const newImagesCount = imageItems.filter(item => item.isNew || item.file).length;
+      if (newImagesCount > 0) {
+        setStatusStep(`Conversion & vérification des photos (${newImagesCount})...`);
+      }
+
+      const uploadTasks = imageItems.map(async (item) => {
+        // 1. Si un fichier natif est présent, conversion en base64 garantie via FileReader
+        if (item.file) {
+          return await convertFileToBase64(item.file);
         }
+        // 2. Si l'image est déjà en base64 Data URL ou URL permanente (exclut tout blob)
         if (item.previewUrl && !item.previewUrl.startsWith('blob:')) {
           return item.previewUrl;
         }
@@ -386,11 +390,12 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
 
       const uploadedResults = await Promise.all(uploadTasks);
       const finalImages: string[] = uploadedResults.filter(Boolean);
+      const primaryImageBase64 = finalImages[0] || '';
       const tImgUpload = performance.now() - tImgUploadStart;
-      console.log('[WATCH CREATE] IMAGE UPLOAD:', tImgUpload.toFixed(2), 'ms');
+      console.log('[WATCH SAVE] IMAGES BASE64:', tImgUpload.toFixed(2), 'ms', finalImages.length, 'images');
 
-      // 4. Construction du document & écriture Firestore unique
-      setStatusStep('Enregistrement Firestore...');
+      // 4. Construction du document & écriture Firestore
+      setStatusStep('Enregistrement de la montre...');
       const descText = formData.shortDescription.trim() || formData.description.trim() || '';
 
       const payload: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -411,7 +416,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         shortDescription: descText,
         description: descText,
         images: finalImages,
-        coverImage: finalImages[0] || '',
+        coverImage: primaryImageBase64,
+        image: primaryImageBase64, // Stockage direct dans l'objet montre (champ image)
         productUrl: null,
         isActive: formData.active,
         active: formData.active, // Dual-key compatibility

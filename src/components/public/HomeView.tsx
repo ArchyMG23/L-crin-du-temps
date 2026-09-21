@@ -110,7 +110,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
     return featuredProducts.filter((p) => p.id !== spotlightPiece.id).slice(0, 3);
   }, [featuredProducts, spotlightPiece]);
 
-  // 4. Popular Products (by orderCount)
+  // 4. Popular Products (by orderCount) - Limited to 3 maximum
   const popularProducts = useMemo(() => {
     return [...activeProducts]
       .sort((a, b) => {
@@ -119,8 +119,31 @@ export const HomeView: React.FC<HomeViewProps> = ({
         if (countB !== countA) return countB - countA;
         return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
       })
-      .slice(0, 10);
+      .slice(0, 3);
   }, [activeProducts]);
+
+  const [activePopularIndex, setActivePopularIndex] = useState(0);
+  const popularCarouselRef = React.useRef<HTMLDivElement>(null);
+
+  const handlePopularCarouselScroll = () => {
+    if (!popularCarouselRef.current) return;
+    const container = popularCarouselRef.current;
+    const scrollLeft = container.scrollLeft;
+    const item = container.querySelector<HTMLElement>('[data-carousel-item]');
+    const itemWidth = item ? item.offsetWidth + 12 : container.offsetWidth * 0.8;
+    const index = Math.round(scrollLeft / (itemWidth || 1));
+    setActivePopularIndex(Math.min(Math.max(0, index), popularProducts.length - 1));
+  };
+
+  const scrollPopularToIndex = (index: number) => {
+    if (!popularCarouselRef.current) return;
+    const container = popularCarouselRef.current;
+    const items = container.querySelectorAll<HTMLElement>('[data-carousel-item]');
+    if (items[index]) {
+      items[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      setActivePopularIndex(index);
+    }
+  };
 
   // 5. New Arrivals (by createdAt)
   const newArrivals = useMemo(() => {
@@ -725,43 +748,156 @@ export const HomeView: React.FC<HomeViewProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* 3. SECTION : BESTSELLERS & TENDANCES (GRILLE ADAPTATIVE)                  */}
+      {/* 3. SECTION : MODÈLES POPULAIRES (CARROUSEL COMPACT & DISTINCT)           */}
       {/* ========================================================================= */}
       {popularProducts.length > 0 && (
         <motion.section
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
-          className="space-y-6 sm:space-y-8"
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-7 border border-[var(--or)]/20 bg-gradient-to-br from-[var(--carte-bg)]/90 via-[var(--bg)] to-[var(--carte-bg)]/80 shadow-md overflow-hidden"
         >
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[var(--sep)] pb-3 sm:pb-4">
+          {/* Subtle warm gold ambient sheen */}
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-radial from-[var(--or)]/10 to-transparent pointer-events-none filter blur-2xl" />
+          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-52 h-52 bg-radial from-[var(--or)]/5 to-transparent pointer-events-none filter blur-xl" />
+
+          {/* Discreet Header */}
+          <div className="relative z-10 flex items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-[var(--sep)]">
             <div>
-              <div className="flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.25em] text-[var(--or)] font-serif font-bold">
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-[0.2em] text-[var(--or)] font-serif font-medium">
                 <Flame className="w-3.5 h-3.5 text-[var(--or)]" />
-                <span>Tendances Horlogères</span>
+                <span>Sélection Bestsellers</span>
+                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[var(--or)]/15 border border-[var(--or)]/30 text-[var(--or)] font-mono">
+                  Top 3
+                </span>
               </div>
-              <h2 className="font-serif text-xl sm:text-3xl 2xl:text-4xl font-bold text-[var(--text)] mt-1">
-                Modèles Populaires & Bestsellers
-              </h2>
+              <h3 className="font-serif text-sm sm:text-base md:text-lg font-semibold text-[var(--text)] tracking-wide mt-0.5">
+                Modèles Prisés du Moment
+              </h3>
             </div>
 
-            <button
-              onClick={() => onNavigate('shop')}
-              className="text-xs uppercase tracking-[0.15em] font-semibold text-[var(--or)] hover:text-[var(--or-clair)] flex items-center gap-1.5 transition-colors"
-            >
-              <span>Explorer le catalogue</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Carousel Arrows */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => scrollPopularToIndex(Math.max(0, activePopularIndex - 1))}
+                  disabled={activePopularIndex === 0}
+                  aria-label="Montre précédente"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[var(--sep)] bg-[var(--carte-bg)] hover:border-[var(--or)] flex items-center justify-center text-[var(--text-soft)] hover:text-[var(--or)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollPopularToIndex(Math.min(popularProducts.length - 1, activePopularIndex + 1))}
+                  disabled={activePopularIndex === popularProducts.length - 1}
+                  aria-label="Montre suivante"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[var(--sep)] bg-[var(--carte-bg)] hover:border-[var(--or)] flex items-center justify-center text-[var(--text-soft)] hover:text-[var(--or)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              </div>
+
+              {/* View all link */}
+              <button
+                type="button"
+                onClick={() => onNavigate('shop')}
+                className="hidden sm:inline-flex items-center gap-1 text-xs uppercase tracking-[0.15em] font-semibold text-[var(--or)] hover:text-[var(--or-clair)] transition-colors pl-2"
+              >
+                <span>Tout voir</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
           </div>
 
-          {/* Fluid adaptive grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 2xl:gap-8">
-            {popularProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onSelect={onSelectProduct}
+          {/* Horizontal Snap Carousel */}
+          <div
+            ref={popularCarouselRef}
+            onScroll={handlePopularCarouselScroll}
+            className="relative z-10 flex gap-3 sm:gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory pt-4 pb-2 px-0.5 -mx-0.5 touch-pan-x"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            {popularProducts.map((product, idx) => {
+              const primaryImage =
+                product.image ||
+                product.images?.[0] ||
+                product.coverImage ||
+                'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=400';
+              const hasPromo = product.promotionalPrice && product.promotionalPrice < product.price;
+              const effectivePrice = hasPromo ? product.promotionalPrice! : product.price;
+
+              return (
+                <div
+                  key={product.id}
+                  data-carousel-item
+                  onClick={() => onSelectProduct(product)}
+                  className="w-[74vw] max-w-[240px] sm:w-[220px] md:w-[240px] flex-shrink-0 snap-center rounded-xl border border-[var(--sep)] bg-[var(--bg)] hover:border-[var(--or)]/60 transition-all duration-300 p-3 flex flex-col justify-between group cursor-pointer shadow-sm hover:shadow-md"
+                >
+                  {/* Top Rank / Bestseller Badge */}
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="font-mono font-bold text-[var(--or)] px-1.5 py-0.5 rounded bg-[var(--or)]/10 border border-[var(--or)]/20">
+                      #{idx + 1}
+                    </span>
+                    <span className="text-[10px] tracking-widest uppercase text-[var(--text-muted)] font-serif font-medium truncate max-w-[120px]">
+                      {product.brand || 'Maison'}
+                    </span>
+                  </div>
+
+                  {/* Compact Watch Thumbnail */}
+                  <div className="w-full h-28 sm:h-32 my-2 flex items-center justify-center relative overflow-hidden">
+                    <img
+                      src={primaryImage}
+                      alt={product.name}
+                      referrerPolicy="no-referrer"
+                      className="max-h-full max-w-full object-contain filter drop-shadow-md group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                  </div>
+
+                  {/* Watch Info (Compact) */}
+                  <div className="space-y-1 pt-1 border-t border-[var(--sep)]">
+                    <h4 className="font-serif text-xs sm:text-sm font-semibold text-[var(--text)] truncate group-hover:text-[var(--or)] transition-colors">
+                      {product.name}
+                    </h4>
+
+                    <div className="flex items-center justify-between pt-0.5">
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="font-mono text-xs font-bold text-[var(--or)]">
+                          {formatPrice(effectivePrice)}
+                        </span>
+                        {hasPromo && (
+                          <span className="font-mono text-[10px] text-[var(--text-muted)] line-through">
+                            {formatPrice(product.price)}
+                          </span>
+                        )}
+                      </div>
+
+                      <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--or)] group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
+                        Voir
+                        <ArrowRight className="w-2.5 h-2.5" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Carousel Position Indicators (Dots) */}
+          <div className="flex items-center justify-center gap-1.5 pt-3">
+            {popularProducts.map((_, i) => (
+              <button
+                key={`popular-dot-${i}`}
+                type="button"
+                onClick={() => scrollPopularToIndex(i)}
+                aria-label={`Aller au modèle populaire ${i + 1}`}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  activePopularIndex === i
+                    ? 'w-5 bg-[var(--or)]'
+                    : 'w-1.5 bg-[var(--sep)] hover:bg-[var(--text-muted)]'
+                }`}
               />
             ))}
           </div>

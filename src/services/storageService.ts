@@ -14,12 +14,11 @@ const ALLOWED_IMAGE_TYPES = [
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.avif'];
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
 
-// Fast in-memory map connecting Storage reference URLs to local blob URLs for immediate zero-lag display
+// Clean in-memory cache for fast display
 const localImageUrlMap = new Map<string, string>();
 
 /**
- * Resolves an image URL: if a local blob preview is cached for this storage reference, return it.
- * Otherwise, returns the original URL.
+ * Resolves an image URL: if the url is a base64 Data URL or standard URL, returns it.
  */
 export function getCachedImageUrl(url?: string | null): string {
   if (!url) return '';
@@ -30,83 +29,121 @@ export function getCachedImageUrl(url?: string | null): string {
 }
 
 /**
- * Uploads a product image directly to Firebase Cloud Storage.
- * Path: products/{productId}/{timestamp}_{index}_{cleanFileName}
- * Logs all steps: [PRODUCT_CREATE] Storage upload and [PRODUCT_CREATE] getDownloadURL
- * NEVER stores base64 strings in Firestore.
+ * Convertit un fichier image en chaîne base64 (Data URL) via FileReader et readAsDataURL().
+ * Utilise une Promise pour garantir une exécution asynchrone (async/await) avant la sauvegarde.
+ */
+export function convertFileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // Validation du fichier
+    if (!file) {
+      resolve('');
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      const rawBase64 = event.target?.result as string;
+      if (!rawBase64) {
+        resolve('');
+        return;
+      }
+
+      // Si le fichier est déjà léger (< 350 Ko) ou est un SVG/GIF, on conserve le base64 brut
+      if (
+        file.size <= 350 * 1024 ||
+        file.type === 'image/svg+xml' ||
+        file.type === 'image/gif'
+      ) {
+        resolve(rawBase64);
+        return;
+      }
+
+      // Pour les photos volumineuses (ex: smartphone 5 à 15 Mo), nous ajustons
+      // le canvas pour que la chaîne base64 tienne facilement dans Firestore (limite de 1 Mo par doc)
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxDim = 1200;
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(rawBase64);
+            return;
+          }
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Rendu en JPEG haute qualité
+          const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+          resolve(optimizedBase64 || rawBase64);
+        } catch {
+          resolve(rawBase64);
+        }
+      };
+      img.onerror = () => resolve(rawBase64);
+      img.src = rawBase64;
+    };
+
+    reader.onerror = (error) => {
+      console.error('Erreur FileReader readAsDataURL:', error);
+      reject(new Error(`Impossible de lire le fichier "${file.name}" en base64.`));
+    };
+
+    // Lecture asynchrone du fichier en base64 (Data URL)
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Uploads/converts a product image directly to a persistent base64 Data URL.
+ * Attend que la conversion soit terminée via async/await avant de retourner.
+ * Ne dépend d'aucune URL blob temporaire (createObjectURL).
  */
 export async function uploadProductImage(
   file: File,
-  productId: string,
-  index: number
+  _productId?: string,
+  index?: number
 ): Promise<string> {
   const tStart = performance.now();
-  console.log(`[PRODUCT_CREATE] Storage upload: Starting upload for image #${index + 1} (${file.name}, ${(file.size / 1024).toFixed(1)} KB) for product ${productId}`);
+  console.log(`[WATCH IMAGE] Conversion base64: Début lecture image #${(index ?? 0) + 1} (${file.name}, ${(file.size / 1024).toFixed(1)} Ko)`);
   
-  // 1. Ensure authenticated session for Firebase Storage Security Rules (cached session completes in 0ms)
-  await ensureAdminAuth();
-
-  // 2. Validate file size
+  // 1. Validation de la taille maximale (20 Mo)
   if (file.size > MAX_FILE_SIZE_BYTES) {
     const errorMsg = `Le fichier "${file.name}" dépasse la taille maximale autorisée de 20 Mo (${(file.size / (1024 * 1024)).toFixed(1)} Mo).`;
-    console.error(`[PRODUCT_CREATE] Storage upload validation error:`, errorMsg);
+    console.error(`[WATCH IMAGE] Validation error:`, errorMsg);
     throw new Error(errorMsg);
   }
 
-  // 3. Validate MIME type or extension
+  // 2. Validation du type MIME
   const lowerName = file.name.toLowerCase();
   const hasValidExtension = ALLOWED_EXTENSIONS.some(ext => lowerName.endsWith(ext));
   const hasValidMime = ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase()) || file.type.startsWith('image/');
   
   if (!hasValidExtension && !hasValidMime) {
     const errorMsg = `Format de fichier non autorisé pour "${file.name}". Formats acceptés : JPG, PNG, WebP, GIF, SVG.`;
-    console.error(`[PRODUCT_CREATE] Storage upload validation error:`, errorMsg);
+    console.error(`[WATCH IMAGE] Validation error:`, errorMsg);
     throw new Error(errorMsg);
   }
 
-  const timestamp = Date.now();
-  const cleanFileName = file.name
-    .replace(/[^a-zA-Z0-9._-]/g, '_')
-    .slice(0, 60);
-  const storagePath = `products/${productId}/${timestamp}_${index}_${cleanFileName}`;
-  const storageRef = ref(storage, storagePath);
+  // 3. Conversion systématique en base64 Data URL via FileReader.readAsDataURL()
+  const base64DataUrl = await convertFileToBase64(file);
+  console.log(`[WATCH IMAGE] Conversion base64 terminée en ${(performance.now() - tStart).toFixed(1)}ms`);
 
-  try {
-    const uploadTask = uploadBytes(storageRef, file, {
-      contentType: file.type || 'image/jpeg',
-      customMetadata: {
-        productId,
-        index: String(index),
-        originalName: cleanFileName,
-        uploadedAt: new Date().toISOString()
-      }
-    }).then(snapshot => getDownloadURL(snapshot.ref));
-
-    const timeoutTask = new Promise<string>((_, reject) =>
-      setTimeout(() => reject(new Error('Storage upload timeout')), 1500)
-    );
-
-    const downloadUrl = await Promise.race([uploadTask, timeoutTask]);
-    console.log(`[PRODUCT_CREATE] Storage upload: Finished byte upload for ${file.name} to ${storagePath} in ${(performance.now() - tStart).toFixed(1)}ms`);
-    console.log(`[PRODUCT_CREATE] getDownloadURL: Obtained download URL: ${downloadUrl}`);
-    return downloadUrl;
-  } catch (error: any) {
-    // Generate valid Firebase Storage reference URL according to rule 4:
-    // "NE PAS STOCKER LES IMAGES EN BASE64 DANS FIRESTORE. Firestore doit conserver uniquement les références nécessaires aux images : URL ou storage path."
-    const bucketName = activeFirebaseConfig.storageBucket || 'lecrin-da9b7.firebasestorage.app';
-    const encodedPath = encodeURIComponent(storagePath);
-    const storageReferenceUrl = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
-
-    if (typeof window !== 'undefined') {
-      try {
-        const localBlobUrl = URL.createObjectURL(file);
-        localImageUrlMap.set(storageReferenceUrl, localBlobUrl);
-      } catch {}
-    }
-
-    console.log(`[PRODUCT_CREATE] Storage reference created: ${storageReferenceUrl} (in ${(performance.now() - tStart).toFixed(1)}ms)`);
-    return storageReferenceUrl;
-  }
+  return base64DataUrl;
 }
 
 /**

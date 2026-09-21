@@ -233,7 +233,9 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                   <div className="flex items-start gap-3">
                     <img
                       src={
+                        product.image ||
                         product.images?.[0] ||
+                        product.coverImage ||
                         'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=200'
                       }
                       alt={product.name}
@@ -362,7 +364,9 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                           <div className="flex items-center gap-3">
                             <img
                               src={
+                                product.image ||
                                 product.images?.[0] ||
+                                product.coverImage ||
                                 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=200'
                               }
                               alt={product.name}

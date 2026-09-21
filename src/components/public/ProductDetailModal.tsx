@@ -63,7 +63,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const isLowStock = product.stock > 0 && product.stock <= (product.lowStockThreshold || 2);
   const images = product.images && product.images.length > 0
     ? product.images
-    : ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=1000'];
+    : (product.image ? [product.image] : (product.coverImage ? [product.coverImage] : ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=1000']));
 
   const hasPromo = product.promotionalPrice && product.promotionalPrice < product.price;
   const effectivePrice = hasPromo ? product.promotionalPrice! : product.price;
