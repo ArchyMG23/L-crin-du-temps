@@ -1,12 +1,12 @@
 {
-  "projectId": "aerial-xylocarp-btgzl",
-  "appId": "1:950696898237:web:0db241dbe8c0028cf951d4",
-  "apiKey": "AIzaSyDTeo7G4g1wFjaDp5DTnxO61Ptr2TJly4M",
-  "authDomain": "aerial-xylocarp-btgzl.firebaseapp.com",
+  "projectId": "lecrin-da9b7",
+  "appId": "1:634998292962:web:926d9d2f5f78806778f9bb",
+  "apiKey": "AIzaSyB-vObiZ5CjEWwr-wTK5YleyqpsyMAru8w",
+  "authDomain": "lecrin-da9b7.firebaseapp.com",
   "firestoreDatabaseId": "(default)",
-  "storageBucket": "aerial-xylocarp-btgzl.firebasestorage.app",
-  "messagingSenderId": "950696898237",
+  "storageBucket": "lecrin-da9b7.firebasestorage.app",
+  "messagingSenderId": "634998292962",
   "measurementId": "",
-  "oAuthClientId": "950696898237-rs196mkl4hp8cmvmuvceni3qq5nuuklr.apps.googleusercontent.com",
+  "oAuthClientId": "",
   "recaptchaSiteKey": ""
 }

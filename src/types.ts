@@ -39,9 +39,9 @@ export interface Product {
   id: string;
   name: string;
   brand: string;
-  collectionId?: string;
-  collectionName?: string;
-  categoryId?: string;
+  collectionId?: string | null;
+  collectionName?: string | null;
+  categoryId?: string | null;
   gender: Gender;
   description: string;
   shortDescription?: string;

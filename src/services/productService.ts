@@ -80,7 +80,8 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
       const promo = data.promoPrice !== undefined ? data.promoPrice : (data.promotionalPrice !== undefined ? data.promotionalPrice : null);
       const images = Array.isArray(data.images) ? data.images : [];
       const coverImage = data.coverImage || images[0] || '';
-      const collectionId = data.collectionId || data.categoryId || '';
+      const rawCol = data.collectionId || data.categoryId;
+      const collectionId = rawCol && String(rawCol).trim() !== '' ? String(rawCol) : null;
       const categoryId = collectionId;
 
       return {
@@ -88,7 +89,7 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
         ...data,
         collectionId,
         categoryId,
-        collectionName: data.collectionName || '',
+        collectionName: data.collectionName || null,
         price: Number(data.price) || 0,
         promoPrice: promo !== null && promo !== undefined ? Number(promo) : null,
         promotionalPrice: promo !== null && promo !== undefined ? Number(promo) : null,
@@ -314,17 +315,20 @@ export async function createProduct(
   persistLocalProduct(newProduct);
 
   try {
-    await withTimeout(setDoc(docRef, newProduct), 5000, null, 'firestore-setdoc-product');
-    console.log(`[WATCH_CREATE] FIRESTORE WRITE SUCCESS for ${docRef.id}`);
+    await Promise.race([
+      setDoc(docRef, newProduct),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Le délai d\'écriture Firestore a expiré (timeout 10s).')), 10000)
+      )
+    ]);
+    console.log(`[WATCH CREATE] FIRESTORE WRITE SUCCESS for ${docRef.id}`);
     return docRef.id;
   } catch (error: any) {
     console.error(
-      '[ADMIN ERROR]\nproducts.create\ncode:',
+      '[WATCH CREATE] ERROR\ncode:',
       error?.code || 'unknown',
       '\nmessage:',
-      error?.message || String(error),
-      '\ndetails:',
-      error
+      error?.message || String(error)
     );
     handleFirestoreError(error, OperationType.CREATE, `${PRODUCTS_COLLECTION}/${docRef.id}`);
   }

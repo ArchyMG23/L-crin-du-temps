@@ -128,6 +128,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Health check and diagnostic probes (authenticated only):
+    match /firebase_diagnostic/{docId} {
+      allow read, write: if isSignedIn();
+    }
+
     // Health check test connection:
     match /test/{testId} {
       allow read: if true;

@@ -11,6 +11,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { uploadProductImage } from '../../services/storageService';
 import { fetchCategoriesWithStatus } from '../../services/categoryService';
+import { ensureAdminAuth } from '../../services/adminService';
 
 export interface ProductModalImage {
   id: string;
@@ -309,7 +310,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
 
     try {
       setLoading(true);
-      console.log('[WATCH_CREATE] START');
+      console.log('[WATCH CREATE] START');
 
       // 1. Validation
       if (!formData.name.trim()) {
@@ -334,30 +335,39 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       const stockNum = Math.max(0, Math.floor(Number(formData.stock) || 0));
       const lowStockThresholdNum = Math.max(0, Math.floor(Number(formData.lowStockThreshold) || 2));
 
-      // Strict validation for Collection / Catégorie
-      if (!formData.categoryId || formData.categoryId.trim() === '') {
-        setError('Veuillez sélectionner une collection.');
-        const selectElem = document.getElementById('admin-product-category');
-        if (selectElem) selectElem.focus();
-        return;
+      // Collection / Catégorie is OPTIONAL
+      let collectionId: string | null = null;
+      let collectionName: string | null = null;
+
+      if (formData.categoryId && formData.categoryId.trim() !== '') {
+        const chosenCollection = collectionsList.find(c => c.id === formData.categoryId);
+        if (chosenCollection) {
+          collectionId = chosenCollection.id;
+          collectionName = chosenCollection.name;
+        } else {
+          collectionId = formData.categoryId.trim();
+          collectionName = null;
+        }
       }
 
-      const chosenCollection = collectionsList.find(c => c.id === formData.categoryId);
-      if (!chosenCollection) {
-        setError('Veuillez sélectionner une collection valide enregistrée dans Firestore.');
-        return;
+      console.log('[WATCH CREATE] VALIDATION OK');
+
+      // 2. Auth check with timeout guard
+      console.log('[WATCH CREATE] AUTH CHECK');
+      try {
+        await Promise.race([
+          ensureAdminAuth(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Auth check timeout')), 2000))
+        ]);
+      } catch (authErr) {
+        console.warn('[WATCH CREATE] Auth check note:', authErr);
       }
 
-      const collectionId = chosenCollection.id;
-      const collectionName = chosenCollection.name;
-
-      console.log('[WATCH_CREATE] FORM VALIDATED');
-
-      // 2. Target Firestore document ID
+      // 3. Target Firestore document ID
       const targetDocId = product?.id || doc(collection(db, 'products')).id;
 
-      // 3. Upload images if needed
-      console.log('[WATCH_CREATE] IMAGE UPLOAD START');
+      // 4. Upload images if needed
+      console.log('[WATCH CREATE] IMAGE UPLOAD START');
       const finalImages: string[] = [];
 
       for (let i = 0; i < imageItems.length; i++) {
@@ -367,18 +377,18 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
             const downloadUrl = await uploadProductImage(item.file, targetDocId, i);
             finalImages.push(downloadUrl);
           } catch (uploadErr: any) {
-            console.error('[WATCH_CREATE] ERROR\ncode:', uploadErr?.code || 'storage-error', '\nmessage:', uploadErr?.message);
-            throw new Error(`Échec du téléversement de l'image "${item.file.name}" sur Firebase Storage : ${uploadErr?.message || uploadErr?.code || 'Erreur Storage'}`);
+            console.error('[WATCH CREATE] ERROR\ncode:', uploadErr?.code || 'storage-error', '\nmessage:', uploadErr?.message);
+            throw new Error(`Échec du téléversement de l'image "${item.file.name}" : ${uploadErr?.message || uploadErr?.code || 'Erreur Storage'}`);
           }
         } else if (item.previewUrl && !item.previewUrl.startsWith('blob:')) {
           finalImages.push(item.previewUrl);
         }
       }
 
-      console.log('[WATCH_CREATE] IMAGE UPLOAD SUCCESS');
+      console.log('[WATCH CREATE] IMAGE UPLOAD SUCCESS');
 
-      // 4. Construction du document
-      console.log('[WATCH_CREATE] FIRESTORE WRITE START');
+      // 5. Construction du document
+      console.log('[WATCH CREATE] FIRESTORE WRITE START');
       const descText = formData.shortDescription.trim() || formData.description.trim() || '';
 
       const payload: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -418,16 +428,16 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         }
       };
 
-      // 5. Écriture Firestore & Confirmation
+      // 6. Écriture Firestore & Confirmation
       await onSave(payload, product?.id, targetDocId);
 
-      console.log('[WATCH_CREATE] FIRESTORE WRITE SUCCESS');
-      console.log('[WATCH_CREATE] COMPLETE');
+      console.log('[WATCH CREATE] FIRESTORE WRITE SUCCESS');
+      console.log('[WATCH CREATE] COMPLETE');
 
       onClose();
     } catch (err: any) {
       console.error(
-        '[WATCH_CREATE] ERROR\ncode:',
+        '[WATCH CREATE] ERROR\ncode:',
         err?.code || 'unknown',
         '\nmessage:',
         err?.message || String(err)
@@ -498,11 +508,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               />
             </div>
 
-            {/* Collection / Catégorie */}
+            {/* Collection / Catégorie (Facultatif) */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label htmlFor="admin-product-category" className="text-xs text-[var(--text)] font-semibold flex items-center gap-1">
-                  Collection / Catégorie <span className="text-[var(--or)]">*</span>
+                <label htmlFor="admin-product-category" className="text-xs text-[var(--text)] font-semibold">
+                  Collection / Catégorie
                 </label>
                 {onNavigateToCategories && (
                   <button
@@ -534,20 +544,21 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                 <div>
                   <select
                     id="admin-product-category"
-                    disabled
-                    className="w-full bg-[var(--input-bg)] border border-rose-500/40 text-[var(--text-muted)] rounded-xl px-3 py-2.5 text-xs focus:outline-none shadow-xs"
+                    value={formData.categoryId}
+                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text)] rounded-xl px-3 py-2.5 text-xs focus:outline-none shadow-xs cursor-pointer"
                   >
-                    <option value="">-- Impossible de charger les collections --</option>
+                    <option value="">Aucune collection</option>
                   </select>
-                  <div className="mt-1.5 p-2.5 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start justify-between gap-2 text-[11px] text-rose-600 dark:text-rose-400">
+                  <div className="mt-1.5 p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start justify-between gap-2 text-[11px] text-amber-700 dark:text-amber-300">
                     <div className="flex items-start gap-1.5">
-                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                      <span>{collectionsError}</span>
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <span>{collectionsError} (La montre peut être créée sans collection)</span>
                     </div>
                     <button
                       type="button"
                       onClick={refreshCollections}
-                      className="text-xs font-semibold underline shrink-0 hover:text-rose-700 dark:hover:text-rose-300 cursor-pointer"
+                      className="text-xs font-semibold underline shrink-0 hover:text-amber-800 dark:hover:text-amber-200 cursor-pointer"
                     >
                       Réessayer
                     </button>
@@ -557,37 +568,17 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                 <div>
                   <select
                     id="admin-product-category"
-                    disabled
-                    className="w-full bg-[var(--input-bg)] border border-amber-500/40 text-[var(--text-muted)] rounded-xl px-3 py-2.5 text-xs focus:outline-none shadow-xs"
+                    value={formData.categoryId}
+                    onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] text-[var(--text)] rounded-xl px-3 py-2.5 text-xs focus:outline-none shadow-xs cursor-pointer"
                   >
-                    <option value="">-- Aucune collection disponible --</option>
+                    <option value="">Aucune collection</option>
                   </select>
-                  <div className="mt-1.5 p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start justify-between gap-2 text-[11px] text-amber-700 dark:text-amber-300">
-                    <div className="flex items-start gap-1.5">
-                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                      <div>
-                        <p className="font-semibold">Aucune collection disponible.</p>
-                        <p className="text-[10px] opacity-90 mt-0.5">
-                          Créez d'abord une collection depuis Collections & Catégories.
-                        </p>
-                      </div>
-                    </div>
-                    {onNavigateToCategories && (
-                      <button
-                        type="button"
-                        onClick={onNavigateToCategories}
-                        className="px-2.5 py-1 bg-amber-600 text-white rounded-lg text-xs font-medium shrink-0 hover:bg-amber-700 transition-colors shadow-xs cursor-pointer"
-                      >
-                        Gérer les collections
-                      </button>
-                    )}
-                  </div>
                 </div>
               ) : (
                 <div className="relative">
                   <select
                     id="admin-product-category"
-                    required
                     value={formData.categoryId}
                     onChange={(e) => {
                       setFormData({ ...formData, categoryId: e.target.value });
@@ -595,7 +586,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                     }}
                     className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs cursor-pointer"
                   >
-                    <option value="">Sélectionner une collection...</option>
+                    <option value="">Aucune collection</option>
                     {collectionsList.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}

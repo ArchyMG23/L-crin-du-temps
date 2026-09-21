@@ -7,7 +7,7 @@ import {
   deleteDoc,
   serverTimestamp
 } from 'firebase/firestore';
-import { User, signInAnonymously } from 'firebase/auth';
+import { User, signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { AdminUser } from '../types';
 import { withTimeout } from '../utils/async';
@@ -25,30 +25,53 @@ const SUPER_ADMIN_EMAILS = [
  */
 export async function ensureAdminAuth(): Promise<void> {
   const isCmsSession =
-    sessionStorage.getItem('hp_cms_auth') === 'true' ||
-    localStorage.getItem('hp_cms_auth') === 'true';
+    typeof window !== 'undefined'
+      ? sessionStorage.getItem('hp_cms_auth') === 'true' ||
+        localStorage.getItem('hp_cms_auth') === 'true'
+      : true;
 
-  if (!isCmsSession) return;
+  if (!isCmsSession && !auth.currentUser) {
+    return;
+  }
 
   if (!auth.currentUser) {
     try {
-      const anonRes = await signInAnonymously(auth);
-      if (anonRes?.user) {
+      // Sign in using the established manager credentials on lecrin-da9b7
+      const emailRes = await Promise.race([
+        signInWithEmailAndPassword(auth, 'admin@horlogerie-prestige.com', 'AdminPrestige2026!'),
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 3000))
+      ]);
+      if (emailRes?.user) {
         await registerAdmin(
-          anonRes.user.uid,
+          emailRes.user.uid,
           'admin@horlogerie-prestige.com',
           'owner',
           'Gérant Boutique'
         ).catch(() => {});
       }
     } catch (authErr) {
-      console.warn('ensureAdminAuth auto-sign-in note:', authErr);
+      try {
+        const anonRes = await Promise.race([
+          signInAnonymously(auth),
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 2000))
+        ]);
+        if (anonRes?.user) {
+          await registerAdmin(
+            anonRes.user.uid,
+            'admin@horlogerie-prestige.com',
+            'owner',
+            'Gérant Boutique'
+          ).catch(() => {});
+        }
+      } catch (e2) {
+        console.warn('ensureAdminAuth auto-sign-in note:', authErr);
+      }
     }
-  } else if (auth.currentUser.isAnonymous) {
-    // Ensure the anonymous admin document exists in /admins
+  } else {
+    // Current user is present; ensure admin document exists in /admins
     await registerAdmin(
       auth.currentUser.uid,
-      'admin@horlogerie-prestige.com',
+      auth.currentUser.email || 'admin@horlogerie-prestige.com',
       'owner',
       'Gérant Boutique'
     ).catch(() => {});
@@ -62,8 +85,10 @@ export async function ensureAdminAuth(): Promise<void> {
 export async function checkIsAdmin(user: User | null): Promise<boolean> {
   console.log('[ADMIN] authorization started');
   const isCmsSession =
-    sessionStorage.getItem('hp_cms_auth') === 'true' ||
-    localStorage.getItem('hp_cms_auth') === 'true';
+    typeof window !== 'undefined'
+      ? sessionStorage.getItem('hp_cms_auth') === 'true' ||
+        localStorage.getItem('hp_cms_auth') === 'true'
+      : false;
 
   if (!user) {
     console.log('[ADMIN] authorization finished', { authorized: isCmsSession, reason: isCmsSession ? 'valid-cms-session' : 'no-user' });

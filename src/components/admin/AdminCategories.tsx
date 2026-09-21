@@ -16,6 +16,7 @@ import { Category, Product } from '../../types';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { uploadImageFile } from '../../services/storageService';
+import { ensureAdminAuth } from '../../services/adminService';
 
 interface AdminCategoriesProps {
   categories: Category[];
@@ -109,6 +110,21 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
 
     try {
       setLoading(true);
+      console.log('[COLLECTION CREATE] START');
+
+      console.log('[COLLECTION CREATE] VALIDATION OK');
+
+      console.log('[COLLECTION CREATE] AUTH CHECK');
+      try {
+        await Promise.race([
+          ensureAdminAuth(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 2000))
+        ]);
+        console.log('[COLLECTION CREATE] AUTH OK');
+      } catch (authErr) {
+        console.warn('[COLLECTION CREATE] Auth note:', authErr);
+      }
+
       const categoryData = {
         name: name.trim(),
         slug: slug.trim() || generateSlug(name),
@@ -117,14 +133,25 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
         active
       };
 
+      console.log('[COLLECTION CREATE] FIRESTORE WRITE START');
       if (editingCategory) {
         await onUpdateCategory(editingCategory.id, categoryData);
       } else {
         await onCreateCategory(categoryData);
       }
+      console.log('[COLLECTION CREATE] FIRESTORE WRITE SUCCESS');
+
+      console.log('[COLLECTION CREATE] UI UPDATE');
       setModalOpen(false);
+      console.log('[COLLECTION CREATE] COMPLETE');
     } catch (err: any) {
-      setError("Erreur lors de l'enregistrement de la collection.");
+      console.error(
+        '[COLLECTION CREATE] ERROR\ncode:',
+        err?.code || 'unknown',
+        '\nmessage:',
+        err?.message || String(err)
+      );
+      setError(err?.message || "Erreur lors de l'enregistrement de la collection.");
     } finally {
       setLoading(false);
     }
@@ -339,9 +366,9 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
               <input
                 type="url"
                 id="admin-category-image-url"
-                value={image}
+                value={image.startsWith('data:') ? '' : image}
                 onChange={(e) => setImage(e.target.value)}
-                placeholder="https://images.unsplash.com/..."
+                placeholder={image.startsWith('data:') ? 'Fichier téléversé (prêt)' : 'https://images.unsplash.com/...'}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-[var(--text)] focus:outline-none shadow-xs"
               />
               <div className="flex items-center gap-2">
@@ -357,9 +384,18 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
                   />
                 </label>
                 {image && (
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Image configurée
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {image.startsWith('data:') ? 'Fichier sélectionné' : 'URL configurée'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setImage('')}
+                      className="text-xs text-rose-500 hover:underline cursor-pointer"
+                    >
+                      Supprimer
+                    </button>
+                  </div>
                 )}
               </div>
             </div>

@@ -36,7 +36,7 @@
         "createdAt": { "type": "string" },
         "updatedAt": { "type": "string" }
       },
-      "required": ["name", "brand", "collectionId", "price", "stock", "images"]
+      "required": ["name", "brand", "price", "stock", "images"]
     },
     "Collection": {
       "title": "Collection",

@@ -5,33 +5,52 @@ import { getStorage } from 'firebase/storage';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import config from '../../firebase-applet-config.json';
 
-// Determine Firebase configuration (supporting local console project override if set)
+// Determine Firebase configuration (prioritizing user project and env variables)
 const getEffectiveFirebaseConfig = () => {
+  const metaEnv = typeof import.meta !== 'undefined' ? (import.meta as any).env || {} : {};
+  const envProjectId = metaEnv.VITE_FIREBASE_PROJECT_ID || '';
+  const envAppId = metaEnv.VITE_FIREBASE_APP_ID || '';
+  const envApiKey = metaEnv.VITE_FIREBASE_API_KEY || '';
+  const envAuthDomain = metaEnv.VITE_FIREBASE_AUTH_DOMAIN || '';
+  const envStorageBucket = metaEnv.VITE_FIREBASE_STORAGE_BUCKET || '';
+  const envMessagingSenderId = metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || '';
+
+  // Clean up any stale custom config that pointed to the wrong sandbox project
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem('hp_custom_firebase_config');
       if (stored) {
         const custom = JSON.parse(stored);
-        if (custom.projectId) {
+        if (custom.projectId === 'aerial-xylocarp-btgzl' || !custom.projectId) {
+          localStorage.removeItem('hp_custom_firebase_config');
+        } else if (custom.projectId && custom.projectId !== 'aerial-xylocarp-btgzl') {
           return {
-            apiKey: custom.apiKey || config.apiKey,
+            apiKey: custom.apiKey || envApiKey || config.apiKey,
             authDomain: custom.authDomain || `${custom.projectId}.firebaseapp.com`,
             projectId: custom.projectId,
             storageBucket: custom.storageBucket || `${custom.projectId}.firebasestorage.app`,
-            messagingSenderId: custom.messagingSenderId || config.messagingSenderId,
-            appId: custom.appId || config.appId,
+            messagingSenderId: custom.messagingSenderId || envMessagingSenderId || config.messagingSenderId,
+            appId: custom.appId || envAppId || config.appId,
           };
         }
       }
     } catch {}
   }
+
+  const projectId = envProjectId || config.projectId || 'lecrin-da9b7';
+  const appId = envAppId || config.appId;
+  const apiKey = envApiKey || config.apiKey;
+  const authDomain = envAuthDomain || config.authDomain || `${projectId}.firebaseapp.com`;
+  const storageBucket = envStorageBucket || config.storageBucket || `${projectId}.firebasestorage.app`;
+  const messagingSenderId = envMessagingSenderId || config.messagingSenderId;
+
   return {
-    apiKey: config.apiKey,
-    authDomain: config.authDomain,
-    projectId: config.projectId,
-    storageBucket: config.storageBucket,
-    messagingSenderId: config.messagingSenderId,
-    appId: config.appId,
+    apiKey,
+    authDomain,
+    projectId,
+    storageBucket,
+    messagingSenderId,
+    appId,
   };
 };
 

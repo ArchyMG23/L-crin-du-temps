@@ -9,7 +9,7 @@ import {
   query,
   where
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, activeFirebaseConfig, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Category } from '../types';
 import { ensureAdminAuth } from './adminService';
 import { withTimeout } from '../utils/async';
@@ -76,7 +76,7 @@ export async function fetchCategoriesWithStatus(onlyActive = false): Promise<Fet
     const isNotFound = errCode === 'not-found' || errMsg.includes('NOT_FOUND') || errMsg.includes('not-found');
 
     const friendlyMessage = isNotFound
-      ? "Base de données Cloud Firestore (default) introuvable ou non activée sur le projet Firebase aerial-xylocarp-btgzl."
+      ? `Base de données Cloud Firestore (default) introuvable ou non activée sur le projet Firebase "${activeFirebaseConfig.projectId}".`
       : "Impossible de charger les collections. Vérifiez la connexion à Firebase.";
 
     console.warn('[FIRESTORE] Collections fetch failed with error:', { code: errCode, message: errMsg });
@@ -219,13 +219,23 @@ export async function createCategory(catData: Omit<Category, 'id' | 'createdAt' 
   };
 
   try {
-    await setDoc(docRef, newCat);
-    // Mirror to legacy collection for compatibility
-    await setDoc(doc(db, LEGACY_COLLECTION, docRef.id), newCat).catch(() => {});
+    await Promise.race([
+      setDoc(docRef, newCat),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Délai d\'écriture Firestore dépassé (timeout 10s).')), 10000)
+      )
+    ]);
+    // Mirror to legacy collection for compatibility with safety
+    Promise.race([
+      setDoc(doc(db, LEGACY_COLLECTION, docRef.id), newCat),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+    ]).catch(() => {});
+
+    console.log(`[COLLECTION CREATE] FIRESTORE WRITE SUCCESS for ${docRef.id}`);
     return docRef.id;
   } catch (error: any) {
     console.error(
-      '[ADMIN ERROR]\ncollections.create\ncode:',
+      '[COLLECTION CREATE] ERROR\ncode:',
       error?.code || 'unknown',
       '\nmessage:',
       error?.message || String(error)
@@ -247,8 +257,16 @@ export async function updateCategory(id: string, updates: Partial<Category>): Pr
 
   try {
     const docRef = doc(db, PRIMARY_COLLECTION, id);
-    await updateDoc(docRef, normalized);
-    await updateDoc(doc(db, LEGACY_COLLECTION, id), normalized).catch(() => {});
+    await Promise.race([
+      updateDoc(docRef, normalized),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Délai d\'écriture Firestore dépassé (timeout 10s).')), 10000)
+      )
+    ]);
+    Promise.race([
+      updateDoc(doc(db, LEGACY_COLLECTION, id), normalized),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+    ]).catch(() => {});
   } catch (error: any) {
     console.error(
       '[ADMIN ERROR]\ncollections.update\ncode:',

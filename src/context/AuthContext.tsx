@@ -349,12 +349,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
-        const anonResult = await signInAnonymously(auth);
-        if (anonResult?.user) {
-          await registerAdmin(anonResult.user.uid, 'admin@horlogerie-prestige.com', 'owner', 'Gérant Boutique').catch(() => {});
+        const emailResult = await signInWithEmailAndPassword(auth, 'admin@horlogerie-prestige.com', 'AdminPrestige2026!');
+        if (emailResult?.user) {
+          await registerAdmin(emailResult.user.uid, 'admin@horlogerie-prestige.com', 'owner', 'Gérant Boutique').catch(() => {});
         }
       } catch (authErr) {
-        console.info('Session locale CMS sécurisée initialisée');
+        try {
+          const anonResult = await signInAnonymously(auth);
+          if (anonResult?.user) {
+            await registerAdmin(anonResult.user.uid, 'admin@horlogerie-prestige.com', 'owner', 'Gérant Boutique').catch(() => {});
+          }
+        } catch {
+          console.info('Session locale CMS sécurisée initialisée');
+        }
       }
 
       sessionStorage.setItem('hp_cms_auth', 'true');
@@ -370,17 +377,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       try {
-        const anonResult = await signInAnonymously(auth);
-        if (anonResult?.user) {
-          await registerAdmin(anonResult.user.uid, 'admin@horlogerie-prestige.com', 'admin', 'Gérant Démo').catch(() => {});
+        const emailResult = await signInWithEmailAndPassword(auth, 'admin@horlogerie-prestige.com', 'AdminPrestige2026!');
+        if (emailResult?.user) {
+          await registerAdmin(emailResult.user.uid, 'admin@horlogerie-prestige.com', 'owner', 'Gérant Démo').catch(() => {});
         }
       } catch {
-        // Safe fallback
+        try {
+          const anonResult = await signInAnonymously(auth);
+          if (anonResult?.user) {
+            await registerAdmin(anonResult.user.uid, 'admin@horlogerie-prestige.com', 'admin', 'Gérant Démo').catch(() => {});
+          }
+        } catch {}
       }
       sessionStorage.setItem('hp_cms_auth', 'true');
       setIsAdmin(true);
-    } catch (e) {
-      sessionStorage.setItem('hp_cms_auth', 'true');
+    } catch (e: any) {
+      console.warn('Quick login notice:', e);
       setIsAdmin(true);
     } finally {
       setLoading(false);
