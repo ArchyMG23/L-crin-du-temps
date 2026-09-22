@@ -123,6 +123,8 @@ export function buildProductInquiryMessage(
 
 /**
  * Builds the official purchase order breakdown transmitted to WhatsApp upon checkout.
+ * Detailed multi-items: model name, brand, unit price (FCFA), watch photo URL (Firebase Storage),
+ * complete recap with total items, total order price, and customer details.
  */
 export function buildOrderWhatsAppMessage(
   order: Order,
@@ -131,44 +133,64 @@ export function buildOrderWhatsAppMessage(
 ): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
 
+  const totalItemsCount = order.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  const distinctCount = order.items.length;
+
   const itemsText = order.items
-    .map((item) => {
+    .map((item, index) => {
       let imgUrl = item.image || '';
       if (imgUrl.startsWith('/') && origin) {
         imgUrl = `${origin}${imgUrl}`;
       }
       const hasValidImg = imgUrl && !imgUrl.startsWith('blob:') && !imgUrl.startsWith('data:');
-      const imgLine = hasValidImg ? `\n   📸 *Photo :* ${imgUrl}` : '';
-      return `▪ *${item.quantity}x* ${item.name}\n   Prix: ${formatPrice(item.price)} (Sous-total: ${formatPrice(item.subtotal)})${imgLine}`;
+      const unitPriceFormatted = formatPrice(item.unitPrice || item.price);
+      const subtotalFormatted = formatPrice(item.subtotal || ((item.unitPrice || item.price) * item.quantity));
+      const brandName = item.brand?.trim() || 'Horlogerie de Prestige';
+      const photoLine = hasValidImg ? `   📸 *Photo (Firebase Storage) :* ${imgUrl}` : '';
+
+      return [
+        `⌚ *MONTRE ${index + 1} / ${distinctCount} :*`,
+        `   • *Modèle :* ${item.name}`,
+        `   • *Marque :* ${brandName}`,
+        `   • *Prix unitaire :* ${unitPriceFormatted}`,
+        `   • *Quantité :* ${item.quantity}${item.quantity > 1 ? ` (Sous-total : ${subtotalFormatted})` : ''}`,
+        photoLine
+      ]
+        .filter(Boolean)
+        .join('\n');
     })
     .join('\n\n');
 
-  const greeting = customDefaultMessage?.trim() || "Bonjour ! Je viens de réserver ces garde-temps sur votre boutique en ligne et je souhaite finaliser ma commande avec vous.";
+  const greeting =
+    customDefaultMessage?.trim() ||
+    "Bonjour ! Je viens de réserver ces garde-temps sur votre boutique en ligne et je souhaite finaliser ma commande avec vous.";
 
   const message = [
     `👑 *NOUVELLE COMMANDE - ${storeName.toUpperCase()}*`,
     `━━━━━━━━━━━━━━━━━━━━━`,
-    `📋 *N° Commande :* #${order.orderNumber}`,
+    `📋 *N° Commande :* #${order.orderNumber || order.id.slice(0, 8)}`,
     `📅 *Date :* ${new Date(order.createdAt).toLocaleDateString('fr-FR')} à ${new Date(order.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`,
     ``,
-    `🛍️ *ARTICLES COMMANDÉS :*`,
+    `🛍️ *MONTRES COMMANDÉES (${distinctCount} modèle${distinctCount > 1 ? 's' : ''}) :*`,
     itemsText,
     ``,
     `━━━━━━━━━━━━━━━━━━━━━`,
-    `💵 *Sous-total :* ${formatPrice(order.subtotal)}`,
-    `📦 *Expédition :* ${order.shipping > 0 ? formatPrice(order.shipping) : 'Offerte (Sous écrin sécurisé)'}`,
-    `💎 *TOTAL À RÉGLER :* *${formatPrice(order.total)}*`,
+    `📊 *RÉCAPITULATIF DE LA COMMANDE :*`,
+    `• *Nombre total d'articles :* ${totalItemsCount} montre${totalItemsCount > 1 ? 's' : ''}`,
+    `• *Sous-total :* ${formatPrice(order.subtotal)}`,
+    `• *Expédition :* ${order.shipping > 0 ? formatPrice(order.shipping) : 'Offerte (Sous écrin sécurisé)'}`,
+    `• 💎 *PRIX TOTAL DE LA COMMANDE :* *${formatPrice(order.total)}*`,
     `━━━━━━━━━━━━━━━━━━━━━`,
     ``,
-    `👤 *COORDONNÉES CLIENT :*`,
+    `👤 *COORDONNÉES DU CLIENT :*`,
     `• *Nom :* ${order.customer.name}`,
     `• *Téléphone :* ${order.customer.phone}`,
     order.customer.email ? `• *Email :* ${order.customer.email}` : null,
-    `• *Ville :* ${order.customer.city}`,
-    `• *Adresse de livraison :* ${order.customer.address}`,
+    order.customer.city ? `• *Ville :* ${order.customer.city}` : null,
+    order.customer.address ? `• *Adresse de livraison :* ${order.customer.address}` : null,
     order.customer.notes ? `• *Instructions particulières :* ${order.customer.notes}` : null,
     ``,
-    `💳 *Règlement :* Validation & Échange en direct sur WhatsApp`,
+    `💳 *Modalité :* Échange et confirmation en direct sur WhatsApp`,
     `━━━━━━━━━━━━━━━━━━━━━`,
     greeting
   ]
@@ -186,6 +208,10 @@ export function buildAdminFollowUpMessage(
   storeName = "L'Écrin du Temps"
 ): string {
   const statusLabels: Record<string, string> = {
+    'En attente': 'En attente de traitement',
+    'En cours': 'En cours de préparation / expédition',
+    'Payée': 'Paiement reçu et validé avec succès',
+    'Livrée': 'Livrée et finalisée sous écrin',
     pending: 'Reçue et en attente de confirmation',
     confirmed: 'Confirmée avec succès',
     preparing: 'En cours de préparation sous écrin de luxe',
@@ -205,7 +231,7 @@ export function buildAdminFollowUpMessage(
     ``,
     `📌 *Statut actuel de votre commande :* ${currentStatusText}`,
     ``,
-    `Nous restons à votre entière disposition pour tout renseignement ou précision horlogère.`
+    `Nous restons à votre entière disposition pour toute précision horlogère ou pour convenir du créneau de livraison.`
   ];
 
   return lines.join('\n');

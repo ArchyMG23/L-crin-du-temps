@@ -125,7 +125,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     try {
       setIsSubmitting(true);
 
-      const orderItems = cart.map(item => {
+      const orderItems = cart.map((item) => {
         const effectivePrice =
           item.product.promotionalPrice && item.product.promotionalPrice > 0
             ? item.product.promotionalPrice
@@ -133,7 +133,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         return {
           productId: item.product.id,
           name: item.product.name,
+          brand: item.product.brand || 'Horlogerie de prestige',
           image: item.product.images?.[0] || '',
+          unitPrice: effectivePrice,
           price: effectivePrice,
           quantity: item.quantity,
           subtotal: effectivePrice * item.quantity
@@ -141,14 +143,26 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       });
 
       const newOrder = await createOrder({
+        clientId: userProfile.uid,
         customerId: userProfile.uid,
-        customer,
+        customerEmail: userProfile.email || customer.email || '',
+        customerName: customer.name.trim(),
+        customerPhone: customer.phone.trim(),
+        customer: {
+          name: customer.name.trim(),
+          phone: customer.phone.trim(),
+          email: customer.email?.trim() || userProfile.email || '',
+          city: customer.city.trim(),
+          address: customer.address.trim(),
+          notes: customer.notes?.trim() || ''
+        },
         items: orderItems,
         subtotal,
         shipping: shippingFee,
         total,
         currency,
-        status: 'pending',
+        status: 'En attente',
+        orderStatus: 'En attente',
         paymentStatus: 'pending',
         paymentMethod: 'whatsapp_direct',
         notes: customer.notes

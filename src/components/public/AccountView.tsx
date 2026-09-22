@@ -135,14 +135,57 @@ export const AccountView: React.FC<AccountViewProps> = ({
     }
   };
 
-  const statusLabels: Record<OrderStatus, { label: string; variant: 'gold' | 'success' | 'warning' | 'danger' | 'info' | 'secondary' }> = {
-    pending: { label: 'En attente', variant: 'warning' },
-    confirmed: { label: 'Confirmée', variant: 'gold' },
-    processing: { label: 'En traitement', variant: 'info' },
-    preparing: { label: 'En préparation', variant: 'info' },
-    shipped: { label: 'Expédiée', variant: 'secondary' },
-    delivered: { label: 'Livrée', variant: 'success' },
-    cancelled: { label: 'Annulée', variant: 'danger' }
+  interface CustomerStatusPresentation {
+    label: string;
+    badgeClass: string;
+    stepIndex: number;
+    description: string;
+  }
+
+  const getCustomerStatus = (rawStatus?: string): CustomerStatusPresentation => {
+    const s = (rawStatus || '').toLowerCase().trim();
+    if (s === 'en attente' || s === 'pending') {
+      return {
+        label: 'En attente',
+        // Orange
+        badgeClass: 'bg-amber-500/15 text-amber-500 border border-amber-500/30',
+        stepIndex: 1,
+        description: 'Commande enregistrée, en attente de prise en charge par notre conciergerie.'
+      };
+    }
+    if (s === 'en cours' || s === 'confirmed' || s === 'processing' || s === 'preparing' || s === 'shipped') {
+      return {
+        label: 'En cours',
+        // Bleu
+        badgeClass: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
+        stepIndex: 2,
+        description: 'Commande confirmée et prise en charge, en cours de préparation minutieuse.'
+      };
+    }
+    if (s === 'payée' || s === 'payee' || s === 'paid') {
+      return {
+        label: 'Payée',
+        // Vert
+        badgeClass: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
+        stepIndex: 3,
+        description: 'Règlement validé avec succès par la Maison.'
+      };
+    }
+    if (s === 'livrée' || s === 'livree' || s === 'delivered' || s === 'terminée' || s === 'terminee') {
+      return {
+        label: 'Livrée',
+        // Doré
+        badgeClass: 'bg-amber-400/20 text-[var(--or)] border border-[var(--or)]/40',
+        stepIndex: 4,
+        description: 'Garde-temps livré et remis en main propre sous écrin de luxe.'
+      };
+    }
+    return {
+      label: rawStatus || 'En attente',
+      badgeClass: 'bg-amber-500/15 text-amber-500 border border-amber-500/30',
+      stepIndex: 1,
+      description: 'Statut en cours de traitement.'
+    };
   };
 
   const storeName = settings?.storeName || "Maison Horlogère Prestige";
@@ -246,79 +289,168 @@ export const AccountView: React.FC<AccountViewProps> = ({
               </Button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-5">
               {orders.map((order) => {
-                const badgeInfo = statusLabels[order.status] || { label: order.status, variant: 'warning' };
+                const statusInfo = getCustomerStatus(order.status);
+                const isCancelled = order.status === 'cancelled';
+
                 return (
                   <div
                     key={order.id}
-                    className="bg-[var(--carte-bg)] p-5 sm:p-6 rounded-2xl border border-[var(--sep)] space-y-4 hover:border-[var(--or)]/40 transition-colors"
+                    className="bg-[var(--carte-bg)] p-5 sm:p-6 rounded-2xl border border-[var(--sep)] space-y-4 hover:border-[var(--or)]/40 transition-colors shadow-sm"
                   >
+                    {/* Order Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--sep)] pb-4">
                       <div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-serif text-base font-bold text-[var(--text)]">
-                            #{order.orderNumber}
+                        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                          <span className="font-mono text-base font-bold text-[var(--or)]">
+                            #{order.orderNumber || order.id.slice(0, 8)}
                           </span>
-                          <Badge variant={badgeInfo.variant as any}>
-                            {badgeInfo.label}
-                          </Badge>
+
+                          {/* Colored status badge: orange = En attente, bleu = En cours, vert = Payée, doré = Livrée */}
+                          {isCancelled ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                              Annulée
+                            </span>
+                          ) : (
+                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusInfo.badgeClass}`}>
+                              {statusInfo.label}
+                            </span>
+                          )}
                         </div>
-                        <span className="text-[11px] text-[var(--text-muted)]">
-                          Passée le {new Date(order.createdAt).toLocaleDateString('fr-FR')} à {new Date(order.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+
+                        <span className="text-[11px] text-[var(--text-muted)] mt-1 block">
+                          Passée le {new Date(order.createdAt).toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric'
+                          })} à {new Date(order.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-xs text-[var(--text-muted)] block">Montant Total</span>
-                        <span className="font-serif text-lg font-bold text-[var(--or)]">
+                      <div className="sm:text-right">
+                        <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] block">Prix Total</span>
+                        <span className="font-serif text-lg font-bold text-[var(--or)] font-mono">
                           {formatPrice(order.total)}
                         </span>
                       </div>
                     </div>
 
-                    {/* Order Items */}
-                    <div className="space-y-3">
-                      {order.items.map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between gap-4 text-xs">
-                          <div className="flex items-center gap-3">
-                            {item.image ? (
-                              <img
-                                src={item.image}
-                                alt={item.name}
-                                className="w-10 h-10 object-cover rounded-lg border border-[var(--sep)] shrink-0"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 bg-[var(--badge-bg)] rounded-lg border border-[var(--sep)] flex items-center justify-center text-[var(--text-muted)] shrink-0">
-                                <Package className="w-4 h-4" />
+                    {/* Stepper visual progress bar */}
+                    {!isCancelled && (
+                      <div className="bg-[var(--bg)]/70 p-3 sm:p-4 rounded-xl border border-[var(--sep)]">
+                        <div className="flex items-center justify-between text-[11px] font-medium">
+                          {(['En attente', 'En cours', 'Payée', 'Livrée'] as const).map((step, idx) => {
+                            const stepIndex = idx + 1;
+                            const isCurrent = statusInfo.label === step;
+                            const isCompleted = statusInfo.stepIndex > stepIndex;
+
+                            return (
+                              <div key={step} className="flex-1 flex flex-col items-center text-center relative">
+                                {idx > 0 && (
+                                  <div
+                                    className={`absolute top-3 right-1/2 w-full h-0.5 -z-0 transition-colors ${
+                                      statusInfo.stepIndex >= stepIndex
+                                        ? 'bg-[var(--or)]'
+                                        : 'bg-[var(--sep)]'
+                                    }`}
+                                  />
+                                )}
+
+                                <div
+                                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold z-10 transition-all ${
+                                    isCompleted
+                                      ? 'bg-[var(--or)] text-black'
+                                      : isCurrent
+                                      ? `${statusInfo.badgeClass} ring-2 ring-[var(--or)]`
+                                      : 'bg-[var(--carte-bg)] text-[var(--text-muted)] border border-[var(--sep)]'
+                                  }`}
+                                >
+                                  {isCompleted ? <CheckCircle2 className="w-3.5 h-3.5 fill-current" /> : stepIndex}
+                                </div>
+
+                                <span
+                                  className={`mt-1.5 text-[10px] sm:text-[11px] truncate max-w-[65px] sm:max-w-none ${
+                                    isCurrent
+                                      ? 'text-[var(--or)] font-bold'
+                                      : isCompleted
+                                      ? 'text-[var(--text)] font-medium'
+                                      : 'text-[var(--text-muted)]'
+                                  }`}
+                                >
+                                  {step}
+                                </span>
                               </div>
-                            )}
-                            <div>
-                              <p className="font-medium text-[var(--text)]">{item.name}</p>
-                              <p className="text-[var(--text-muted)]">Quantité: {item.quantity} × {formatPrice(item.price)}</p>
-                            </div>
-                          </div>
-                          <span className="font-medium text-[var(--text-soft)] shrink-0">
-                            {formatPrice(item.subtotal)}
-                          </span>
+                            );
+                          })}
                         </div>
-                      ))}
+                        <p className="text-[11px] text-[var(--text-soft)] text-center mt-2.5 pt-2 border-t border-[var(--sep)]/50">
+                          {statusInfo.description}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Order Items with Photos & Details */}
+                    <div className="space-y-2.5 pt-1">
+                      <span className="text-[10px] uppercase tracking-wider text-[var(--text-muted)] font-bold block">
+                        Garde-temps commandés ({order.items.length})
+                      </span>
+
+                      <div className="space-y-2">
+                        {order.items.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-[var(--carte-bg-subtle)] border border-[var(--sep)] text-xs"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              {item.image ? (
+                                <img
+                                  src={item.image}
+                                  alt={item.name}
+                                  referrerPolicy="no-referrer"
+                                  className="w-12 h-12 rounded-lg object-cover border border-[var(--sep)] shrink-0 bg-[var(--bg)]"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 bg-[var(--badge-bg)] rounded-lg border border-[var(--sep)] flex items-center justify-center text-[var(--text-muted)] shrink-0">
+                                  <Package className="w-5 h-5" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="font-bold text-[var(--text)] truncate">{item.name}</p>
+                                {item.brand && (
+                                  <p className="text-[10px] text-[var(--or)] font-medium truncate">{item.brand}</p>
+                                )}
+                                <p className="text-[10px] text-[var(--text-muted)] font-mono">
+                                  {item.quantity} × {formatPrice(item.unitPrice || item.price)}
+                                </p>
+                              </div>
+                            </div>
+
+                            <span className="font-mono font-bold text-[var(--text)] shrink-0">
+                              {formatPrice(item.subtotal || ((item.unitPrice || item.price) * item.quantity))}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
-                    {/* Actions & WhatsApp Support */}
+                    {/* Delivery Destination & WhatsApp Follow-up */}
                     <div className="pt-3 border-t border-[var(--sep)] flex flex-col sm:flex-row items-center justify-between gap-3">
-                      <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1.5">
-                        <Truck className="w-3.5 h-3.5 text-[var(--or)]" />
-                        <span>Livraison vers : {order.customer.city}</span>
+                      <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1.5 self-start sm:self-center">
+                        <Truck className="w-3.5 h-3.5 text-[var(--or)] shrink-0" />
+                        <span>
+                          Livraison : {order.customer.city}
+                          {order.customer.address ? ` (${order.customer.address})` : ''}
+                        </span>
                       </div>
 
                       <a
                         href={`https://wa.me/${cleanWhatsApp}?text=${encodeURIComponent(
-                          `Bonjour ${storeName} ! J'aimerais avoir des nouvelles concernant ma commande #${order.orderNumber}.`
+                          `Bonjour ${storeName} ! J'aimerais avoir des nouvelles concernant ma commande #${order.orderNumber || order.id.slice(0, 8)} (${formatPrice(order.total)}).`
                         )}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/40 px-4 py-2 rounded-xl text-xs font-semibold transition-colors"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#25D366] border border-[#25D366]/30 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors"
                       >
                         <MessageSquare className="w-3.5 h-3.5 fill-current" />
                         <span>Suivre sur WhatsApp</span>

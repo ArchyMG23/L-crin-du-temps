@@ -49,6 +49,20 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const storeName = settings?.storeName || settings?.name || "L'Écrin du Temps";
   const customIntro = settings?.whatsappDefaultMessage || settings?.contactInformation?.whatsappMessage;
 
+  const images = React.useMemo(() => {
+    if (!product) return [];
+    const list: string[] = [];
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      list.push(...product.images.filter((img): img is string => Boolean(img && img.trim())));
+    }
+    if (list.length === 0) {
+      if (product.image) list.push(product.image);
+      else if (product.coverImage) list.push(product.coverImage);
+      else list.push('https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=1000');
+    }
+    return list;
+  }, [product?.images, product?.image, product?.coverImage]);
+
   React.useEffect(() => {
     if (product) {
       document.title = `${product.name} | ${product.brand} - Haute Horlogerie`;
@@ -62,18 +76,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= (product.lowStockThreshold || 2);
-  const images = React.useMemo(() => {
-    const list: string[] = [];
-    if (Array.isArray(product.images) && product.images.length > 0) {
-      list.push(...product.images.filter((img): img is string => Boolean(img && img.trim())));
-    }
-    if (list.length === 0) {
-      if (product.image) list.push(product.image);
-      else if (product.coverImage) list.push(product.coverImage);
-      else list.push('https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=1000');
-    }
-    return list;
-  }, [product.images, product.image, product.coverImage]);
 
   const hasPromo = product.promotionalPrice && product.promotionalPrice < product.price;
   const effectivePrice = hasPromo ? product.promotionalPrice! : product.price;

@@ -86,7 +86,8 @@
       "properties": {
         "id": { "type": "string" },
         "orderNumber": { "type": "string" },
-        "customerId": { "type": "string" },
+        "clientId": { "type": "string", "description": "UID du compte client Firebase Auth" },
+        "customerId": { "type": "string", "description": "UID du client (alias clientId)" },
         "customerEmail": { "type": "string" },
         "customerName": { "type": "string" },
         "customerPhone": { "type": "string" },
@@ -119,6 +120,7 @@
             "required": ["productId", "quantity", "subtotal"]
           }
         },
+        "totalItems": { "type": "integer" },
         "subtotal": { "type": "number" },
         "shippingCost": { "type": "number" },
         "shipping": { "type": "number" },
@@ -126,8 +128,8 @@
         "currency": { "type": "string" },
         "paymentMethod": { "type": "string" },
         "paymentStatus": { "type": "string", "enum": ["pending", "paid", "failed", "refunded", "not_required"] },
-        "orderStatus": { "type": "string", "enum": ["pending", "confirmed", "processing", "preparing", "shipped", "delivered", "cancelled"] },
-        "status": { "type": "string" },
+        "orderStatus": { "type": "string" },
+        "status": { "type": "string", "enum": ["En attente", "En cours", "Payée", "Livrée", "pending", "confirmed", "processing", "preparing", "shipped", "delivered", "cancelled"] },
         "whatsappOrder": { "type": "boolean" },
         "whatsappMessageSent": { "type": "boolean" },
         "notes": { "type": "string" },

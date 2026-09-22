@@ -94,8 +94,8 @@ service cloud.firestore {
 
     // Orders collection:
     // Strict ABAC and Pricing Integrity:
-    // - Orders created must have pending status and matching authenticated UID if signed in.
-    // - Customers can only view/list their own orders.
+    // - Orders created must have 'En attente' or 'pending' status and matching authenticated clientId UID if signed in.
+    // - Customers can only view/list their own orders (matching clientId or customerId).
     // - Only administrators can read all, update statuses, or delete orders.
     match /orders/{orderId} {
       allow create: if request.resource.data.items is list
@@ -105,11 +105,11 @@ service cloud.firestore {
                     && request.resource.data.total >= 0
                     && request.resource.data.subtotal is number
                     && request.resource.data.subtotal >= 0
-                    && request.resource.data.status in ['pending', 'confirmed']
+                    && request.resource.data.status in ['En attente', 'pending', 'confirmed']
                     && request.resource.data.paymentStatus in ['pending', 'not_required']
-                    && (!isSignedIn() || request.resource.data.customerId == request.auth.uid);
-      allow get: if isAdmin() || (isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.customerEmail == request.auth.token.email));
-      allow list: if isAdmin() || (isSignedIn() && (resource.data.customerId == request.auth.uid || resource.data.customerEmail == request.auth.token.email));
+                    && (!isSignedIn() || request.resource.data.clientId == request.auth.uid || request.resource.data.customerId == request.auth.uid);
+      allow get: if isAdmin() || (isSignedIn() && (resource.data.clientId == request.auth.uid || resource.data.customerId == request.auth.uid || resource.data.customerEmail == request.auth.token.email));
+      allow list: if isAdmin() || (isSignedIn() && (resource.data.clientId == request.auth.uid || resource.data.customerId == request.auth.uid || resource.data.customerEmail == request.auth.token.email));
       allow update, delete: if isAdmin();
     }
 

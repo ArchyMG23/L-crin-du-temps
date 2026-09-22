@@ -1,6 +1,10 @@
 export type Gender = 'homme' | 'femme' | 'mixte' | 'unisex';
 
 export type OrderStatus =
+  | 'En attente'
+  | 'En cours'
+  | 'Payée'
+  | 'Livrée'
   | 'pending'
   | 'confirmed'
   | 'processing'
@@ -131,12 +135,14 @@ export interface OrderItem {
 export interface Order {
   id: string;
   orderNumber?: string;
-  customerId?: string; // Associated Firebase Auth customer account UID
+  clientId?: string; // UID du compte client Firebase Auth connecté
+  customerId?: string; // UID du compte client (alias de clientId pour compatibilité)
   customerEmail?: string;
   customerName?: string;
   customerPhone?: string;
   customer: CustomerInfo;
   items: OrderItem[];
+  totalItems?: number;
   subtotal: number;
   shippingCost?: number;
   shippingFee?: number;

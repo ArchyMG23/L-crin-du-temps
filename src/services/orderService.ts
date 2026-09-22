@@ -129,27 +129,32 @@ export async function createOrder(
 
   // 4. Force authenticated customer UID if user is signed in to prevent ID spoofing
   const authenticatedUid = auth.currentUser ? auth.currentUser.uid : undefined;
-  const customerId = authenticatedUid || (orderPayload.customerId ? sanitizeString(orderPayload.customerId, 100) : undefined);
+  const clientId = authenticatedUid || (orderPayload as any).clientId || (orderPayload.customerId ? sanitizeString(orderPayload.customerId, 100) : undefined);
+  const customerId = clientId;
   const customerEmail = sanitizedCustomer.email || auth.currentUser?.email || orderPayload.customerEmail || '';
   const customerName = sanitizedCustomer.name || auth.currentUser?.displayName || orderPayload.customerName || '';
   const customerPhone = sanitizedCustomer.phone || orderPayload.customerPhone || '';
+  const totalItemsCount = verifiedItems.reduce((sum, it) => sum + (it.quantity || 1), 0);
+  const initialStatus: OrderStatus = 'En attente';
 
   const newOrder: Order = {
     id: orderDocRef.id,
     orderNumber,
+    clientId,
     customerId,
     customerEmail,
     customerName,
     customerPhone,
     customer: sanitizedCustomer,
     items: verifiedItems,
+    totalItems: totalItemsCount,
     subtotal: calculatedSubtotal,
     shipping: shippingFee,
     shippingCost: shippingFee,
     total: calculatedTotal,
     currency: sanitizeString(orderPayload.currency, 10) || 'FCFA',
-    status: 'pending',
-    orderStatus: 'pending',
+    status: initialStatus,
+    orderStatus: initialStatus,
     paymentStatus: 'pending',
     paymentMethod: (orderPayload.paymentMethod as PaymentMethod) || 'whatsapp_direct',
     whatsappOrder: Boolean(orderPayload.whatsappOrder ?? true),
@@ -213,18 +218,37 @@ export async function createOrder(
 function normalizeOrder(id: string, raw: any): Order {
   const data = raw || {};
   const customer = data.customer || {};
+  const clientId = data.clientId || data.customerId;
+  const rawStatus = data.status || data.orderStatus || 'En attente';
+  const items = Array.isArray(data.items) ? data.items : [];
+  const totalItems =
+    Number(data.totalItems) ||
+    items.reduce((acc: number, it: any) => acc + (Number(it.quantity) || 1), 0);
+
   return {
     id,
     ...data,
     orderNumber: data.orderNumber || `CMD-${id.slice(0, 6)}`,
-    status: data.status || 'pending',
-    orderStatus: data.orderStatus || data.status || 'pending',
+    clientId,
+    customerId: clientId,
+    status: rawStatus,
+    orderStatus: rawStatus,
     paymentStatus: data.paymentStatus || 'pending',
     currency: data.currency || 'FCFA',
     total: Number(data.total) || 0,
     subtotal: Number(data.subtotal) || 0,
+    totalItems,
     shipping: Number(data.shipping ?? data.shippingCost ?? 0),
-    items: Array.isArray(data.items) ? data.items : [],
+    items: items.map((it: any) => ({
+      productId: it.productId || '',
+      name: it.name || it.productName || 'Garde-temps',
+      brand: it.brand || '',
+      image: it.image || '',
+      unitPrice: Number(it.unitPrice ?? it.price) || 0,
+      price: Number(it.price ?? it.unitPrice) || 0,
+      quantity: Number(it.quantity) || 1,
+      subtotal: Number(it.subtotal) || (Number(it.price || 0) * (Number(it.quantity) || 1))
+    })),
     customer: {
       name: customer.name || data.customerName || 'Client',
       email: customer.email || data.customerEmail || '',
@@ -294,11 +318,15 @@ export async function updateOrderStatus(id: string, status: OrderStatus): Promis
   const path = `${ORDERS_COLLECTION}/${id}`;
   try {
     const docRef = doc(db, ORDERS_COLLECTION, id);
-    await updateDoc(docRef, {
+    const updates: Record<string, any> = {
       status,
       orderStatus: status,
       updatedAt: new Date().toISOString()
-    });
+    };
+    if (status === 'Payée') {
+      updates.paymentStatus = 'paid';
+    }
+    await updateDoc(docRef, updates);
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, path);
   }
@@ -365,14 +393,37 @@ export function buildWhatsAppAdminToClientUrl(order: Order, storeName: string): 
 }
 
 /**
- * Fetch orders for a specific authenticated customer (strict data isolation)
+ * Fetch orders for a specific authenticated customer (strict data isolation by clientId / UID)
  */
-export async function getCustomerOrders(customerId: string): Promise<Order[]> {
+export async function getCustomerOrders(clientId: string): Promise<Order[]> {
+  if (!clientId) return [];
   try {
     const colRef = collection(db, ORDERS_COLLECTION);
-    const q = query(colRef, where('customerId', '==', customerId));
-    const snapshot = await getDocs(q);
-    const orders = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Order));
+    const ordersMap = new Map<string, Order>();
+
+    // 1. Query by primary clientId
+    try {
+      const qClient = query(colRef, where('clientId', '==', clientId));
+      const snapshotClient = await getDocs(qClient);
+      snapshotClient.docs.forEach((d) => {
+        ordersMap.set(d.id, normalizeOrder(d.id, d.data()));
+      });
+    } catch (errClient) {
+      console.warn('Customer orders query (clientId) note:', errClient);
+    }
+
+    // 2. Query by customerId (backward compatibility with earlier orders)
+    try {
+      const qCustomer = query(colRef, where('customerId', '==', clientId));
+      const snapshotCustomer = await getDocs(qCustomer);
+      snapshotCustomer.docs.forEach((d) => {
+        ordersMap.set(d.id, normalizeOrder(d.id, d.data()));
+      });
+    } catch (errCustomer) {
+      console.warn('Customer orders query (customerId) note:', errCustomer);
+    }
+
+    const orders = Array.from(ordersMap.values());
     return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (error: any) {
     console.warn('Error fetching customer orders:', error);
