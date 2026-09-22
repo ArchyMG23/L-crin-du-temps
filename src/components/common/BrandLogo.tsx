@@ -248,24 +248,37 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
   return (
     <div
-      className={`flex items-center gap-2 sm:gap-3 select-none ${className}`}
+      className={`flex items-center gap-1.5 sm:gap-2.5 min-w-0 overflow-hidden select-none ${className}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
     >
       {/* Precision Watch Emblem */}
-      <WatchEmblem size={emblemSizes[size]} theme={theme} />
+      <WatchEmblem size={emblemSizes[size]} theme={theme} className="shrink-0" />
 
       {/* Brand Typography */}
-      <div className="flex flex-col text-left justify-center min-w-0">
+      <div className="flex flex-col text-left justify-center min-w-0 overflow-hidden">
         <span
-          className={`font-serif font-bold tracking-[0.12em] sm:tracking-[0.14em] uppercase leading-tight whitespace-nowrap ${titleSizes[size]} ${goldColor}`}
-          style={{ fontFamily: "'Cinzel', Georgia, serif" }}
+          className={`font-serif font-bold tracking-[0.06em] sm:tracking-[0.14em] uppercase leading-tight ${titleSizes[size]} ${goldColor} whitespace-nowrap`}
+          style={{
+            fontFamily: "'Cinzel', Georgia, serif",
+            fontSize: size === 'xs' || size === 'sm' ? 'clamp(0.85rem, 3.4vw, 1.15rem)' : undefined
+          }}
         >
-          L'Écrin du Temps
+          {variant === 'compact' ? (
+            <>
+              <span className="inline min-[360px]:hidden">L'Écrin</span>
+              <span className="hidden min-[360px]:inline">L'Écrin du Temps</span>
+            </>
+          ) : (
+            <>
+              <span className="inline min-[360px]:hidden">L'Écrin</span>
+              <span className="hidden min-[360px]:inline">L'Écrin du Temps</span>
+            </>
+          )}
         </span>
         {showSubtitle && (
           <span
-            className={`font-serif uppercase font-medium leading-none mt-0.5 whitespace-nowrap ${subtitleSizes[size]} ${subtextColor}`}
+            className={`font-serif uppercase font-medium leading-none mt-0.5 truncate hidden sm:block ${subtitleSizes[size]} ${subtextColor}`}
             style={{ fontFamily: "'Cinzel', Georgia, serif" }}
           >
             Horlogerie d'Exception

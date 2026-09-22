@@ -131,7 +131,8 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
         storeName: formData.storeName?.trim() || formData.name?.trim() || "L'Écrin du Temps",
         name: formData.name?.trim() || formData.storeName?.trim() || "L'Écrin du Temps",
         whatsappNumber: formData.whatsappNumber?.trim(),
-        whatsappDefaultMessage: formData.whatsappDefaultMessage?.trim() || formData.contactInformation?.whatsappMessage?.trim()
+        whatsappDefaultMessage: formData.whatsappDefaultMessage?.trim() || formData.contactInformation?.whatsappMessage?.trim(),
+        currency: 'FCFA'
       });
       setSuccessMsg('Paramètres de la boutique enregistrés avec succès. Toutes les fonctionnalités WhatsApp sont synchronisées.');
       setTimeout(() => setSuccessMsg(null), 4000);
@@ -453,22 +454,17 @@ export const AdminSettings: React.FC<AdminSettingsProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label htmlFor="settings-currency" className="block text-xs text-[var(--text)] font-medium mb-1">
-                Symbole Devise
+                Devise officielle
               </label>
               <select
                 id="settings-currency"
-                value={formData.currency}
-                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] focus:outline-none shadow-xs"
+                value="FCFA"
+                disabled
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-xl px-3 py-2.5 text-xs text-[var(--text)] font-semibold shadow-xs cursor-not-allowed opacity-90"
               >
-                <option value="€">EUR (€)</option>
-                <option value="FCFA">FCFA (XOF / XAF)</option>
-                <option value="CHF">CHF (Franc Suisse)</option>
-                <option value="$">USD ($)</option>
-                <option value="MAD">MAD (Dirham Marocain)</option>
-                <option value="CAD">CAD ($ Canadien)</option>
-                <option value="£">GBP (£)</option>
+                <option value="FCFA">Franc CFA (FCFA) - Devise unique</option>
               </select>
+              <span className="text-[10px] text-[var(--or)] font-medium mt-1 block">Devise officielle fixée pour l'ensemble du catalogue</span>
             </div>
 
             <div>

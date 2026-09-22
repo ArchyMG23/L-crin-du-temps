@@ -1,4 +1,5 @@
 import { Order, Product } from '../types';
+import { formatPrice } from './format';
 
 /**
  * Normalizes any international phone number string to a pure digit string for WhatsApp wa.me URLs.
@@ -108,7 +109,7 @@ export function buildProductInquiryMessage(
     `▪ *Modèle :* ${product.name}`,
     `▪ *Maison / Marque :* ${product.brand}`,
     product.reference ? `▪ *Référence :* ${product.reference}` : null,
-    `▪ *Prix :* ${effectivePrice.toLocaleString('fr-FR')} ${product.currency || '€'}`,
+    `▪ *Prix :* ${formatPrice(effectivePrice)}`,
     quantity > 1 ? `▪ *Quantité souhaitée :* ${quantity}` : null,
     product.specifications?.movement ? `▪ *Mouvement :* ${product.specifications.movement}` : null,
     hasValidImg ? `📸 *Photo de la montre :* ${watchImgUrl}` : null,
@@ -138,7 +139,7 @@ export function buildOrderWhatsAppMessage(
       }
       const hasValidImg = imgUrl && !imgUrl.startsWith('blob:') && !imgUrl.startsWith('data:');
       const imgLine = hasValidImg ? `\n   📸 *Photo :* ${imgUrl}` : '';
-      return `▪ *${item.quantity}x* ${item.name}\n   Prix: ${item.price.toLocaleString('fr-FR')} ${order.currency} (Sous-total: ${item.subtotal.toLocaleString('fr-FR')} ${order.currency})${imgLine}`;
+      return `▪ *${item.quantity}x* ${item.name}\n   Prix: ${formatPrice(item.price)} (Sous-total: ${formatPrice(item.subtotal)})${imgLine}`;
     })
     .join('\n\n');
 
@@ -154,9 +155,9 @@ export function buildOrderWhatsAppMessage(
     itemsText,
     ``,
     `━━━━━━━━━━━━━━━━━━━━━`,
-    `💵 *Sous-total :* ${order.subtotal.toLocaleString('fr-FR')} ${order.currency}`,
-    `📦 *Expédition :* ${order.shipping > 0 ? `${order.shipping.toLocaleString('fr-FR')} ${order.currency}` : 'Offerte (Sous écrin sécurisé)'}`,
-    `💎 *TOTAL À RÉGLER :* *${order.total.toLocaleString('fr-FR')} ${order.currency}*`,
+    `💵 *Sous-total :* ${formatPrice(order.subtotal)}`,
+    `📦 *Expédition :* ${order.shipping > 0 ? formatPrice(order.shipping) : 'Offerte (Sous écrin sécurisé)'}`,
+    `💎 *TOTAL À RÉGLER :* *${formatPrice(order.total)}*`,
     `━━━━━━━━━━━━━━━━━━━━━`,
     ``,
     `👤 *COORDONNÉES CLIENT :*`,
@@ -200,7 +201,7 @@ export function buildAdminFollowUpMessage(
   const lines = [
     `Bonjour ${customerName},`,
     ``,
-    `C'est la Maison *${storeName}* concernant votre commande *#${order.orderNumber || ''}* d'un montant de *${totalAmount.toLocaleString('fr-FR')} ${order.currency || '€'}*.`,
+    `C'est la Maison *${storeName}* concernant votre commande *#${order.orderNumber || ''}* d'un montant de *${formatPrice(totalAmount)}*.`,
     ``,
     `📌 *Statut actuel de votre commande :* ${currentStatusText}`,
     ``,

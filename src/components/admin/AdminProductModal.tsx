@@ -34,6 +34,8 @@ interface AdminProductModalProps {
   onNavigateToCategories?: () => void;
 }
 
+const MAX_PRODUCT_IMAGES = 8;
+
 export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   isOpen,
   onClose,
@@ -81,9 +83,9 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     reference: '',
     categoryId: '',
     gender: 'homme' as Gender,
-    price: 0,
+    price: 80000,
     promotionalPrice: '' as string | number,
-    currency: settings?.currency || '€',
+    currency: 'FCFA',
     stock: 1,
     lowStockThreshold: settings?.defaultLowStockThreshold || 2,
     shortDescription: '',
@@ -135,7 +137,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         gender: product.gender || 'homme',
         price: product.price || 0,
         promotionalPrice: product.promotionalPrice ?? '',
-        currency: product.currency || settings?.currency || '€',
+        currency: 'FCFA',
         stock: product.stock ?? 0,
         lowStockThreshold: product.lowStockThreshold ?? 2,
         shortDescription: product.shortDescription || '',
@@ -172,9 +174,9 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         reference: '',
         categoryId: '',
         gender: 'homme',
-        price: 950,
+        price: 80000,
         promotionalPrice: '',
-        currency: settings?.currency || '€',
+        currency: 'FCFA',
         stock: 5,
         lowStockThreshold: settings?.defaultLowStockThreshold || 2,
         shortDescription: '',
@@ -218,9 +220,24 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   const processFiles = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
     setError(null);
-    setUploadNotice("Lecture et conversion de l'image en base64...");
 
-    const fileList = Array.from(files);
+    const currentCount = imageItems.length;
+    if (currentCount >= MAX_PRODUCT_IMAGES) {
+      setError(`Limite atteinte : Vous avez déjà ajouté le maximum de ${MAX_PRODUCT_IMAGES} photos autorisées.`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const availableSlots = MAX_PRODUCT_IMAGES - currentCount;
+    const rawFileList = Array.from(files);
+    const fileList = rawFileList.slice(0, availableSlots);
+
+    if (rawFileList.length > availableSlots) {
+      setUploadNotice(`Seules ${availableSlots} photo(s) ont été conservées pour respecter la limite de ${MAX_PRODUCT_IMAGES} photos.`);
+    } else {
+      setUploadNotice("Lecture et conversion des photos en base64...");
+    }
+
     try {
       const newItems: ProductModalImage[] = await Promise.all(
         fileList.map(async (file, idx) => {
@@ -236,7 +253,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       );
 
       setImageItems((prev) => [...prev, ...newItems]);
-      setUploadNotice(`${newItems.length} photo(s) convertie(s) en base64 et prête(s) à l'enregistrement.`);
+      setUploadNotice(`${newItems.length} photo(s) ajoutée(s) avec succès (${currentCount + newItems.length}/${MAX_PRODUCT_IMAGES}).`);
       setTimeout(() => setUploadNotice(null), 3500);
     } catch (err: any) {
       console.error('Erreur lecture image base64:', err);
@@ -276,6 +293,10 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   const handleAddUrlImage = () => {
     const trimmed = urlInputValue.trim();
     if (!trimmed) return;
+    if (imageItems.length >= MAX_PRODUCT_IMAGES) {
+      setError(`Limite atteinte : Vous avez déjà ajouté le maximum de ${MAX_PRODUCT_IMAGES} photos autorisées.`);
+      return;
+    }
     setImageItems((prev) => [
       ...prev,
       {
@@ -345,6 +366,18 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         return;
       }
 
+      if (imageItems.length === 0) {
+        setError('Veuillez ajouter au moins une photo pour cette montre (entre 1 et 8 photos autorisées).');
+        setLoading(false);
+        return;
+      }
+
+      if (imageItems.length > MAX_PRODUCT_IMAGES) {
+        setError(`Vous ne pouvez pas dépasser la limite de ${MAX_PRODUCT_IMAGES} photos par montre.`);
+        setLoading(false);
+        return;
+      }
+
       const stockNum = Math.max(0, Math.floor(Number(formData.stock) || 0));
       const lowStockThresholdNum = Math.max(0, Math.floor(Number(formData.lowStockThreshold) || 2));
 
@@ -410,7 +443,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         price: priceNum,
         promoPrice: promoNum,
         promotionalPrice: promoNum, // Dual-key compatibility
-        currency: formData.currency,
+        currency: 'FCFA',
         stock: stockNum,
         lowStockThreshold: lowStockThresholdNum,
         shortDescription: descText,
@@ -641,12 +674,12 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)]">
           <div>
             <label className="block text-xs text-[var(--text)] font-semibold mb-1">
-              Prix ({formData.currency}) <span className="text-[var(--or)]">*</span>
+              Prix public (FCFA) <span className="text-[var(--or)]">*</span>
             </label>
             <input
               type="number"
               min="0"
-              step="any"
+              step="1"
               required
               id="admin-product-price"
               value={formData.price}
@@ -657,12 +690,12 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
 
           <div>
             <label className="block text-xs text-[var(--text)] font-medium mb-1">
-              Prix Promo ({formData.currency})
+              Prix Promo (FCFA)
             </label>
             <input
               type="number"
               min="0"
-              step="any"
+              step="1"
               id="admin-product-promo-price"
               value={formData.promotionalPrice}
               onChange={(e) => setFormData({ ...formData, promotionalPrice: e.target.value })}
@@ -706,17 +739,22 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <label className="block text-xs text-[var(--text)] font-semibold">
-                Galerie Photos de la montre <span className="text-[var(--or)]">*</span>
+                Galerie Photos de la montre ({imageItems.length}/{MAX_PRODUCT_IMAGES}) <span className="text-[var(--or)]">*</span>
               </label>
               <p className="text-[11px] text-[var(--text-soft)]">
-                La première photo sera la couverture principale affichée sur la boutique.
+                {imageItems.length >= MAX_PRODUCT_IMAGES ? (
+                  <span className="text-amber-500 font-medium">Limite maximale de {MAX_PRODUCT_IMAGES} photos atteinte.</span>
+                ) : (
+                  <span>Ajoutez entre 1 et {MAX_PRODUCT_IMAGES} photos. La première photo servira de couverture principale.</span>
+                )}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setShowUrlInput(!showUrlInput)}
-                className="text-xs text-[var(--text-soft)] hover:text-[var(--text)] flex items-center gap-1 font-medium px-2.5 py-1.5 bg-[var(--carte-bg)] hover:bg-[var(--carte-bg-subtle)] rounded-lg border border-[var(--sep)] transition-colors cursor-pointer"
+                disabled={imageItems.length >= MAX_PRODUCT_IMAGES}
+                className="text-xs text-[var(--text-soft)] hover:text-[var(--text)] flex items-center gap-1 font-medium px-2.5 py-1.5 bg-[var(--carte-bg)] hover:bg-[var(--carte-bg-subtle)] disabled:opacity-50 disabled:cursor-not-allowed rounded-lg border border-[var(--sep)] transition-colors cursor-pointer"
               >
                 <LinkIcon className="w-3.5 h-3.5" />
                 <span>{showUrlInput ? 'Masquer URL' : '+ Lien URL'}</span>
@@ -737,13 +775,14 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                     handleAddUrlImage();
                   }
                 }}
+                disabled={imageItems.length >= MAX_PRODUCT_IMAGES}
                 placeholder="Coller un lien URL d'image (ex: https://images.unsplash.com/...)"
                 className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] focus:border-[var(--or)] rounded-lg px-3 py-2 text-xs text-[var(--text)] placeholder-[var(--text-muted)] focus:outline-none"
               />
               <button
                 type="button"
                 onClick={handleAddUrlImage}
-                disabled={!urlInputValue.trim()}
+                disabled={!urlInputValue.trim() || imageItems.length >= MAX_PRODUCT_IMAGES}
                 className="px-3 py-2 bg-[var(--or)] text-black font-semibold text-xs rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer shrink-0"
               >
                 Ajouter
@@ -757,20 +796,27 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
             type="file"
             accept="image/*"
             multiple
+            disabled={imageItems.length >= MAX_PRODUCT_IMAGES}
             onChange={handleFileUpload}
             className="hidden"
           />
 
           {/* Drag & Drop Upload Zone */}
           <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-4 sm:p-5 text-center cursor-pointer transition-all ${
-              isDragging
-                ? 'border-[var(--or)] bg-[var(--or)]/10 scale-[0.99]'
-                : 'border-[var(--sep)] hover:border-[var(--or)]/60 bg-[var(--carte-bg-subtle)]/40 hover:bg-[var(--carte-bg-subtle)]'
+            onDragOver={imageItems.length < MAX_PRODUCT_IMAGES ? handleDragOver : undefined}
+            onDragLeave={imageItems.length < MAX_PRODUCT_IMAGES ? handleDragLeave : undefined}
+            onDrop={imageItems.length < MAX_PRODUCT_IMAGES ? handleDrop : undefined}
+            onClick={() => {
+              if (imageItems.length < MAX_PRODUCT_IMAGES) {
+                fileInputRef.current?.click();
+              }
+            }}
+            className={`border-2 border-dashed rounded-2xl p-4 sm:p-5 text-center transition-all ${
+              imageItems.length >= MAX_PRODUCT_IMAGES
+                ? 'border-[var(--sep)] bg-[var(--carte-bg-subtle)]/30 opacity-70 cursor-not-allowed'
+                : isDragging
+                ? 'border-[var(--or)] bg-[var(--or)]/10 scale-[0.99] cursor-pointer'
+                : 'border-[var(--sep)] hover:border-[var(--or)]/60 bg-[var(--carte-bg-subtle)]/40 hover:bg-[var(--carte-bg-subtle)] cursor-pointer'
             }`}
           >
             <div className="flex flex-col items-center justify-center gap-2">
@@ -779,10 +825,14 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               </div>
               <div className="space-y-0.5">
                 <p className="text-xs font-semibold text-[var(--text)]">
-                  Cliquez pour importer des photos ou glissez-déposez ici
+                  {imageItems.length >= MAX_PRODUCT_IMAGES
+                    ? `Limite maximale de ${MAX_PRODUCT_IMAGES} photos atteinte`
+                    : `Cliquez pour importer des photos ou glissez-déposez ici (${imageItems.length}/${MAX_PRODUCT_IMAGES})`}
                 </p>
                 <p className="text-[11px] text-[var(--text-muted)]">
-                  Formats acceptés : JPG, PNG, WEBP, GIF. Import multiple supporté.
+                  {imageItems.length >= MAX_PRODUCT_IMAGES
+                    ? 'Pour ajouter une autre photo, supprimez-en d\'abord une ci-dessous.'
+                    : `Jusqu'à ${MAX_PRODUCT_IMAGES} photos par montre (JPG, PNG, WEBP, GIF). Conversion base64 automatique.`}
                 </p>
               </div>
             </div>

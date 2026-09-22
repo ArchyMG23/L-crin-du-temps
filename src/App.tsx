@@ -948,7 +948,7 @@ const MainApp: React.FC = () => {
         isOpen={Boolean(selectedProduct)}
         onClose={handleCloseProductModal}
         settings={settings}
-        currency={settings.currency || '€'}
+        currency={settings.currency || 'FCFA'}
         whatsappNumber={settings.whatsappNumber}
       />
 
@@ -957,14 +957,14 @@ const MainApp: React.FC = () => {
         onClose={handleCloseCart}
         onCheckout={handleOpenCheckout}
         settings={settings}
-        currency={settings.currency || '€'}
+        currency={settings.currency || 'FCFA'}
       />
 
       <CheckoutModal
         isOpen={isCheckoutOpen}
         onClose={handleCloseCheckout}
         settings={settings}
-        currency={settings.currency || '€'}
+        currency={settings.currency || 'FCFA'}
         whatsappNumber={settings.whatsappNumber}
         storeName={settings.storeName}
         onOrderCreated={handleOrderCreated}

@@ -21,6 +21,7 @@ import { createOrder, buildWhatsAppOrderUrl } from '../../services/orderService'
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { AuthModal } from './AuthModal';
+import { formatPrice } from '../../utils/format';
 
 interface CheckoutModalProps {
   isOpen?: boolean;
@@ -84,7 +85,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
   const shippingFee = settings?.shippingEnabled ? (settings.shippingFee || 0) : 0;
   const total = subtotal + shippingFee;
-  const currency = currencyProp || settings?.currency || '€';
+  const currency = currencyProp || settings?.currency || 'FCFA';
   const whatsappNumber = whatsappProp || settings?.whatsappNumber || '+237600000000';
   const storeName = storeNameProp || settings?.storeName || settings?.name || "L'Écrin du Temps";
   const customIntro = settings?.whatsappDefaultMessage || settings?.contactInformation?.whatsappMessage;
@@ -368,7 +369,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         <span className="text-[var(--text)] line-clamp-1">{item.product.name}</span>
                       </div>
                       <span className="font-mono text-[var(--text-soft)] shrink-0">
-                        {(effectivePrice * item.quantity).toLocaleString('fr-FR')} {currency}
+                        {formatPrice(effectivePrice * item.quantity)}
                       </span>
                     </div>
                   );
@@ -379,18 +380,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               <div className="border-t border-[var(--sep)] mt-4 pt-3 space-y-2 text-xs font-sans">
                 <div className="flex justify-between text-[var(--text-muted)]">
                   <span>Sous-total</span>
-                  <span className="font-mono text-[var(--text)]">{subtotal.toLocaleString('fr-FR')} {currency}</span>
+                  <span className="font-mono text-[var(--text)]">{formatPrice(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-[var(--text-muted)]">
                   <span>Livraison</span>
                   <span className="text-emerald-600 dark:text-emerald-400 font-medium">
-                    {shippingFee === 0 ? 'Offerte (Sécurisée)' : `${shippingFee} ${currency}`}
+                    {shippingFee === 0 ? 'Offerte (Sécurisée)' : formatPrice(shippingFee)}
                   </span>
                 </div>
                 <div className="border-t border-[var(--sep)] pt-2 flex justify-between font-serif text-base font-bold text-[var(--text)]">
                   <span>Total à régler</span>
                   <span className="text-[var(--or)] font-mono text-lg">
-                    {total.toLocaleString('fr-FR')} {currency}
+                    {formatPrice(total)}
                   </span>
                 </div>
               </div>

@@ -20,6 +20,7 @@ import { Modal } from '../ui/Modal';
 import { Badge } from '../ui/Badge';
 import { Button } from '../ui/Button';
 import { buildProductInquiryMessage, buildWhatsAppChatUrl } from '../../utils/whatsapp';
+import { formatPrice } from '../../utils/format';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -43,7 +44,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
-  const activeCurrency = currencyProp || settings?.currency || product?.currency || '€';
+  const activeCurrency = currencyProp || settings?.currency || product?.currency || 'FCFA';
   const rawWhatsApp = whatsappProp || settings?.whatsappNumber || '+237600000000';
   const storeName = settings?.storeName || settings?.name || "L'Écrin du Temps";
   const customIntro = settings?.whatsappDefaultMessage || settings?.contactInformation?.whatsappMessage;
@@ -61,9 +62,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= (product.lowStockThreshold || 2);
-  const images = product.images && product.images.length > 0
-    ? product.images
-    : (product.image ? [product.image] : (product.coverImage ? [product.coverImage] : ['https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=1000']));
+  const images = React.useMemo(() => {
+    const list: string[] = [];
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      list.push(...product.images.filter((img): img is string => Boolean(img && img.trim())));
+    }
+    if (list.length === 0) {
+      if (product.image) list.push(product.image);
+      else if (product.coverImage) list.push(product.coverImage);
+      else list.push('https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=1000');
+    }
+    return list;
+  }, [product.images, product.image, product.coverImage]);
 
   const hasPromo = product.promotionalPrice && product.promotionalPrice < product.price;
   const effectivePrice = hasPromo ? product.promotionalPrice! : product.price;
@@ -135,7 +145,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={handlePrevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white border border-white/10 transition-all opacity-80 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white border border-white/10 transition-all opacity-80 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
                   aria-label="Image précédente"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -143,11 +153,15 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <button
                   type="button"
                   onClick={handleNextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white border border-white/10 transition-all opacity-80 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white border border-white/10 transition-all opacity-80 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
                   aria-label="Image suivante"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
+
+                <div className="absolute bottom-3 right-3 bg-black/75 backdrop-blur-xs text-white/90 text-[10px] font-mono font-medium px-2 py-0.5 rounded-full border border-white/10 pointer-events-none">
+                  {selectedImageIndex + 1} / {images.length}
+                </div>
               </>
             )}
 
@@ -163,17 +177,18 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
           {/* Thumbnails */}
           {images.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <div className="flex gap-2 overflow-x-auto pb-1.5">
               {images.map((img, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setSelectedImageIndex(idx)}
-                  className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 shrink-0 transition-all ${
+                  className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
                     selectedImageIndex === idx
-                      ? 'border-[var(--or)] scale-105 shadow-md shadow-[var(--or)]/20'
+                      ? 'border-[var(--or)] scale-105 shadow-md shadow-[var(--or)]/20 ring-1 ring-[var(--or)]'
                       : 'border-[var(--sep)] opacity-60 hover:opacity-100'
                   }`}
+                  aria-label={`Vue ${idx + 1}`}
                 >
                   <img
                     src={img}
@@ -181,6 +196,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover"
                   />
+                  <span className="absolute bottom-0 right-0 bg-black/70 text-white text-[9px] font-mono px-1 rounded-tl">
+                    {idx + 1}
+                  </span>
                 </button>
               ))}
             </div>
@@ -231,11 +249,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="flex items-baseline gap-2">
                   {hasPromo && (
                     <span className="text-xs text-[var(--text-muted)] line-through">
-                      {product.price.toLocaleString('fr-FR')} {product.currency}
+                      {formatPrice(product.price)}
                     </span>
                   )}
                   <span className="font-serif text-2xl font-bold text-[var(--or)]">
-                    {effectivePrice.toLocaleString('fr-FR')} {product.currency}
+                    {formatPrice(effectivePrice)}
                   </span>
                 </div>
               </div>

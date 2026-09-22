@@ -19,6 +19,7 @@ import { UserProfile, Order, StoreSettings } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { formatPrice } from '../../utils/format';
 
 interface AdminCustomersProps {
   customers: UserProfile[];
@@ -110,7 +111,7 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
   }, [selectedCustomer, orders]);
 
   const storeName = settings?.storeName || "Maison Horlogère Prestige";
-  const currency = settings?.currency || "€";
+  const currency = settings?.currency || "FCFA";
 
   return (
     <div className="space-y-6 text-[var(--text)]">
@@ -204,7 +205,7 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
                       </td>
 
                       <td className="px-5 py-4 text-right font-serif font-bold text-[var(--or)]">
-                        {cust.totalSpent.toLocaleString('fr-FR')} {settings?.currency || '€'}
+                        {formatPrice(cust.totalSpent)}
                       </td>
 
                       <td className="px-5 py-4 text-right space-x-2">
@@ -298,7 +299,7 @@ export const AdminCustomers: React.FC<AdminCustomersProps> = ({
                           {ord.status}
                         </Badge>
                         <span className="font-serif font-bold text-[var(--or)]">
-                          {ord.total.toLocaleString('fr-FR')} {ord.currency}
+                          {formatPrice(ord.total)}
                         </span>
                       </div>
                     </div>

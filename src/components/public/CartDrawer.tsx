@@ -3,6 +3,7 @@ import { ShoppingBag, X, Trash2, ArrowRight, ShieldCheck, Truck, Plus, Minus } f
 import { useCart } from '../../context/CartContext';
 import { StoreSettings } from '../../types';
 import { Button } from '../ui/Button';
+import { formatPrice } from '../../utils/format';
 
 interface CartDrawerProps {
   isOpen?: boolean;
@@ -50,7 +51,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const shippingFee = settings?.shippingEnabled ? (settings.shippingFee || 0) : 0;
   const total = subtotal + shippingFee;
-  const currency = currencyProp || settings?.currency || '€';
+  const currency = currencyProp || settings?.currency || 'FCFA';
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -140,7 +141,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                               {item.product.name}
                             </h4>
                             <span className="text-xs text-[var(--text-soft)] font-semibold font-mono">
-                              {effectivePrice.toLocaleString('fr-FR')} {currency}
+                              {formatPrice(effectivePrice)}
                             </span>
                           </div>
 
@@ -179,7 +180,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                           </div>
 
                           <span className="font-serif text-sm font-bold text-[var(--or)]">
-                            {lineTotal.toLocaleString('fr-FR')} {currency}
+                            {formatPrice(lineTotal)}
                           </span>
                         </div>
                       </div>
@@ -198,7 +199,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <div className="flex justify-between text-[var(--text-soft)]">
                   <span>Sous-total</span>
                   <span className="font-mono text-[var(--text)] font-semibold">
-                    {subtotal.toLocaleString('fr-FR')} {currency}
+                    {formatPrice(subtotal)}
                   </span>
                 </div>
                 <div className="flex justify-between text-[var(--text-soft)]">
@@ -207,13 +208,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     <span>Expédition sécurisée</span>
                   </span>
                   <span className="text-emerald-500 font-medium">
-                    {shippingFee === 0 ? 'Offerte (Sous écrin)' : `${shippingFee.toLocaleString('fr-FR')} ${currency}`}
+                    {shippingFee === 0 ? 'Offerte (Sous écrin)' : formatPrice(shippingFee)}
                   </span>
                 </div>
                 <div className="border-t border-[var(--sep)] pt-2 flex justify-between text-base font-serif font-bold text-[var(--text)]">
                   <span>Total Estimé</span>
                   <span className="text-[var(--or)] text-lg font-mono">
-                    {total.toLocaleString('fr-FR')} {currency}
+                    {formatPrice(total)}
                   </span>
                 </div>
               </div>

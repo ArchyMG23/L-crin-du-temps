@@ -16,6 +16,7 @@ import { Product, Order, StoreSettings } from '../../types';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { buildWhatsAppAdminToClientUrl } from '../../services/orderService';
+import { formatPrice } from '../../utils/format';
 
 interface AdminDashboardProps {
   products: Product[];
@@ -36,7 +37,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onQuickRestock,
   onUpdateOrderStatus
 }) => {
-  const currency = settings?.currency || '€';
+  const currency = settings?.currency || 'FCFA';
   const storeName = settings?.storeName || 'Horlogerie de Prestige';
 
   // Metrics Calculations
@@ -99,7 +100,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
           <div className="font-serif text-lg sm:text-2xl font-bold text-[var(--text)] tracking-tight">
-            {totalRevenue.toLocaleString('fr-FR')} {currency}
+            {formatPrice(totalRevenue)}
           </div>
           <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1 font-medium">
             <span>{validOrders.length} commande(s) valides</span>
@@ -234,7 +235,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <div className="text-[11px] text-[var(--text-soft)] mt-0.5">
                         {(order.items || []).length} article{((order.items || []).length > 1) ? 's' : ''} • Total:{' '}
                         <span className="font-bold text-[var(--text)]">
-                          {(Number(order.total) || 0).toLocaleString('fr-FR')} {order.currency || currency}
+                          {formatPrice(Number(order.total) || 0)}
                         </span>
                       </div>
                     </div>

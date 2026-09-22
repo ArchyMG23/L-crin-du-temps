@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, X, Watch, ArrowRight, Sparkles, Check, XCircle, AlertTriangle } from 'lucide-react';
 import { Product, Category, StoreSettings } from '../../types';
+import { formatPrice } from '../../utils/format';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -26,8 +27,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [onlyInStock, setOnlyInStock] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const currency = settings?.currency || '€';
 
   useEffect(() => {
     if (isOpen) {
@@ -94,14 +93,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
       return true;
     });
   }, [activeProducts, searchTerm, selectedGender, selectedCategory, onlyInStock]);
-
-  const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: currency === '€' ? 'EUR' : currency === '$' ? 'USD' : 'EUR',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   const handleProductClick = (product: Product) => {
     onSelectProduct(product);

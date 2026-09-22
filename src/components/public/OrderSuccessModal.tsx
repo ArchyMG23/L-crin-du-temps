@@ -13,6 +13,7 @@ import {
 import { Order } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { formatPrice } from '../../utils/format';
 
 interface OrderSuccessModalProps {
   order: Order | null;
@@ -137,7 +138,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
                     <div className="flex items-center justify-between text-[11px] text-[var(--text-soft)] mt-0.5">
                       <span>Quantité : <strong className="text-[var(--text)]">{item.quantity}</strong></span>
                       <span className="font-mono font-semibold text-[var(--or)]">
-                        {(item.price * item.quantity).toLocaleString('fr-FR')} {order.currency}
+                        {formatPrice(item.price * item.quantity)}
                       </span>
                     </div>
                   </div>
@@ -182,7 +183,7 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
         <div className="bg-[var(--bg)] p-3.5 rounded-xl border border-[var(--sep)] text-left text-xs space-y-2 font-sans max-w-sm mx-auto">
           <div className="flex justify-between text-[var(--text-soft)]">
             <span>Total commande</span>
-            <span className="font-mono font-semibold text-[var(--text)]">{order.total.toLocaleString('fr-FR')} {order.currency}</span>
+            <span className="font-mono font-semibold text-[var(--text)]">{formatPrice(order.total)}</span>
           </div>
           <div className="flex justify-between text-[var(--text-muted)] text-[11px]">
             <span>Livraison vers</span>

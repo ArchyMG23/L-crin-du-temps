@@ -23,6 +23,7 @@ import { Order, OrderStatus, StoreSettings, UserProfile } from '../../types';
 import { getCustomerOrders } from '../../services/orderService';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
+import { formatPrice } from '../../utils/format';
 
 interface AccountViewProps {
   settings?: StoreSettings;
@@ -147,7 +148,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
   const storeName = settings?.storeName || "Maison Horlogère Prestige";
   const whatsappNumber = settings?.whatsappNumber || "+33600000000";
   const cleanWhatsApp = whatsappNumber.replace(/[^0-9]/g, '');
-  const currency = settings?.currency || "€";
+  const currency = settings?.currency || "FCFA";
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 text-[var(--text)]">
@@ -271,7 +272,7 @@ export const AccountView: React.FC<AccountViewProps> = ({
                       <div className="text-right">
                         <span className="text-xs text-[var(--text-muted)] block">Montant Total</span>
                         <span className="font-serif text-lg font-bold text-[var(--or)]">
-                          {order.total.toLocaleString('fr-FR')} {order.currency}
+                          {formatPrice(order.total)}
                         </span>
                       </div>
                     </div>
@@ -294,11 +295,11 @@ export const AccountView: React.FC<AccountViewProps> = ({
                             )}
                             <div>
                               <p className="font-medium text-[var(--text)]">{item.name}</p>
-                              <p className="text-[var(--text-muted)]">Quantité: {item.quantity} × {item.price.toLocaleString('fr-FR')} {order.currency}</p>
+                              <p className="text-[var(--text-muted)]">Quantité: {item.quantity} × {formatPrice(item.price)}</p>
                             </div>
                           </div>
                           <span className="font-medium text-[var(--text-soft)] shrink-0">
-                            {item.subtotal.toLocaleString('fr-FR')} {order.currency}
+                            {formatPrice(item.subtotal)}
                           </span>
                         </div>
                       ))}

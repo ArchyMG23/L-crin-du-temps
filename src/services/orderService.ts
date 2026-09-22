@@ -220,7 +220,7 @@ function normalizeOrder(id: string, raw: any): Order {
     status: data.status || 'pending',
     orderStatus: data.orderStatus || data.status || 'pending',
     paymentStatus: data.paymentStatus || 'pending',
-    currency: data.currency || '€',
+    currency: data.currency || 'FCFA',
     total: Number(data.total) || 0,
     subtotal: Number(data.subtotal) || 0,
     shipping: Number(data.shipping ?? data.shippingCost ?? 0),

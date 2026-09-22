@@ -24,6 +24,7 @@ import {
   buildWhatsAppChatUrl,
   buildProductInquiryMessage
 } from '../../utils/whatsapp';
+import { formatPrice } from '../../utils/format';
 
 interface HomeViewProps {
   products: Product[];
@@ -40,7 +41,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onNavigate,
   onSelectProduct
 }) => {
-  const currency = settings.currency || '€';
+  const currency = settings.currency || 'FCFA';
   const whatsappNumber = settings.whatsappNumber || '+237600000000';
   const storeName = settings.storeName || settings.name || "L'Écrin du Temps";
   const customIntro = settings.whatsappDefaultMessage || settings.contactInformation?.whatsappMessage;
@@ -151,14 +152,6 @@ export const HomeView: React.FC<HomeViewProps> = ({
       .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
       .slice(0, 8);
   }, [activeProducts]);
-
-  const formatPrice = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: currency === '€' ? 'EUR' : currency === '$' ? 'USD' : 'EUR',
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   return (
     <div className="space-y-12 sm:space-y-20 2xl:space-y-28 text-[var(--text)]">
@@ -763,40 +756,44 @@ export const HomeView: React.FC<HomeViewProps> = ({
           <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-52 h-52 bg-radial from-[var(--or)]/5 to-transparent pointer-events-none filter blur-xl" />
 
           {/* Discreet Header */}
-          <div className="relative z-10 flex items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-[var(--sep)]">
-            <div>
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-[0.2em] text-[var(--or)] font-serif font-medium">
-                <Flame className="w-3.5 h-3.5 text-[var(--or)]" />
-                <span>Sélection Bestsellers</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-[var(--or)]/15 border border-[var(--or)]/30 text-[var(--or)] font-mono">
-                  Top 3
+          <div className="relative z-10 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 sm:gap-4 pb-3 sm:pb-4 border-b border-[var(--sep)]">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs uppercase tracking-[0.18em] sm:tracking-[0.2em] text-[var(--or)] font-serif font-medium flex-wrap sm:flex-nowrap">
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Flame className="w-3.5 h-3.5 text-[var(--or)] shrink-0" />
+                  <span className="whitespace-nowrap font-semibold">Sélection Bestsellers</span>
+                </div>
+                {/* Badge TOP 3 : white-space nowrap strict, padding horizontal proportionnel, pas de coupure */}
+                <span className="inline-flex items-center justify-center whitespace-nowrap text-[9px] sm:text-[10px] px-2 sm:px-2.5 py-0.5 rounded-full bg-[var(--or)]/15 border border-[var(--or)]/35 text-[var(--or)] font-mono font-bold tracking-wider shrink-0 select-none">
+                  TOP 3
                 </span>
               </div>
-              <h3 className="font-serif text-sm sm:text-base md:text-lg font-semibold text-[var(--text)] tracking-wide mt-0.5">
+              <h3 className="font-serif text-sm sm:text-base md:text-lg font-semibold text-[var(--text)] tracking-wide mt-0.5 truncate">
                 Modèles Prisés du Moment
               </h3>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Contrôles du Carrousel : flèches alignées avec espacement cohérent */}
+            <div className="flex items-center gap-2 shrink-0">
               {/* Carousel Arrows */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => scrollPopularToIndex(Math.max(0, activePopularIndex - 1))}
                   disabled={activePopularIndex === 0}
                   aria-label="Montre précédente"
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[var(--sep)] bg-[var(--carte-bg)] hover:border-[var(--or)] flex items-center justify-center text-[var(--text-soft)] hover:text-[var(--or)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="w-8 h-8 rounded-full border border-[var(--sep)] bg-[var(--carte-bg)] hover:border-[var(--or)] flex items-center justify-center text-[var(--text-soft)] hover:text-[var(--or)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => scrollPopularToIndex(Math.min(popularProducts.length - 1, activePopularIndex + 1))}
                   disabled={activePopularIndex === popularProducts.length - 1}
                   aria-label="Montre suivante"
-                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[var(--sep)] bg-[var(--carte-bg)] hover:border-[var(--or)] flex items-center justify-center text-[var(--text-soft)] hover:text-[var(--or)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="w-8 h-8 rounded-full border border-[var(--sep)] bg-[var(--carte-bg)] hover:border-[var(--or)] flex items-center justify-center text-[var(--text-soft)] hover:text-[var(--or)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
                 >
-                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
 
@@ -804,10 +801,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
               <button
                 type="button"
                 onClick={() => onNavigate('shop')}
-                className="hidden sm:inline-flex items-center gap-1 text-xs uppercase tracking-[0.15em] font-semibold text-[var(--or)] hover:text-[var(--or-clair)] transition-colors pl-2"
+                className="hidden sm:inline-flex items-center gap-1 text-xs uppercase tracking-[0.15em] font-semibold text-[var(--or)] hover:text-[var(--or-clair)] transition-colors pl-1.5 cursor-pointer"
               >
                 <span>Tout voir</span>
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

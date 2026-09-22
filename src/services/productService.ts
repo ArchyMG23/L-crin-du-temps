@@ -278,7 +278,7 @@ export async function createProduct(
     price: Math.max(0, Number(productData.price) || 0),
     promoPrice,
     promotionalPrice: promoPrice, // Dual-key compatibility
-    currency: productData.currency || '€',
+    currency: 'FCFA',
     stock: Math.max(0, Math.floor(Number(productData.stock) || 0)),
     lowStockThreshold: Math.max(0, Math.floor(Number(productData.lowStockThreshold) || 2)),
     images: cleanImages,

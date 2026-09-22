@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingBag, Search, ShieldCheck, Menu, X, User, UserCheck } from 'lucide-react';
+import { ShoppingBag, Search, ShieldCheck, Menu, X, User, UserCheck, Sun, Moon } from 'lucide-react';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -28,7 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { itemCount, setIsCartOpen } = useCart();
   const { userProfile } = useAuth();
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleCartClick = () => {
@@ -45,7 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'about', label: 'À propos' },
   ];
 
-  const storeTitle = settings?.storeName || "L'ÉMINENCE HORLOGERIE";
+  const storeTitle = settings?.storeName || "L'ÉCRIN DU TEMPS";
 
   return (
     <header className="sticky top-0 z-40 bg-[var(--header-bg)] backdrop-blur-md border-b border-[var(--sep)] text-[var(--text)] transition-all">
@@ -55,28 +55,32 @@ export const Navbar: React.FC<NavbarProps> = ({
         <span className="truncate">Authenticité 100% • Conciergerie WhatsApp</span>
       </div>
 
-      <div className="max-w-[1720px] mx-auto px-2 sm:px-6 lg:px-12 2xl:px-16">
-        <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20 gap-1 sm:gap-4">
-          {/* Mobile menu button (Left on mobile, at least 44x44px touch target) */}
-          <div className="flex items-center lg:hidden shrink-0">
+      <div className="max-w-[1720px] mx-auto px-2.5 sm:px-6 lg:px-12 2xl:px-16 w-full">
+        {/* Strict flexbox container with space-between and no absolute overlapping */}
+        <div
+          className="flex items-center justify-between h-14 sm:h-16 lg:h-20 gap-2 sm:gap-4 w-full"
+          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+        >
+          {/* ZONE GAUCHE : Menu Hamburger + Logo de marque côte à côte dans un conteneur dédié */}
+          <div className="flex items-center gap-1 sm:gap-2.5 min-w-0 flex-1 overflow-visible pr-1 sm:pr-2">
+            {/* Bouton Menu Hamburger mobile (>= 44x44px touch target) */}
             <button
               id="mobile-menu-toggle-btn"
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center text-[var(--text-soft)] hover:text-[var(--or)] rounded-xl transition-colors focus:outline-none"
-              aria-label="Ouvrir le menu"
+              className="lg:hidden shrink-0 min-w-[44px] min-h-[44px] w-11 h-11 flex items-center justify-center text-[var(--text-soft)] hover:text-[var(--or)] hover:bg-[var(--carte-bg)] rounded-xl transition-colors focus:outline-none"
+              aria-label="Ouvrir le menu de navigation"
+              aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
-          </div>
 
-          {/* Brand Logo / Name: Responsive and proportioned */}
-          <div className="flex items-center min-w-0">
+            {/* Logo de marque : Zone dédiée sans contrainte rigide coupante, utilisant clamp() fluide */}
             <button
               id="brand-logo-btn"
               onClick={() => onNavigate('home')}
-              className="text-left group flex items-center gap-2 sm:gap-3 transition-opacity hover:opacity-90 py-1 min-w-0"
-              aria-label="Retour à l'accueil"
+              className="group flex items-center text-left py-1 min-w-0 hover:opacity-90 transition-opacity focus:outline-none cursor-pointer"
+              aria-label="Retour à l'accueil L'Écrin du Temps"
             >
               {settings?.logo && settings.logo.startsWith('http') && !settings.logo.includes('unsplash') ? (
                 <img
@@ -85,22 +89,39 @@ export const Navbar: React.FC<NavbarProps> = ({
                   className="h-7 sm:h-9 lg:h-10 w-auto object-contain shrink-0"
                 />
               ) : (
-                <>
-                  {/* Mobile optimized compact brand mark */}
-                  <div className="block sm:hidden shrink-0">
-                    <BrandLogo variant="compact" theme={isDark ? 'dark' : 'light'} size="xs" showSubtitle={false} />
+                <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                  {/* Cadran d'horlogerie avec taille préservée */}
+                  <div className="shrink-0 flex items-center justify-center">
+                    <BrandLogo variant="emblem" size="xs" theme={isDark ? 'dark' : 'light'} />
                   </div>
-                  {/* Desktop / Tablet fuller brand mark */}
-                  <div className="hidden sm:block shrink-0">
-                    <BrandLogo variant="horizontal" theme={isDark ? 'dark' : 'light'} size="md" showSubtitle={true} />
+
+                  {/* Typographie fluide : clamp(0.85rem, 3.6vw, 1.25rem) */}
+                  <div className="flex flex-col justify-center text-left min-w-0">
+                    <span
+                      className="font-serif font-bold tracking-[0.06em] sm:tracking-[0.14em] uppercase text-[var(--or)] leading-tight whitespace-nowrap block"
+                      style={{
+                        fontFamily: "'Cinzel', Georgia, serif",
+                        fontSize: 'clamp(0.85rem, 3.6vw, 1.25rem)'
+                      }}
+                    >
+                      {/* Très petit écran (<360px) : bascule propre vers "L'ÉCRIN", complet au-delà */}
+                      <span className="inline min-[360px]:hidden">L'ÉCRIN</span>
+                      <span className="hidden min-[360px]:inline">L'ÉCRIN DU TEMPS</span>
+                    </span>
+                    <span
+                      className="hidden sm:block text-[8px] sm:text-[9px] tracking-[0.25em] text-[var(--text-soft)] uppercase font-medium whitespace-nowrap mt-0.5"
+                      style={{ fontFamily: "'Cinzel', Georgia, serif" }}
+                    >
+                      Horlogerie d'Exception
+                    </span>
                   </div>
-                </>
+                </div>
               )}
             </button>
           </div>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center space-x-8 xl:space-x-10">
+          {/* ZONE CENTRALE : Navigation Desktop uniquement */}
+          <nav className="hidden lg:flex items-center space-x-8 xl:space-x-10 shrink-0 px-4">
             {navLinks.map((link) => {
               const isActive = currentView === link.id;
               return (
@@ -123,9 +144,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </nav>
 
-          {/* Right Action Icons: Search, Theme Toggle, Customer Account, Cart */}
-          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 shrink-0">
-            {/* Search Button (Opens Search Modal, >= 44x44px touch target) */}
+          {/* ZONE DROITE : Groupe d'icônes avec flex-shrink: 0 (ne rétrécit JAMAIS) */}
+          <div
+            className="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 shrink-0"
+            style={{ flexShrink: 0 }}
+          >
+            {/* 1. Recherche : Visible directement sur mobile et desktop */}
             <button
               id="navbar-search-toggle-btn"
               onClick={() => {
@@ -138,39 +162,44 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Search className="w-4 h-4 sm:w-5 sm:h-5 transition-transform hover:scale-110" />
             </button>
 
-            {/* Theme Toggle Button (Permanently visible on mobile and desktop) */}
-            <ThemeToggle id="navbar-theme-toggle" className="min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] w-10 h-10 sm:w-11 sm:h-11 shrink-0 shadow-sm" />
+            {/* 2. Thème clair/sombre : Visible sur tablette/desktop, regroupé dans le menu sur mobile */}
+            <div className="hidden sm:flex shrink-0">
+              <ThemeToggle
+                id="navbar-theme-toggle"
+                className="min-w-[44px] min-h-[44px] w-11 h-11 shrink-0 shadow-sm"
+              />
+            </div>
 
-            {/* Account / Customer Space Button (>= 44x44px touch target) */}
+            {/* 3. Espace Client : Visible sur desktop, regroupé dans le menu sur mobile */}
             <button
               id="navbar-account-btn"
               onClick={() => onNavigate('account')}
-              className={`min-h-[40px] sm:min-h-[44px] h-10 sm:h-11 rounded-full transition-all flex items-center justify-center border text-xs px-2.5 sm:px-3.5 gap-1.5 shrink-0 ${
+              className={`hidden md:flex min-h-[44px] h-11 rounded-full transition-all items-center justify-center border text-xs px-3.5 gap-1.5 shrink-0 shadow-sm ${
                 userProfile
-                  ? 'bg-[var(--badge-bg)] border-[var(--or)] text-[var(--or)] hover:opacity-90 shadow-sm'
-                  : 'bg-[var(--carte-bg)] hover:bg-[var(--bg-2)] border border-[var(--sep)] hover:border-[var(--or)] text-[var(--text-soft)] hover:text-[var(--or)] shadow-sm'
+                  ? 'bg-[var(--badge-bg)] border-[var(--or)] text-[var(--or)] hover:opacity-90'
+                  : 'bg-[var(--carte-bg)] hover:bg-[var(--bg-2)] border border-[var(--sep)] hover:border-[var(--or)] text-[var(--text-soft)] hover:text-[var(--or)]'
               }`}
-              title={userProfile ? `Compte: ${userProfile.fullName}` : 'Espace Client'}
+              title={userProfile ? `Compte : ${userProfile.fullName}` : 'Espace Client'}
               aria-label="Espace Client"
             >
               {userProfile ? (
                 <>
-                  <UserCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--or)] shrink-0" />
-                  <span className="text-[11px] font-medium tracking-wide max-w-[90px] sm:max-w-[110px] truncate text-[var(--text)]">
+                  <UserCheck className="w-4 h-4 text-[var(--or)] shrink-0" />
+                  <span className="text-[11px] font-medium tracking-wide max-w-[110px] truncate text-[var(--text)]">
                     {userProfile.fullName.split(' ')[0]}
                   </span>
                 </>
               ) : (
                 <>
-                  <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                  <span className="hidden sm:inline text-[11px] uppercase tracking-wider font-semibold">
+                  <User className="w-4 h-4 shrink-0" />
+                  <span className="text-[11px] uppercase tracking-wider font-semibold">
                     Compte
                   </span>
                 </>
               )}
             </button>
 
-            {/* Cart Button with luxury badge (>= 44x44px touch target) */}
+            {/* 4. Panier avec badge numérique : Visible directement sur mobile et desktop */}
             <button
               id="navbar-cart-btn"
               onClick={handleCartClick}
@@ -189,16 +218,17 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Menu Tiroir Mobile (Accessible via le bouton hamburger à gauche) */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[var(--bg-2)] border-b border-[var(--sep)] px-4 pt-3 pb-5 space-y-2 animate-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden bg-[var(--bg-2)] border-b border-[var(--sep)] px-4 pt-3 pb-5 space-y-2.5 animate-in slide-in-from-top-2 duration-200">
+          {/* Raccourci recherche rapide */}
           <div className="mb-2">
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
                 if (onOpenSearch) onOpenSearch();
               }}
-              className="w-full min-h-[44px] flex items-center justify-between bg-[var(--carte-bg)] border border-[var(--sep)] hover:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-soft)]"
+              className="w-full min-h-[44px] flex items-center justify-between bg-[var(--carte-bg)] border border-[var(--sep)] hover:border-[var(--or)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-soft)] transition-colors"
             >
               <div className="flex items-center gap-2">
                 <Search className="w-4 h-4 text-[var(--or)]" />
@@ -208,6 +238,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
+          {/* Liens de navigation principaux */}
           {navLinks.map((link) => (
             <button
               key={link.id}
@@ -226,20 +257,58 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           ))}
 
+          {/* Section Profil / Espace Client regroupé */}
           <button
             id="mobile-nav-account"
             onClick={() => {
               onNavigate('account');
               setMobileMenuOpen(false);
             }}
-            className={`w-full min-h-[44px] flex items-center text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-[0.2em] uppercase border-t border-[var(--sep)] pt-3 ${
+            className={`w-full min-h-[44px] flex items-center justify-between text-left px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-[0.15em] uppercase border-t border-[var(--sep)] pt-3 transition-colors ${
               currentView === 'account'
-                ? 'bg-[var(--badge-bg)] text-[var(--or)] border-l-2 border-[var(--or)]'
-                : 'text-[var(--or)] hover:bg-[var(--badge-bg)]'
+                ? 'bg-[var(--badge-bg)] text-[var(--or)] font-bold border-l-2 border-[var(--or)]'
+                : 'text-[var(--text)] hover:bg-[var(--badge-bg)]'
             }`}
           >
-            {userProfile ? `Mon Compte (${userProfile.fullName.split(' ')[0]})` : 'Espace Client (Connexion)'}
+            <div className="flex items-center gap-2.5">
+              {userProfile ? (
+                <UserCheck className="w-4 h-4 text-[var(--or)] shrink-0" />
+              ) : (
+                <User className="w-4 h-4 text-[var(--text-soft)] shrink-0" />
+              )}
+              <span className="truncate">
+                {userProfile
+                  ? `Mon Compte (${userProfile.fullName.split(' ')[0]})`
+                  : 'Espace Client / Connexion'}
+              </span>
+            </div>
+            {userProfile && (
+              <span className="text-[10px] text-[var(--or)] bg-[var(--badge-bg)] px-2 py-0.5 rounded-full border border-[var(--or)]/30 lowercase shrink-0">
+                connecté
+              </span>
+            )}
           </button>
+
+          {/* Section Thème Clair / Sombre regroupé */}
+          <div className="pt-2 border-t border-[var(--sep)]">
+            <button
+              id="mobile-nav-theme-toggle"
+              onClick={() => toggleTheme()}
+              className="w-full min-h-[44px] flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-wider uppercase text-[var(--text-soft)] hover:bg-[var(--carte-bg)] hover:text-[var(--text)] transition-colors"
+            >
+              <div className="flex items-center gap-2.5">
+                {isDark ? (
+                  <Sun className="w-4 h-4 text-[var(--or)] shrink-0" />
+                ) : (
+                  <Moon className="w-4 h-4 text-[var(--or)] shrink-0" />
+                )}
+                <span>Apparence : {isDark ? 'Mode Sombre' : 'Mode Clair'}</span>
+              </div>
+              <span className="text-[10px] text-[var(--or)] font-mono border border-[var(--or)]/30 px-2 py-0.5 rounded-md shrink-0">
+                Changer
+              </span>
+            </button>
+          </div>
         </div>
       )}
     </header>

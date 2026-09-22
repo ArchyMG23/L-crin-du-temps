@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ShoppingBag, Eye, Check, AlertTriangle, XCircle, Sparkles, Flame, Shield } from 'lucide-react';
+import { ShoppingBag, Eye, Check, AlertTriangle, XCircle, Sparkles, Flame, Shield, Image as ImageIcon } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
+import { formatPrice } from '../../utils/format';
 
 interface ProductCardProps {
   product: Product;
@@ -27,6 +28,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
   };
 
   const primaryImage = product.image || product.images?.[0] || product.coverImage || 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800';
+  const secondaryImage = (product.images && product.images.length > 1) ? product.images[1] : null;
+  const totalPhotosCount = (product.images && product.images.length > 0) ? product.images.length : (product.image ? 1 : 0);
 
   return (
     <motion.div
@@ -51,11 +54,32 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
           src={primaryImage}
           alt={product.name}
           referrerPolicy="no-referrer"
-          className={`w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.5)] transition-transform duration-500 ease-out group-hover:scale-108 ${
+          className={`w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.5)] transition-all duration-500 ease-out group-hover:scale-108 ${
             isOutOfStock ? 'grayscale opacity-50' : ''
-          }`}
+          } ${secondaryImage && !isOutOfStock ? 'group-hover:opacity-0' : ''}`}
           loading="lazy"
         />
+
+        {/* Optional secondary angle on hover */}
+        {secondaryImage && !isOutOfStock && (
+          <img
+            src={secondaryImage}
+            alt={`${product.name} vue d'angle`}
+            referrerPolicy="no-referrer"
+            className="absolute inset-0 w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.5)] p-3 sm:p-4 transition-all duration-500 ease-out opacity-0 group-hover:opacity-100 group-hover:scale-108"
+            loading="lazy"
+          />
+        )}
+
+        {/* Gallery count badge if multiple views available */}
+        {totalPhotosCount > 1 && (
+          <div className="absolute bottom-2.5 left-2.5 z-10 pointer-events-none">
+            <span className="inline-flex items-center gap-1 bg-black/60 text-white/90 border border-white/10 text-[9px] font-mono px-1.5 py-0.5 rounded-md backdrop-blur-xs">
+              <ImageIcon className="w-2.5 h-2.5 text-[var(--or)]" />
+              <span>{totalPhotosCount} photos</span>
+            </span>
+          </div>
+        )}
 
         {/* Overlay Badges */}
         <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-col gap-1 z-10 pointer-events-none">
@@ -142,15 +166,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
             {hasPromo ? (
               <>
                 <span className="text-[10px] sm:text-[11px] text-[var(--text-muted)] line-through truncate font-serif">
-                  {product.price.toLocaleString('fr-FR')} {product.currency}
+                  {formatPrice(product.price)}
                 </span>
                 <span className="font-serif text-sm sm:text-lg font-bold text-[var(--or)] truncate">
-                  {product.promotionalPrice!.toLocaleString('fr-FR')} {product.currency}
+                  {formatPrice(product.promotionalPrice!)}
                 </span>
               </>
             ) : (
               <span className="font-serif text-sm sm:text-lg font-bold text-[var(--text)] truncate">
-                {product.price.toLocaleString('fr-FR')} {product.currency}
+                {formatPrice(product.price)}
               </span>
             )}
           </div>

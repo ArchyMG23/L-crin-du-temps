@@ -22,6 +22,7 @@ import { Order, OrderStatus, PaymentStatus, StoreSettings } from '../../types';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { formatPrice } from '../../utils/format';
 
 interface AdminOrdersProps {
   orders: Order[];
@@ -93,7 +94,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
     let text = '';
 
     const storeName = settings?.storeName || settings?.name || 'Notre Maison Horlogère';
-    const totalFormatted = `${order.total.toLocaleString('fr-FR')} ${order.currency}`;
+    const totalFormatted = formatPrice(order.total);
     const firstItem = order.items?.[0];
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     let watchImg = firstItem?.image || '';
@@ -256,7 +257,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                   <div className="flex items-center gap-2 sm:gap-3">
                     <span className="text-xs text-[var(--text-soft)] font-medium">Total :</span>
                     <span className="font-serif text-lg font-bold text-[var(--text)] font-mono">
-                      {order.total.toLocaleString('fr-FR')} {order.currency}
+                      {formatPrice(order.total)}
                     </span>
                   </div>
                 </div>
@@ -302,7 +303,7 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                           <div className="min-w-0 flex-1">
                             <h5 className="font-bold text-[var(--text)] truncate text-[11px]">{item.name}</h5>
                             <div className="text-[10px] text-[var(--text-soft)] font-mono font-medium">
-                              {item.quantity}x {item.price.toLocaleString('fr-FR')} {order.currency}
+                              {item.quantity}x {formatPrice(item.price)}
                             </div>
                           </div>
                         </div>
@@ -464,12 +465,12 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
                       <div>
                         <div className="font-medium text-[var(--text)]">{item.name}</div>
                         <div className="text-[var(--text-muted)] text-[11px] font-mono">
-                          Quantité : {item.quantity} x {item.price.toLocaleString('fr-FR')} {selectedOrder.currency}
+                          Quantité : {item.quantity} x {formatPrice(item.price)}
                         </div>
                       </div>
                     </div>
                     <span className="font-mono font-semibold">
-                      {item.subtotal.toLocaleString('fr-FR')} {selectedOrder.currency}
+                      {formatPrice(item.subtotal)}
                     </span>
                   </div>
                 ))}
@@ -480,18 +481,18 @@ export const AdminOrders: React.FC<AdminOrdersProps> = ({
             <div className="p-4 bg-[var(--carte-bg-subtle)] rounded-xl border border-[var(--sep)] space-y-1.5">
               <div className="flex justify-between text-[var(--text-muted)]">
                 <span>Sous-total articles</span>
-                <span className="font-mono">{selectedOrder.subtotal.toLocaleString('fr-FR')} {selectedOrder.currency}</span>
+                <span className="font-mono">{formatPrice(selectedOrder.subtotal)}</span>
               </div>
               <div className="flex justify-between text-[var(--text-muted)]">
                 <span>Frais de livraison</span>
                 <span className="font-mono">
-                  {(selectedOrder.shipping ?? selectedOrder.shippingFee ?? 0) === 0 ? 'Gratuit' : `${(selectedOrder.shipping ?? selectedOrder.shippingFee ?? 0).toLocaleString('fr-FR')} ${selectedOrder.currency}`}
+                  {(selectedOrder.shipping ?? selectedOrder.shippingFee ?? 0) === 0 ? 'Gratuit' : formatPrice(selectedOrder.shipping ?? selectedOrder.shippingFee ?? 0)}
                 </span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-[var(--sep)] text-sm font-serif font-bold">
                 <span className="text-[var(--text)]">Total Commande</span>
                 <span className="text-[var(--or)] text-lg font-mono">
-                  {selectedOrder.total.toLocaleString('fr-FR')} {selectedOrder.currency}
+                  {formatPrice(selectedOrder.total)}
                 </span>
               </div>
             </div>

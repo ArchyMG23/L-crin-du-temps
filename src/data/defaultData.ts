@@ -9,7 +9,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   faviconUrl: '/favicon.svg',
   whatsappNumber: '+237600000000', // Modifiable dynamiquement par l'administratrice dans le CMS
   whatsappDefaultMessage: 'Bonjour, je souhaite obtenir des informations sur cette montre d\'exception.',
-  currency: '€',
+  currency: 'FCFA',
   defaultLowStockThreshold: 2,
   shippingEnabled: true,
   shippingFee: 0, // Offerte pour le prestige
@@ -81,7 +81,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     description: 'Une pièce maîtresse de notre collection. Le Chronographe Royal Ébène associe la pureté de l\'acier 316L chirurgical à un cadran noir texturé "tapisserie" réfléchissant subtilement la lumière. Doté d\'une réserve de marche de 48 heures et d\'une précision chronométrique certifiée.',
     price: 1450,
     promotionalPrice: 1290,
-    currency: '€',
+    currency: 'FCFA',
     categoryId: 'cat-chronographes',
     gender: 'homme',
     images: [
@@ -115,7 +115,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     description: 'Conçue pour explorer les profondeurs avec distinction. Son cadran vert émeraude soleillé et sa lunette unidirectionnelle en céramique inaltérable font de l\'Abyssal Diver une référence incontournable de polyvalence sportive et de luxe.',
     price: 1150,
     promotionalPrice: null,
-    currency: '€',
+    currency: 'FCFA',
     categoryId: 'cat-plongee',
     gender: 'homme',
     images: [
@@ -148,7 +148,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     description: 'Une ode à la délicatesse et à la féminité. Le modèle Élégance Impériale combine un boîtier aux courbes fluides en or rose 18k avec un cadran en nacre naturelle sélectionnée à la main, rehaussé d\'index sertis de zirconiums étincelants.',
     price: 980,
     promotionalPrice: 890,
-    currency: '€',
+    currency: 'FCFA',
     categoryId: 'cat-habillees',
     gender: 'femme',
     images: [
@@ -181,7 +181,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     description: 'L\'art du squelettage poussé à son paroxysme. Chaque pont et rouage est ajouré avec précision pour dévoiler la pulsation vivante du balancier spiral. Boîtier en titane grade 5 d\'une légèreté et d\'un confort absolus.',
     price: 2400,
     promotionalPrice: null,
-    currency: '€',
+    currency: 'FCFA',
     categoryId: 'cat-squelette',
     gender: 'homme',
     images: [
@@ -214,7 +214,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     description: 'Inspirée par l\'architecture géométrique de la Place Vendôme, cette montre pour femme offre un profil fuselé et un port majestueux. Son bracelet maille milanaise or jaune épouse délicatement le poignet.',
     price: 850,
     promotionalPrice: null,
-    currency: '€',
+    currency: 'FCFA',
     categoryId: 'cat-habillees',
     gender: 'femme',
     images: [
@@ -247,7 +247,7 @@ export const DEFAULT_PRODUCTS: Product[] = [
     description: 'Hommage à l\'âge d\'or des courses de grand tourisme. Le cadran Panda vintage offre un contraste saisissant pour une lisibilité instantanée des temps au tour. Livré avec un bracelet cuir racing perforé.',
     price: 1320,
     promotionalPrice: 1190,
-    currency: '€',
+    currency: 'FCFA',
     categoryId: 'cat-chronographes',
     gender: 'mixte',
     images: [

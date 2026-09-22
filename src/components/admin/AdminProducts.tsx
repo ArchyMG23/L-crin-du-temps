@@ -19,6 +19,7 @@ import { Product, Category, StoreSettings } from '../../types';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
+import { formatPrice } from '../../utils/format';
 
 interface AdminProductsProps {
   products: Product[];
@@ -51,7 +52,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const currency = settings?.currency || '€';
+  const currency = settings?.currency || 'FCFA';
 
   // Filter logic
   const filteredProducts = products.filter((product) => {
@@ -275,11 +276,11 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                         <div className="font-mono font-bold text-[var(--text)]">
                           {hasPromo ? (
                             <span className="text-[var(--or)]">
-                              {product.promotionalPrice!.toLocaleString('fr-FR')} {currency}
+                              {formatPrice(product.promotionalPrice!)}
                             </span>
                           ) : (
                             <span>
-                              {product.price.toLocaleString('fr-FR')} {currency}
+                              {formatPrice(product.price)}
                             </span>
                           )}
                         </div>
@@ -397,15 +398,15 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                           {hasPromo ? (
                             <div>
                               <div className="text-[var(--text-muted)] line-through text-[11px]">
-                                {product.price.toLocaleString('fr-FR')} {currency}
+                                {formatPrice(product.price)}
                               </div>
                               <div className="font-mono font-bold text-[var(--or)] text-sm">
-                                {product.promotionalPrice!.toLocaleString('fr-FR')} {currency}
+                                {formatPrice(product.promotionalPrice!)}
                               </div>
                             </div>
                           ) : (
                             <div className="font-mono font-bold text-[var(--text)] text-sm">
-                              {product.price.toLocaleString('fr-FR')} {currency}
+                              {formatPrice(product.price)}
                             </div>
                           )}
                         </td>
