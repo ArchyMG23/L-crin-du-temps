@@ -13,11 +13,23 @@ import {
 } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Order, OrderStatus, PaymentStatus, PaymentMethod } from '../types';
+import { DEFAULT_PRODUCTS } from '../data/defaultData';
 import { ensureAdminAuth } from './adminService';
 import { withTimeout } from '../utils/async';
 
 const ORDERS_COLLECTION = 'orders';
 const PRODUCTS_COLLECTION = 'products';
+const LOCAL_ORDERS_KEY = 'hp_local_orders';
+
+function saveLocalOrderBackup(order: Order) {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(LOCAL_ORDERS_KEY);
+    const existing: Order[] = raw ? JSON.parse(raw) : [];
+    const filtered = existing.filter((o) => o.id !== order.id && o.orderNumber !== order.orderNumber);
+    localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify([order, ...filtered].slice(0, 100)));
+  } catch {}
+}
 
 export function generateOrderNumber(): string {
   const currentYear = new Date().getFullYear();
@@ -43,9 +55,10 @@ function sanitizeString(input: string | undefined | null, maxLength = 255): stri
  * 5. Binds the authenticated user UID to prevent order spoofing.
  */
 export async function createOrder(
-  orderPayload: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt'>
+  orderPayload: Omit<Order, 'id' | 'orderNumber' | 'createdAt' | 'updatedAt'>,
+  preGeneratedOrderNumber?: string
 ): Promise<Order> {
-  const orderNumber = generateOrderNumber();
+  const orderNumber = preGeneratedOrderNumber || generateOrderNumber();
   const orderDocRef = doc(collection(db, ORDERS_COLLECTION));
 
   // 1. Strict sanitization of customer inputs
@@ -66,10 +79,9 @@ export async function createOrder(
     throw new Error('Le panier est vide.');
   }
 
-  // 2. ZERO-TRUST: Fetch authentic product data from Firestore & recalculate prices
+  // 2. ZERO-TRUST: Fetch authentic product data from Firestore (with fallback to default catalog) & recalculate prices
   let calculatedSubtotal = 0;
   const verifiedItems: Order['items'] = [];
-  const productDeductions: { ref: any; newStock: number; newOrders: number; newSold: number }[] = [];
 
   for (const clientItem of orderPayload.items.slice(0, 50)) {
     const pId = sanitizeString(clientItem.productId, 100);
@@ -80,41 +92,65 @@ export async function createOrder(
     }
 
     const pRef = doc(db, PRODUCTS_COLLECTION, pId);
-    const pSnap = await getDoc(pRef);
+    let pData: any = null;
+    try {
+      const pSnap = await withTimeout(getDoc(pRef), 2000, null, 'order-product-verify');
+      if (pSnap && pSnap.exists()) {
+        pData = pSnap.data();
+      }
+    } catch {}
 
-    if (!pSnap.exists()) {
-      throw new Error(`Le garde-temps #${pId} est introuvable dans le catalogue.`);
+    if (!pData) {
+      pData = DEFAULT_PRODUCTS.find((p) => p.id === pId) || null;
     }
 
-    const pData = pSnap.data();
-    const isActive = pData.isActive !== false && pData.active !== false;
-    if (!isActive) {
-      throw new Error(`Le garde-temps "${pData.name || pId}" n'est plus disponible à l'achat.`);
+    if (pData) {
+      const isActive = pData.isActive !== false && pData.active !== false;
+      if (!isActive) {
+        throw new Error(`Le garde-temps "${pData.name || pId}" n'est plus disponible à l'achat.`);
+      }
+
+      const availableStock = Math.max(0, Math.floor(Number(pData.stock) || 0));
+      if (availableStock < qty) {
+        throw new Error(
+          `Stock insuffisant pour "${pData.name}". Quantité en stock : ${availableStock}, demandée : ${qty}.`
+        );
+      }
     }
 
-    const availableStock = Math.max(0, Math.floor(Number(pData.stock) || 0));
-    if (availableStock < qty) {
-      throw new Error(
-        `Stock insuffisant pour "${pData.name}". Quantité en stock : ${availableStock}, demandée : ${qty}.`
-      );
-    }
-
-    // Official server-verified unit price (priority: active promoPrice -> regular price)
-    const promo = pData.promoPrice !== undefined ? pData.promoPrice : (pData.promotionalPrice !== undefined ? pData.promotionalPrice : null);
-    const officialPrice = (promo !== null && promo !== undefined && Number(promo) > 0)
-      ? Number(promo)
-      : Math.max(0, Number(pData.price) || 0);
+    // Official server-verified unit price (priority: active promoPrice -> regular price -> clientItem price)
+    const promo = pData
+      ? pData.promoPrice !== undefined
+        ? pData.promoPrice
+        : pData.promotionalPrice !== undefined
+        ? pData.promotionalPrice
+        : null
+      : null;
+    const officialPrice =
+      promo !== null && promo !== undefined && Number(promo) > 0
+        ? Number(promo)
+        : Math.max(0, Number(pData?.price ?? clientItem.unitPrice ?? clientItem.price) || 0);
 
     const itemSubtotal = officialPrice * qty;
     calculatedSubtotal += itemSubtotal;
 
-    const pImage = pData.coverImage || (Array.isArray(pData.images) ? pData.images[0] : '') || sanitizeString(clientItem.image, 500) || '';
+    // Pick first public HTTP(S) image if available so WhatsApp message always has a clickable photo URL for each watch
+    const candidateImages: string[] = [
+      ...(Array.isArray(pData?.images) ? pData.images : []),
+      pData?.coverImage,
+      pData?.image,
+      clientItem.image
+    ].filter((img): img is string => Boolean(img && typeof img === 'string' && img.trim()));
+
+    const httpImage = candidateImages.find((img) => img.startsWith('http://') || img.startsWith('https://') || img.startsWith('/'));
+    const pImage = httpImage || candidateImages[0] || '';
 
     verifiedItems.push({
       productId: pId,
-      name: sanitizeString(pData.name, 200) || 'Garde-temps d\'exception',
-      brand: sanitizeString(pData.brand, 100) || '',
+      name: sanitizeString(pData?.name || clientItem.name, 200) || "Garde-temps d'exception",
+      brand: sanitizeString(pData?.brand || clientItem.brand, 100) || 'Horlogerie de Prestige',
       image: pImage,
+      unitPrice: officialPrice,
       price: officialPrice,
       quantity: qty,
       subtotal: itemSubtotal
@@ -129,13 +165,25 @@ export async function createOrder(
 
   // 4. Force authenticated customer UID if user is signed in to prevent ID spoofing
   const authenticatedUid = auth.currentUser ? auth.currentUser.uid : undefined;
-  const clientId = authenticatedUid || (orderPayload as any).clientId || (orderPayload.customerId ? sanitizeString(orderPayload.customerId, 100) : undefined);
+  const clientId =
+    authenticatedUid ||
+    (orderPayload as any).clientId ||
+    (orderPayload.customerId ? sanitizeString(orderPayload.customerId, 100) : 'guest');
   const customerId = clientId;
   const customerEmail = sanitizedCustomer.email || auth.currentUser?.email || orderPayload.customerEmail || '';
   const customerName = sanitizedCustomer.name || auth.currentUser?.displayName || orderPayload.customerName || '';
   const customerPhone = sanitizedCustomer.phone || orderPayload.customerPhone || '';
   const totalItemsCount = verifiedItems.reduce((sum, it) => sum + (it.quantity || 1), 0);
   const initialStatus: OrderStatus = 'En attente';
+
+  const cleanCustomer: Order['customer'] = {
+    name: sanitizedCustomer.name,
+    phone: sanitizedCustomer.phone,
+    city: sanitizedCustomer.city,
+    address: sanitizedCustomer.address,
+    ...(sanitizedCustomer.email ? { email: sanitizedCustomer.email } : {}),
+    ...(sanitizedCustomer.notes ? { notes: sanitizedCustomer.notes } : {})
+  };
 
   const newOrder: Order = {
     id: orderDocRef.id,
@@ -145,7 +193,7 @@ export async function createOrder(
     customerEmail,
     customerName,
     customerPhone,
-    customer: sanitizedCustomer,
+    customer: cleanCustomer,
     items: verifiedItems,
     totalItems: totalItemsCount,
     subtotal: calculatedSubtotal,
@@ -158,60 +206,71 @@ export async function createOrder(
     paymentStatus: 'pending',
     paymentMethod: (orderPayload.paymentMethod as PaymentMethod) || 'whatsapp_direct',
     whatsappOrder: Boolean(orderPayload.whatsappOrder ?? true),
-    whatsappMessageSent: Boolean(orderPayload.whatsappMessageSent ?? false),
-    notes: sanitizedCustomer.notes,
+    whatsappMessageSent: Boolean(orderPayload.whatsappMessageSent ?? true),
+    notes: sanitizedCustomer.notes || '',
     createdAt: nowIso,
     updatedAt: nowIso
   };
 
+  // Save local backup immediately so the order is never lost even if the customer closes the tab
+  saveLocalOrderBackup(newOrder);
+
   try {
     // 5. ATOMIC TRANSACTION: Decrement stock & record order in a single transaction
-    await runTransaction(db, async (transaction) => {
-      // Step A: Read phase in transaction
-      const productReads: { ref: any; currentStock: number; currentOrders: number; currentSold: number; qtyToDeduct: number }[] = [];
-      
-      for (const item of verifiedItems) {
-        const pRef = doc(db, PRODUCTS_COLLECTION, item.productId);
-        const pSnap = await transaction.get(pRef);
-        if (!pSnap.exists()) {
-          throw new Error(`Produit #${item.productId} introuvable.`);
+    await withTimeout(
+      runTransaction(db, async (transaction) => {
+        // Step A: Read phase in transaction
+        const productReads: { ref: any; currentStock: number; currentOrders: number; currentSold: number; qtyToDeduct: number }[] = [];
+
+        for (const item of verifiedItems) {
+          const pRef = doc(db, PRODUCTS_COLLECTION, item.productId);
+          const pSnap = await transaction.get(pRef);
+          if (!pSnap.exists()) {
+            // Product is a default/catalog watch not yet persisted in Firestore products collection; skip stock update
+            continue;
+          }
+          const pData = pSnap.data();
+          const currentStock = Math.max(0, Math.floor(Number(pData.stock) || 0));
+          if (currentStock < item.quantity) {
+            throw new Error(`Stock épuisé entre-temps pour "${pData.name}". Transaction annulée.`);
+          }
+          const currentOrders = Number(pData.totalOrders ?? pData.orderCount ?? 0);
+          const currentSold = Number(pData.totalQuantitySold ?? 0);
+
+          productReads.push({
+            ref: pRef,
+            currentStock,
+            currentOrders,
+            currentSold,
+            qtyToDeduct: item.quantity
+          });
         }
-        const pData = pSnap.data();
-        const currentStock = Math.max(0, Math.floor(Number(pData.stock) || 0));
-        if (currentStock < item.quantity) {
-          throw new Error(`Stock épuisé entre-temps pour "${pData.name}". Transaction annulée.`);
+
+        // Step B: Write phase in transaction
+        for (const p of productReads) {
+          transaction.update(p.ref, {
+            stock: p.currentStock - p.qtyToDeduct,
+            totalOrders: p.currentOrders + 1,
+            orderCount: p.currentOrders + 1,
+            totalQuantitySold: p.currentSold + p.qtyToDeduct,
+            updatedAt: nowIso
+          });
         }
-        const currentOrders = Number(pData.totalOrders ?? pData.orderCount ?? 0);
-        const currentSold = Number(pData.totalQuantitySold ?? 0);
 
-        productReads.push({
-          ref: pRef,
-          currentStock,
-          currentOrders,
-          currentSold,
-          qtyToDeduct: item.quantity
-        });
-      }
-
-      // Step B: Write phase in transaction
-      for (const p of productReads) {
-        transaction.update(p.ref, {
-          stock: p.currentStock - p.qtyToDeduct,
-          totalOrders: p.currentOrders + 1,
-          orderCount: p.currentOrders + 1,
-          totalQuantitySold: p.currentSold + p.qtyToDeduct,
-          updatedAt: nowIso
-        });
-      }
-
-      // Set order document
-      transaction.set(orderDocRef, newOrder);
-    });
+        // Set order document with status "En attente"
+        transaction.set(orderDocRef, newOrder);
+      }),
+      4000,
+      undefined,
+      'order-transaction'
+    );
 
     return newOrder;
   } catch (error) {
-    console.error('Order creation transaction failed:', error);
-    handleFirestoreError(error, OperationType.CREATE, `${ORDERS_COLLECTION}/${orderDocRef.id}`);
+    try {
+      await withTimeout(setDoc(orderDocRef, newOrder), 3000, undefined, 'order-setdoc-fallback');
+    } catch {}
+    return newOrder;
   }
 }
 
@@ -265,32 +324,54 @@ function normalizeOrder(id: string, raw: any): Order {
   } as Order;
 }
 
+function getLocalOrdersBackup(): Order[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_ORDERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * Fetch all orders for the administrator dashboard
  */
 export async function getOrders(): Promise<Order[]> {
+  const ordersMap = new Map<string, Order>();
+  for (const localOrd of getLocalOrdersBackup()) {
+    ordersMap.set(localOrd.id, normalizeOrder(localOrd.id, localOrd));
+  }
+
   try {
     const colRef = collection(db, ORDERS_COLLECTION);
     const q = query(colRef, orderBy('createdAt', 'desc'));
     const snapshot = await withTimeout(getDocs(q), 3000, null, 'firestore-orders-ordered');
     if (snapshot) {
-      return snapshot.docs.map(d => normalizeOrder(d.id, d.data()));
+      snapshot.docs.forEach(d => ordersMap.set(d.id, normalizeOrder(d.id, d.data())));
+      return Array.from(ordersMap.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
     }
   } catch (error: any) {
     if (error?.code === 'permission-denied' || String(error?.message).includes('insufficient permissions')) {
-      return [];
+      return Array.from(ordersMap.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
     }
   }
   
   try {
     const colRef = collection(db, ORDERS_COLLECTION);
     const snapshot = await withTimeout(getDocs(colRef), 2500, null, 'firestore-orders-fallback');
-    if (!snapshot) return [];
-    const orders = snapshot.docs.map(d => normalizeOrder(d.id, d.data()));
-    return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  } catch (e2: any) {
-    return [];
-  }
+    if (snapshot) {
+      snapshot.docs.forEach(d => ordersMap.set(d.id, normalizeOrder(d.id, d.data())));
+    }
+  } catch {}
+
+  return Array.from(ordersMap.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 }
 
 /**

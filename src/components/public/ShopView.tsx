@@ -71,7 +71,19 @@ export const ShopView: React.FC<ShopViewProps> = ({
 
         // Category
         if (selectedCategory !== 'all') {
-          if (p.categoryId !== selectedCategory) return false;
+          const catObj = categories.find(
+            (c) => c.id === selectedCategory || c.slug === selectedCategory
+          );
+          const matchesCat =
+            p.categoryId === selectedCategory ||
+            p.collectionId === selectedCategory ||
+            (catObj &&
+              (p.categoryId === catObj.id ||
+                p.collectionId === catObj.id ||
+                p.categoryId === catObj.slug ||
+                (p.collectionName &&
+                  p.collectionName.toLowerCase() === catObj.name.toLowerCase())));
+          if (!matchesCat) return false;
         }
 
         // Only in stock

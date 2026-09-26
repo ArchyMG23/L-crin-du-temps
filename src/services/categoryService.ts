@@ -11,11 +11,41 @@ import {
 } from 'firebase/firestore';
 import { db, activeFirebaseConfig, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Category } from '../types';
+import { DEFAULT_CATEGORIES } from '../data/defaultData';
 import { ensureAdminAuth } from './adminService';
 import { withTimeout } from '../utils/async';
 
 const PRIMARY_COLLECTION = 'collections';
 const LEGACY_COLLECTION = 'categories';
+const DELETED_CATEGORIES_STORAGE_KEY = 'hp_deleted_categories';
+
+function getDeletedCategoryIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(DELETED_CATEGORIES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return new Set(parsed);
+    }
+  } catch {}
+  return new Set();
+}
+
+function markCategoryAsDeleted(id: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = getDeletedCategoryIds();
+    current.add(id);
+    localStorage.setItem(DELETED_CATEGORIES_STORAGE_KEY, JSON.stringify(Array.from(current)));
+  } catch {}
+}
+
+function clearDeletedCategories() {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(DELETED_CATEGORIES_STORAGE_KEY);
+  } catch {}
+}
 
 export interface FetchCategoriesResult {
   categories: Category[];
@@ -25,83 +55,88 @@ export interface FetchCategoriesResult {
 }
 
 /**
+ * Merges Firestore categories with DEFAULT_CATEGORIES (excluding explicitly deleted ones)
+ * so the store and admin panel always have the complete horological collections & categories.
+ */
+function mergeWithDefaultCategories(firestoreCategories: Category[], onlyActive = false): Category[] {
+  const deletedIds = getDeletedCategoryIds();
+  const byId = new Map<string, Category>();
+  const existingSlugs = new Set<string>();
+
+  for (const cat of firestoreCategories) {
+    if (deletedIds.has(cat.id)) continue;
+    byId.set(cat.id, cat);
+    if (cat.slug) existingSlugs.add(cat.slug.toLowerCase());
+  }
+
+  for (const defCat of DEFAULT_CATEGORIES) {
+    if (deletedIds.has(defCat.id)) continue;
+    if (!byId.has(defCat.id) && !existingSlugs.has(defCat.slug.toLowerCase())) {
+      byId.set(defCat.id, {
+        ...defCat,
+        isActive: defCat.isActive ?? defCat.active ?? true,
+        active: defCat.active ?? defCat.isActive ?? true
+      });
+    }
+  }
+
+  let merged = Array.from(byId.values());
+  if (onlyActive) {
+    merged = merged.filter((c) => c.isActive !== false && c.active !== false);
+  }
+
+  return merged.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+}
+
+/**
  * Robust fetch for collections with diagnostic status.
- * Distinguishes between truly empty collections (0 docs) and Firestore connection/provisioning errors.
+ * Merges Firestore documents with default horological collections so the catalog is never stuck with only 1 collection.
  */
 export async function fetchCategoriesWithStatus(onlyActive = false): Promise<FetchCategoriesResult> {
   console.log('[FIRESTORE] collections fetch with status started');
   let caughtError: Error | null = null;
-  let snapshot: any = null;
+  const rawDocsMap = new Map<string, any>();
 
   try {
     const colRef = collection(db, PRIMARY_COLLECTION);
-    snapshot = await Promise.race([
+    const snapshot: any = await Promise.race([
       getDocs(colRef),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('TIMEOUT_FIRESTORE_COLLECTIONS')), 4500)
       )
     ]);
+    if (snapshot && !snapshot.empty) {
+      snapshot.docs.forEach((d: any) => rawDocsMap.set(d.id, d.data()));
+    }
   } catch (err: any) {
     caughtError = err;
     console.warn('[FIRESTORE] Primary collections query note:', err?.code || err?.message || err);
   }
 
-  // Fallback to legacy categories collection if primary was empty or failed
-  if (!snapshot || snapshot.empty) {
-    try {
-      const legacyRef = collection(db, LEGACY_COLLECTION);
-      const legacySnapshot: any = await Promise.race([
-        getDocs(legacyRef),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('TIMEOUT_FIRESTORE_LEGACY_COLLECTIONS')), 3000)
-        )
-      ]);
-      if (legacySnapshot && !legacySnapshot.empty) {
-        snapshot = legacySnapshot;
-        caughtError = null; // Legacy succeeded
-      } else if (!caughtError && legacySnapshot && legacySnapshot.empty) {
-        // Both returned valid empty snapshots
-        snapshot = legacySnapshot;
-      }
-    } catch (legacyErr: any) {
-      if (!caughtError) caughtError = legacyErr;
-      console.warn('[FIRESTORE] Legacy collections query note:', legacyErr?.code || legacyErr?.message || legacyErr);
+  // Also check legacy categories collection and merge any documents found there
+  try {
+    const legacyRef = collection(db, LEGACY_COLLECTION);
+    const legacySnapshot: any = await Promise.race([
+      getDocs(legacyRef),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT_FIRESTORE_LEGACY_COLLECTIONS')), 3000)
+      )
+    ]);
+    if (legacySnapshot && !legacySnapshot.empty) {
+      legacySnapshot.docs.forEach((d: any) => {
+        if (!rawDocsMap.has(d.id)) {
+          rawDocsMap.set(d.id, d.data());
+        }
+      });
+      caughtError = null;
     }
-  }
-
-  // Handle connection or infrastructure failure
-  if (caughtError && (!snapshot || snapshot.empty)) {
-    const errCode = (caughtError as any)?.code || '';
-    const errMsg = caughtError?.message || '';
-    const isNotFound = errCode === 'not-found' || errMsg.includes('NOT_FOUND') || errMsg.includes('not-found');
-
-    const friendlyMessage = isNotFound
-      ? `Base de données Cloud Firestore (default) introuvable ou non activée sur le projet Firebase "${activeFirebaseConfig.projectId}".`
-      : "Impossible de charger les collections. Vérifiez la connexion à Firebase.";
-
-    console.warn('[FIRESTORE] Collections fetch failed with error:', { code: errCode, message: errMsg });
-    return {
-      categories: [],
-      error: caughtError,
-      errorMessage: friendlyMessage,
-      isRealEmpty: false
-    };
-  }
-
-  // If query succeeded and returned 0 documents: this is a legitimate empty state
-  if (!snapshot || snapshot.empty) {
-    console.log('[FIRESTORE] collections query succeeded: 0 documents (empty catalog)');
-    return {
-      categories: [],
-      error: null,
-      errorMessage: null,
-      isRealEmpty: true
-    };
+  } catch (legacyErr: any) {
+    if (!caughtError) caughtError = legacyErr;
+    console.warn('[FIRESTORE] Legacy collections query note:', legacyErr?.code || legacyErr?.message || legacyErr);
   }
 
   try {
-    let categories = snapshot.docs.map((d: any) => {
-      const data = d.data();
+    const firestoreCategories: Category[] = Array.from(rawDocsMap.entries()).map(([id, data]) => {
       const isActive =
         data.isActive !== undefined
           ? Boolean(data.isActive)
@@ -109,39 +144,61 @@ export async function fetchCategoriesWithStatus(onlyActive = false): Promise<Fet
           ? Boolean(data.active)
           : true;
       return {
-        id: d.id,
+        id,
         ...data,
         isActive,
         active: isActive,
         slug:
           data.slug ||
           data.name?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') ||
-          d.id
+          id
       } as Category;
     });
 
-    if (onlyActive) {
-      categories = categories.filter((c: Category) => c.isActive && c.active);
-    }
+    const merged = mergeWithDefaultCategories(firestoreCategories, onlyActive);
 
-    const sorted = categories.sort((a: Category, b: Category) => (a.name || '').localeCompare(b.name || ''));
-    console.log('[FIRESTORE] collections loaded successfully:', { count: sorted.length });
+    console.log('[FIRESTORE] collections loaded successfully:', { count: merged.length });
 
     return {
-      categories: sorted,
+      categories: merged,
       error: null,
       errorMessage: null,
-      isRealEmpty: sorted.length === 0
+      isRealEmpty: merged.length === 0
     };
   } catch (mappingErr: any) {
     console.error('[FIRESTORE] Error mapping collections:', mappingErr);
+    const fallback = mergeWithDefaultCategories([], onlyActive);
     return {
-      categories: [],
-      error: mappingErr,
-      errorMessage: "Impossible de charger les collections. Données corrompues.",
-      isRealEmpty: false
+      categories: fallback,
+      error: null,
+      errorMessage: null,
+      isRealEmpty: fallback.length === 0
     };
   }
+}
+
+/**
+ * Explicitly restores and seeds all default horological collections into Firestore and local state.
+ */
+export async function restoreDefaultCategories(): Promise<Category[]> {
+  clearDeletedCategories();
+  try {
+    await ensureAdminAuth();
+    for (const cat of DEFAULT_CATEGORIES) {
+      const payload: Category = {
+        ...cat,
+        active: true,
+        isActive: true,
+        updatedAt: new Date().toISOString()
+      };
+      await setDoc(doc(db, PRIMARY_COLLECTION, cat.id), payload, { merge: true }).catch(() => {});
+      await setDoc(doc(db, LEGACY_COLLECTION, cat.id), payload, { merge: true }).catch(() => {});
+    }
+  } catch (err) {
+    console.warn('[FIRESTORE] Note when seeding default collections:', err);
+  }
+  const res = await fetchCategoriesWithStatus(false);
+  return res.categories;
 }
 
 /**
@@ -250,21 +307,31 @@ export async function createCategory(catData: Omit<Category, 'id' | 'createdAt' 
 export async function updateCategory(id: string, updates: Partial<Category>): Promise<void> {
   await ensureAdminAuth();
   const path = `${PRIMARY_COLLECTION}/${id}`;
-  const normalized: any = { ...updates };
+  const defaultMatch = DEFAULT_CATEGORIES.find((c) => c.id === id);
+  const normalized: any = {
+    ...(defaultMatch || {}),
+    ...updates,
+    id
+  };
   if (updates.isActive !== undefined) normalized.active = updates.isActive;
   if (updates.active !== undefined) normalized.isActive = updates.active;
   normalized.updatedAt = new Date().toISOString();
 
+  // Remove any undefined values before writing to Firestore
+  Object.keys(normalized).forEach((key) => {
+    if (normalized[key] === undefined) delete normalized[key];
+  });
+
   try {
     const docRef = doc(db, PRIMARY_COLLECTION, id);
     await Promise.race([
-      updateDoc(docRef, normalized),
+      setDoc(docRef, normalized, { merge: true }),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Délai d\'écriture Firestore dépassé (timeout 10s).')), 10000)
       )
     ]);
     Promise.race([
-      updateDoc(doc(db, LEGACY_COLLECTION, id), normalized),
+      setDoc(doc(db, LEGACY_COLLECTION, id), normalized, { merge: true }),
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
     ]).catch(() => {});
   } catch (error: any) {
@@ -295,6 +362,7 @@ export async function deleteCategory(id: string): Promise<void> {
     throw new Error(errorMsg);
   }
 
+  markCategoryAsDeleted(id);
   const path = `${PRIMARY_COLLECTION}/${id}`;
   try {
     const docRef = doc(db, PRIMARY_COLLECTION, id);

@@ -17,7 +17,8 @@ import {
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { CustomerInfo, Order, StoreSettings } from '../../types';
-import { createOrder, buildWhatsAppOrderUrl } from '../../services/orderService';
+import { createOrder, buildWhatsAppOrderUrl, generateOrderNumber } from '../../services/orderService';
+import { resolveWatchItemPhotoUrl } from '../../utils/whatsapp';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { AuthModal } from './AuthModal';
@@ -94,12 +95,6 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     e.preventDefault();
     setErrorMsg(null);
 
-    // Require Customer Account
-    if (!userProfile) {
-      setAuthModalOpen(true);
-      return;
-    }
-
     // Form Validations
     if (!customer.name.trim()) {
       setErrorMsg('Veuillez renseigner votre nom complet.');
@@ -122,64 +117,139 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       return;
     }
 
+    const orderNumber = generateOrderNumber();
+    const nowIso = new Date().toISOString();
+    const clientUid = userProfile?.uid || 'guest';
+
+    // Map EVERY watch in the cart with its own individual photo URL
+    const orderItems = cart.map((item) => {
+      const effectivePrice =
+        item.product.promotionalPrice && item.product.promotionalPrice > 0
+          ? item.product.promotionalPrice
+          : item.product.price;
+
+      const candidateImages = [
+        ...(Array.isArray(item.product.images) ? item.product.images : []),
+        item.product.coverImage,
+        item.product.image
+      ].filter((img): img is string => Boolean(img && typeof img === 'string' && img.trim()));
+
+      const rawImg =
+        candidateImages.find(
+          (img) => img.startsWith('http://') || img.startsWith('https://') || img.startsWith('/')
+        ) ||
+        candidateImages[0] ||
+        '';
+
+      const resolvedPhotoUrl = resolveWatchItemPhotoUrl({
+        productId: item.product.id,
+        name: item.product.name,
+        image: rawImg
+      });
+
+      return {
+        productId: item.product.id,
+        name: item.product.name,
+        brand: item.product.brand || 'Horlogerie de prestige',
+        image: resolvedPhotoUrl || rawImg,
+        unitPrice: effectivePrice,
+        price: effectivePrice,
+        quantity: item.quantity,
+        subtotal: effectivePrice * item.quantity
+      };
+    });
+
+    const totalItemsCount = orderItems.reduce((sum, it) => sum + (it.quantity || 1), 0);
+
+    const preliminaryOrder: Order = {
+      id: orderNumber,
+      orderNumber,
+      clientId: clientUid,
+      customerId: clientUid,
+      customerEmail: customer.email?.trim() || userProfile?.email || '',
+      customerName: customer.name.trim(),
+      customerPhone: customer.phone.trim(),
+      customer: {
+        name: customer.name.trim(),
+        phone: customer.phone.trim(),
+        email: customer.email?.trim() || userProfile?.email || '',
+        city: customer.city.trim(),
+        address: customer.address.trim(),
+        notes: customer.notes?.trim() || ''
+      },
+      items: orderItems,
+      totalItems: totalItemsCount,
+      subtotal,
+      shipping: shippingFee,
+      shippingCost: shippingFee,
+      total,
+      currency,
+      status: 'En attente',
+      orderStatus: 'En attente',
+      paymentStatus: 'pending',
+      paymentMethod: 'whatsapp_direct',
+      whatsappOrder: true,
+      whatsappMessageSent: true,
+      notes: customer.notes?.trim() || '',
+      createdAt: nowIso,
+      updatedAt: nowIso
+    };
+
+    // Build encoded https://wa.me/[numéro]?text=[message] URL with all watches & their photo URLs
+    const initialWaUrl = buildWhatsAppOrderUrl(preliminaryOrder, whatsappNumber, storeName, customIntro);
+
+    // Open WhatsApp tab synchronously on user click to prevent browser popup blockers
+    const waWindow = typeof window !== 'undefined' ? window.open(initialWaUrl, '_blank') : null;
+
     try {
       setIsSubmitting(true);
 
-      const orderItems = cart.map((item) => {
-        const effectivePrice =
-          item.product.promotionalPrice && item.product.promotionalPrice > 0
-            ? item.product.promotionalPrice
-            : item.product.price;
-        return {
-          productId: item.product.id,
-          name: item.product.name,
-          brand: item.product.brand || 'Horlogerie de prestige',
-          image: item.product.images?.[0] || '',
-          unitPrice: effectivePrice,
-          price: effectivePrice,
-          quantity: item.quantity,
-          subtotal: effectivePrice * item.quantity
-        };
-      });
-
-      const newOrder = await createOrder({
-        clientId: userProfile.uid,
-        customerId: userProfile.uid,
-        customerEmail: userProfile.email || customer.email || '',
-        customerName: customer.name.trim(),
-        customerPhone: customer.phone.trim(),
-        customer: {
-          name: customer.name.trim(),
-          phone: customer.phone.trim(),
-          email: customer.email?.trim() || userProfile.email || '',
-          city: customer.city.trim(),
-          address: customer.address.trim(),
+      // Record the order in Firestore with status "En attente"
+      const newOrder = await createOrder(
+        {
+          clientId: clientUid,
+          customerId: clientUid,
+          customerEmail: customer.email?.trim() || userProfile?.email || '',
+          customerName: customer.name.trim(),
+          customerPhone: customer.phone.trim(),
+          customer: preliminaryOrder.customer,
+          items: orderItems,
+          subtotal,
+          shipping: shippingFee,
+          total,
+          currency,
+          status: 'En attente',
+          orderStatus: 'En attente',
+          paymentStatus: 'pending',
+          paymentMethod: 'whatsapp_direct',
           notes: customer.notes?.trim() || ''
         },
-        items: orderItems,
-        subtotal,
-        shipping: shippingFee,
-        total,
-        currency,
-        status: 'En attente',
-        orderStatus: 'En attente',
-        paymentStatus: 'pending',
-        paymentMethod: 'whatsapp_direct',
-        notes: customer.notes
-      });
+        orderNumber
+      );
 
-      const waUrl = buildWhatsAppOrderUrl(newOrder, whatsappNumber, storeName, customIntro);
+      const finalWaUrl = buildWhatsAppOrderUrl(newOrder, whatsappNumber, storeName, customIntro);
 
-      // Clear cart
+      // Clear cart and close modal
       clearCart();
       handleClose();
 
-      // Trigger success view and redirect
-      if (onOrderSuccess) onOrderSuccess(newOrder, waUrl);
-      if (onOrderCreated) onOrderCreated(newOrder, waUrl);
+      // Trigger success view in background tab
+      if (onOrderSuccess) onOrderSuccess(newOrder, finalWaUrl);
+      if (onOrderCreated) onOrderCreated(newOrder, finalWaUrl);
+
+      // Fallback direct navigation if window.open was blocked by mobile/in-app browser
+      if (!waWindow && typeof window !== 'undefined') {
+        window.location.href = finalWaUrl;
+      }
     } catch (err: any) {
       console.error('Checkout error:', err);
-      setErrorMsg('Une erreur est survenue lors de l\'enregistrement. Vous pouvez finaliser directement sur WhatsApp.');
+      clearCart();
+      handleClose();
+      if (onOrderSuccess) onOrderSuccess(preliminaryOrder, initialWaUrl);
+      if (onOrderCreated) onOrderCreated(preliminaryOrder, initialWaUrl);
+      if (!waWindow && typeof window !== 'undefined') {
+        window.location.href = initialWaUrl;
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -237,22 +307,24 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="p-4 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl space-y-2">
-                <div className="flex items-center gap-2 text-xs font-semibold text-[var(--or)]">
-                  <Lock className="w-4 h-4" />
-                  <span>Compte client requis pour commander</span>
+              <div className="p-3.5 bg-[var(--badge-bg)] border border-[var(--badge-border)] rounded-xl flex items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--or)]">
+                    <ShieldCheck className="w-4 h-4 shrink-0" />
+                    <span>Commande rapide ou Espace Client</span>
+                  </div>
+                  <p className="text-[11px] text-[var(--text-soft)]">
+                    Vous pouvez commander directement ci-dessous ou vous connecter pour suivre l'historique de vos commandes.
+                  </p>
                 </div>
-                <p className="text-xs text-[var(--text-soft)]">
-                  Veuillez vous connecter ou créer votre compte client pour valider et suivre votre commande en toute sécurité.
-                </p>
                 <Button
                   type="button"
-                  variant="gold"
+                  variant="outline"
                   size="sm"
                   onClick={() => setAuthModalOpen(true)}
-                  className="w-full mt-1"
+                  className="shrink-0 text-[11px]"
                 >
-                  Se connecter / Créer un compte
+                  Se connecter
                 </Button>
               </div>
             )}

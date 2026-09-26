@@ -16,7 +16,8 @@ import {
   getCategories,
   createCategory,
   updateCategory,
-  deleteCategory
+  deleteCategory,
+  restoreDefaultCategories
 } from './services/categoryService';
 import {
   getOrders,
@@ -82,11 +83,26 @@ const getInitialProducts = (): Product[] => {
 const getInitialCategories = (): Category[] => {
   if (typeof window !== 'undefined') {
     try {
+      const deletedRaw = localStorage.getItem('hp_deleted_categories');
+      const deletedIds = new Set<string>(deletedRaw ? JSON.parse(deletedRaw) : []);
       const cached = localStorage.getItem('hp_categories_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          const byId = new Map<string, Category>();
+          const slugs = new Set<string>();
+          for (const c of parsed) {
+            if (!deletedIds.has(c.id)) {
+              byId.set(c.id, c);
+              if (c.slug) slugs.add(c.slug.toLowerCase());
+            }
+          }
+          for (const def of DEFAULT_CATEGORIES) {
+            if (!deletedIds.has(def.id) && !byId.has(def.id) && !slugs.has(def.slug.toLowerCase())) {
+              byId.set(def.id, def);
+            }
+          }
+          return Array.from(byId.values());
         }
       }
     } catch {}
@@ -563,9 +579,11 @@ const MainApp: React.FC = () => {
     const nowIso = new Date().toISOString();
     if (id) {
       await updateCategory(id, catData);
-      setCategories((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, ...catData, updatedAt: nowIso } : c))
-      );
+      setCategories((prev) => {
+        const next = prev.map((c) => (c.id === id ? { ...c, ...catData, updatedAt: nowIso } : c));
+        try { localStorage.setItem('hp_categories_cache', JSON.stringify(next)); } catch {}
+        return next;
+      });
       addToast('success', `Collection "${catData.name}" mise à jour.`);
     } else {
       const newId = await createCategory(catData);
@@ -575,7 +593,11 @@ const MainApp: React.FC = () => {
         createdAt: nowIso,
         updatedAt: nowIso
       };
-      setCategories((prev) => [...prev, newCat]);
+      setCategories((prev) => {
+        const next = [...prev, newCat];
+        try { localStorage.setItem('hp_categories_cache', JSON.stringify(next)); } catch {}
+        return next;
+      });
       addToast('success', `Nouvelle collection "${catData.name}" créée.`);
     }
   };
@@ -584,7 +606,11 @@ const MainApp: React.FC = () => {
     try {
       const cat = categories.find(c => c.id === id);
       await deleteCategory(id);
-      setCategories((prev) => prev.filter((c) => c.id !== id));
+      setCategories((prev) => {
+        const next = prev.filter((c) => c.id !== id);
+        try { localStorage.setItem('hp_categories_cache', JSON.stringify(next)); } catch {}
+        return next;
+      });
       addToast('success', `Collection "${cat?.name || ''}" supprimée.`);
     } catch (err: any) {
       console.error('[SUPPRESSION COLLECTION ERREUR]', err);
@@ -594,10 +620,23 @@ const MainApp: React.FC = () => {
 
   const handleToggleCategoryActive = async (id: string, currentActive: boolean) => {
     await updateCategory(id, { active: !currentActive });
-    setCategories((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, active: !currentActive } : c))
-    );
+    setCategories((prev) => {
+      const next = prev.map((c) => (c.id === id ? { ...c, active: !currentActive, isActive: !currentActive } : c));
+      try { localStorage.setItem('hp_categories_cache', JSON.stringify(next)); } catch {}
+      return next;
+    });
     addToast('info', !currentActive ? 'Collection activée.' : 'Collection masquée.');
+  };
+
+  const handleRestoreDefaultCategories = async () => {
+    try {
+      const restored = await restoreDefaultCategories();
+      setCategories(restored);
+      try { localStorage.setItem('hp_categories_cache', JSON.stringify(restored)); } catch {}
+      addToast('success', `${restored.length} collections & catégories horlogères synchronisées avec succès.`);
+    } catch (err: any) {
+      addToast('error', 'Erreur lors de la synchronisation des collections.');
+    }
   };
 
   // Admin Orders Handlers
@@ -742,6 +781,7 @@ const MainApp: React.FC = () => {
               onUpdateCategory={(id, cat) => handleSaveCategory(cat as any, id)}
               onDeleteCategory={handleDeleteCategory}
               onToggleActive={handleToggleCategoryActive}
+              onRestoreDefaults={handleRestoreDefaultCategories}
             />
           )}
 

@@ -14,6 +14,7 @@ import { Order } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { formatPrice } from '../../utils/format';
+import { resolveWatchItemPhotoUrl } from '../../utils/whatsapp';
 
 interface OrderSuccessModalProps {
   order: Order | null;
@@ -41,46 +42,61 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
     }
   };
 
-  // Primary watch item for picture preview and sharing
-  const primaryItem = order.items.find(i => i.image) || order.items[0];
+  // Direct WhatsApp wa.me redirection with encoded message & all watch photo URLs
+  const handleOpenWhatsAppDirect = () => {
+    if (!whatsappUrl) return;
+    const win = window.open(whatsappUrl, '_blank');
+    if (!win) {
+      window.location.href = whatsappUrl;
+    }
+  };
 
-  const handleShareWithPhoto = async () => {
+  // Multi-image native sharing: prepares a separate image File for EVERY watch in order.items
+  const handleShareAllPhotos = async () => {
     if (!whatsappUrl) return;
 
-    // Check if Web Share API with files is supported (mobile devices)
-    if (typeof navigator !== 'undefined' && navigator.share && primaryItem?.image) {
+    if (typeof navigator !== 'undefined' && navigator.share && order.items.length > 0) {
       try {
         setSharing(true);
-        // Attempt to fetch image blob to share actual photo file
-        const res = await fetch(primaryItem.image);
-        if (res.ok) {
-          const blob = await res.blob();
-          const ext = blob.type.includes('png') ? 'png' : 'jpg';
-          const file = new File([blob], `montre-${order.orderNumber || 'commande'}.${ext}`, {
-            type: blob.type || 'image/jpeg'
+        const filesResults = await Promise.all(
+          order.items.map(async (item, index) => {
+            const imgUrl = resolveWatchItemPhotoUrl(item) || item.image;
+            if (!imgUrl) return null;
+            try {
+              const res = await fetch(imgUrl);
+              if (!res.ok) return null;
+              const blob = await res.blob();
+              const ext = blob.type.includes('png') ? 'png' : 'jpg';
+              const safeName = (item.name || `montre-${index + 1}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+              return new File([blob], `${index + 1}-${safeName}.${ext}`, {
+                type: blob.type || 'image/jpeg'
+              });
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        const validFiles = filesResults.filter((f): f is File => f !== null);
+        if (validFiles.length > 0 && navigator.canShare && navigator.canShare({ files: validFiles })) {
+          const urlObj = new URL(whatsappUrl);
+          const decodedText = decodeURIComponent(urlObj.searchParams.get('text') || '');
+
+          await navigator.share({
+            title: `Commande #${order.orderNumber} - L'Écrin du Temps`,
+            text: decodedText,
+            files: validFiles
           });
-
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            const urlObj = new URL(whatsappUrl);
-            const decodedText = decodeURIComponent(urlObj.searchParams.get('text') || '');
-
-            await navigator.share({
-              title: `Commande #${order.orderNumber} - L'Écrin du Temps`,
-              text: decodedText,
-              files: [file]
-            });
-            return;
-          }
+          return;
         }
       } catch (err) {
-        console.warn('Web Share with photo note:', err);
+        console.warn('Multi-photo Web Share note:', err);
       } finally {
         setSharing(false);
       }
     }
 
-    // Direct WhatsApp Web/App redirect with photo URL embedded
-    window.open(whatsappUrl, '_blank');
+    handleOpenWhatsAppDirect();
   };
 
   return (
@@ -195,25 +211,51 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({
         <div className="flex items-center justify-center gap-2 text-[11px] text-[var(--or)] bg-[var(--badge-bg)] border border-[var(--badge-border)] p-2.5 rounded-xl max-w-sm mx-auto">
           <ImageIcon className="w-4 h-4 shrink-0" />
           <span className="font-medium text-left text-[11px]">
-            La photo de votre montre est automatiquement jointe dans le message WhatsApp pour aperçu instantané.
+            {order.items.length > 1
+              ? `Les photos de vos ${order.items.length} montres sont incluses individuellement dans le message WhatsApp.`
+              : 'La photo de votre montre est automatiquement jointe dans le message WhatsApp pour aperçu instantané.'}
           </span>
         </div>
 
         {/* WhatsApp Launch CTA */}
         <div className="space-y-2.5 pt-2 max-w-sm mx-auto">
           {whatsappUrl && (
-            <button
-              type="button"
-              id="order-success-whatsapp-link"
-              onClick={handleShareWithPhoto}
-              disabled={sharing}
-              className="w-full py-3.5 px-4 bg-[#25D366] hover:bg-[#20ba59] text-black font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/20 active:scale-[0.98] transition-all text-xs uppercase tracking-wider cursor-pointer"
-            >
-              <MessageSquare className="w-4 h-4 fill-current shrink-0" />
-              <span>
-                {sharing ? 'Préparation de la photo...' : 'Ouvrir WhatsApp avec la photo'}
-              </span>
-            </button>
+            <>
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                id="order-success-whatsapp-link"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleOpenWhatsAppDirect();
+                }}
+                className="w-full py-3.5 px-4 bg-[#25D366] hover:bg-[#20ba59] text-black font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-[#25D366]/20 active:scale-[0.98] transition-all text-xs uppercase tracking-wider cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4 fill-current shrink-0" />
+                <span>
+                  {order.items.length > 1
+                    ? `Ouvrir WhatsApp (${order.items.length} montres)`
+                    : 'Ouvrir WhatsApp avec la commande'}
+                </span>
+              </a>
+
+              {typeof navigator !== 'undefined' && Boolean(navigator.share) && (
+                <button
+                  type="button"
+                  onClick={handleShareAllPhotos}
+                  disabled={sharing}
+                  className="w-full py-2 px-3 bg-[var(--badge-bg)] hover:bg-[var(--or)]/15 text-[var(--or)] border border-[var(--badge-border)] font-semibold rounded-xl flex items-center justify-center gap-2 transition-all text-[11px] cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {sharing
+                      ? 'Préparation des photos...'
+                      : `Partager les ${order.items.length > 1 ? `${order.items.length} photos` : 'fichiers photo'} directement`}
+                  </span>
+                </button>
+              )}
+            </>
           )}
 
           <Button

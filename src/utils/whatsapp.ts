@@ -1,4 +1,5 @@
 import { Order, Product } from '../types';
+import { DEFAULT_PRODUCTS } from '../data/defaultData';
 import { formatPrice } from './format';
 
 /**
@@ -7,9 +8,9 @@ import { formatPrice } from './format';
  * Example: "+33 6 12 34 56 78" -> "33612345678"
  */
 export function normalizeWhatsAppNumber(rawNumber?: string | null): string {
-  if (!rawNumber) return '33612345678';
+  if (!rawNumber) return '237600000000';
   
-  // Remove all non-numeric characters except digits
+  // Remove all non-numeric characters except digits (strips '+', spaces, dashes)
   let cleaned = rawNumber.replace(/[^0-9]/g, '');
 
   // If user entered with leading double zero "00237...", strip the "00"
@@ -17,7 +18,7 @@ export function normalizeWhatsAppNumber(rawNumber?: string | null): string {
     cleaned = cleaned.substring(2);
   }
 
-  return cleaned;
+  return cleaned || '237600000000';
 }
 
 /**
@@ -122,31 +123,59 @@ export function buildProductInquiryMessage(
 }
 
 /**
+ * Resolves a public HTTP(S) photo URL for a given watch item so WhatsApp can display/click every watch photo.
+ */
+export function resolveWatchItemPhotoUrl(item: {
+  productId?: string;
+  name?: string;
+  image?: string;
+}): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  let imgUrl = (item.image || '').trim();
+
+  if (imgUrl.startsWith('/') && origin) {
+    imgUrl = `${origin}${imgUrl}`;
+  }
+
+  // If image is missing or is a local blob/data URI, look up the catalog product for a public URL
+  if (!imgUrl || imgUrl.startsWith('blob:') || imgUrl.startsWith('data:')) {
+    const catalogMatch = DEFAULT_PRODUCTS.find(
+      (p) =>
+        (item.productId && p.id === item.productId) ||
+        (item.name && p.name.toLowerCase() === item.name.toLowerCase())
+    );
+    const fallbackImg = catalogMatch?.images?.[0] || catalogMatch?.coverImage || '';
+    if (fallbackImg) {
+      imgUrl = fallbackImg.startsWith('/') && origin ? `${origin}${fallbackImg}` : fallbackImg;
+    }
+  }
+
+  if (imgUrl && !imgUrl.startsWith('blob:') && !imgUrl.startsWith('data:')) {
+    return imgUrl;
+  }
+  return '';
+}
+
+/**
  * Builds the official purchase order breakdown transmitted to WhatsApp upon checkout.
- * Detailed multi-items: model name, brand, unit price (FCFA), watch photo URL (Firebase Storage),
- * complete recap with total items, total order price, and customer details.
+ * Loops over EVERY watch in the cart/order (order.items.map) and includes each watch's
+ * own photo URL right after its individual details.
  */
 export function buildOrderWhatsAppMessage(
   order: Order,
   storeName = "L'Écrin du Temps",
   customDefaultMessage?: string
 ): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const allItems = Array.isArray(order.items) ? order.items : [];
+  const totalItemsCount = allItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+  const distinctCount = allItems.length;
 
-  const totalItemsCount = order.items.reduce((sum, item) => sum + (item.quantity || 1), 0);
-  const distinctCount = order.items.length;
-
-  const itemsText = order.items
+  const itemsText = allItems
     .map((item, index) => {
-      let imgUrl = item.image || '';
-      if (imgUrl.startsWith('/') && origin) {
-        imgUrl = `${origin}${imgUrl}`;
-      }
-      const hasValidImg = imgUrl && !imgUrl.startsWith('blob:') && !imgUrl.startsWith('data:');
+      const imgUrl = resolveWatchItemPhotoUrl(item);
       const unitPriceFormatted = formatPrice(item.unitPrice || item.price);
       const subtotalFormatted = formatPrice(item.subtotal || ((item.unitPrice || item.price) * item.quantity));
       const brandName = item.brand?.trim() || 'Horlogerie de Prestige';
-      const photoLine = hasValidImg ? `   📸 *Photo (Firebase Storage) :* ${imgUrl}` : '';
 
       return [
         `⌚ *MONTRE ${index + 1} / ${distinctCount} :*`,
@@ -154,9 +183,9 @@ export function buildOrderWhatsAppMessage(
         `   • *Marque :* ${brandName}`,
         `   • *Prix unitaire :* ${unitPriceFormatted}`,
         `   • *Quantité :* ${item.quantity}${item.quantity > 1 ? ` (Sous-total : ${subtotalFormatted})` : ''}`,
-        photoLine
+        imgUrl ? `   📸 *Photo de la montre :* ${imgUrl}` : null
       ]
-        .filter(Boolean)
+        .filter((line): line is string => Boolean(line))
         .join('\n');
     })
     .join('\n\n');

@@ -10,9 +10,12 @@ import {
   CheckCircle2,
   Upload,
   Image as ImageIcon,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { Category, Product } from '../../types';
+import { DEFAULT_CATEGORIES } from '../../data/defaultData';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { uploadImageFile } from '../../services/storageService';
@@ -25,6 +28,7 @@ interface AdminCategoriesProps {
   onUpdateCategory: (id: string, cat: Partial<Category>) => Promise<void>;
   onDeleteCategory: (id: string) => Promise<void>;
   onToggleActive: (id: string, currentActive: boolean) => Promise<void>;
+  onRestoreDefaults?: () => Promise<void>;
 }
 
 export const AdminCategories: React.FC<AdminCategoriesProps> = ({
@@ -33,10 +37,12 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
   onCreateCategory,
   onUpdateCategory,
   onDeleteCategory,
-  onToggleActive
+  onToggleActive,
+  onRestoreDefaults
 }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [restoringDefaults, setRestoringDefaults] = useState(false);
 
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -157,16 +163,36 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
     }
   };
 
+  const getCategoryProductsCount = (cat: Category) => {
+    return products.filter(
+      (p) =>
+        p.categoryId === cat.id ||
+        p.collectionId === cat.id ||
+        p.categoryId === cat.slug ||
+        (p.collectionName && p.collectionName.toLowerCase() === cat.name.toLowerCase())
+    ).length;
+  };
+
   const handleDeleteRequest = (cat: Category) => {
-    const associatedProducts = products.filter((p) => p.categoryId === cat.id);
+    const count = getCategoryProductsCount(cat);
     setCategoryToDelete(cat);
 
-    if (associatedProducts.length > 0) {
+    if (count > 0) {
       setBlockingMessage(
-        `Cette collection est actuellement associée à ${associatedProducts.length} montre(s). Pour préserver l'intégrité de votre boutique, désactivez la collection ou réassignez ces montres avant de la supprimer.`
+        `Cette collection est actuellement associée à ${count} montre(s). Pour préserver l'intégrité de votre boutique, désactivez la collection ou réassignez ces montres avant de la supprimer.`
       );
     } else {
       setBlockingMessage(null);
+    }
+  };
+
+  const handleRestoreDefaultsClick = async () => {
+    if (!onRestoreDefaults) return;
+    try {
+      setRestoringDefaults(true);
+      await onRestoreDefaults();
+    } finally {
+      setRestoringDefaults(false);
     }
   };
 
@@ -190,20 +216,35 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
             Collections & Catégories ({categories.length})
           </h2>
           <p className="text-xs sm:text-sm text-[var(--text-soft)] mt-1">
-            Organisez votre vitrine en univers horlogers (Chronographes, Automatiques, Pièces Joaillières...).
+            Organisez votre vitrine en univers horlogers (Chronographes, Automatiques, Plongée, Squelettes, Pièces Joaillières...).
           </p>
         </div>
 
-        <Button
-          variant="gold"
-          size="md"
-          id="admin-add-category-btn"
-          onClick={handleOpenCreate}
-          icon={Plus}
-          className="font-bold shadow-md self-start sm:self-auto"
-        >
-          Nouvelle Collection
-        </Button>
+        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-auto">
+          {onRestoreDefaults && (
+            <Button
+              variant="outline"
+              size="md"
+              id="admin-restore-categories-btn"
+              onClick={handleRestoreDefaultsClick}
+              loading={restoringDefaults}
+              icon={RefreshCw}
+              className="text-xs font-semibold"
+            >
+              Synchroniser les collections horlogères ({DEFAULT_CATEGORIES.length})
+            </Button>
+          )}
+          <Button
+            variant="gold"
+            size="md"
+            id="admin-add-category-btn"
+            onClick={handleOpenCreate}
+            icon={Plus}
+            className="font-bold shadow-md"
+          >
+            Nouvelle Collection
+          </Button>
+        </div>
       </div>
 
       {/* Grid of Categories */}
@@ -211,14 +252,27 @@ export const AdminCategories: React.FC<AdminCategoriesProps> = ({
         <div className="bg-[var(--carte-bg)] border border-[var(--sep)] rounded-2xl p-12 text-center text-xs text-[var(--text-muted)] space-y-3 shadow-sm">
           <Layers className="w-10 h-10 text-[var(--text-muted)] mx-auto" />
           <p className="text-[var(--text)] font-semibold text-sm">Aucune collection créée.</p>
-          <Button variant="gold" size="sm" onClick={handleOpenCreate} icon={Plus}>
-            Créer votre première collection
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {onRestoreDefaults && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRestoreDefaultsClick}
+                loading={restoringDefaults}
+                icon={RefreshCw}
+              >
+                Importer les {DEFAULT_CATEGORIES.length} collections horlogères
+              </Button>
+            )}
+            <Button variant="gold" size="sm" onClick={handleOpenCreate} icon={Plus}>
+              Créer une collection sur-mesure
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {categories.map((cat) => {
-            const count = products.filter((p) => p.categoryId === cat.id).length;
+            const count = getCategoryProductsCount(cat);
 
             return (
               <div

@@ -90,35 +90,13 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     }
   };
 
-  const handleDirectWhatsAppOrder = async () => {
+  const handleDirectWhatsAppOrder = () => {
     const message = buildProductInquiryMessage(product, storeName, customIntro, quantity);
     const url = buildWhatsAppChatUrl(rawWhatsApp, message);
-    const currentImg = images[selectedImageIndex] || images[0];
-
-    if (typeof navigator !== 'undefined' && navigator.share && currentImg && !currentImg.startsWith('blob:') && !currentImg.startsWith('data:')) {
-      try {
-        const res = await fetch(currentImg);
-        if (res.ok) {
-          const blob = await res.blob();
-          const ext = blob.type.includes('png') ? 'png' : 'jpg';
-          const file = new File([blob], `${product.name.replace(/[^a-zA-Z0-9]/g, '_')}.${ext}`, {
-            type: blob.type || 'image/jpeg'
-          });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              title: `${product.name} - ${storeName}`,
-              text: message,
-              files: [file]
-            });
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn('Share with photo note:', err);
-      }
+    const win = window.open(url, '_blank');
+    if (!win) {
+      window.location.href = url;
     }
-
-    window.open(url, '_blank');
   };
 
   const handlePrevImage = () => {

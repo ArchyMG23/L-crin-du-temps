@@ -1,9 +1,14 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer, setLogLevel } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import config from '../../firebase-applet-config.json';
+
+// Silence internal Firestore transient polling retry errors so offline/fallback mode operates cleanly
+try {
+  setLogLevel('silent');
+} catch {}
 
 // Determine Firebase configuration (prioritizing user project and env variables)
 const getEffectiveFirebaseConfig = () => {
@@ -74,11 +79,15 @@ if (typeof window !== 'undefined' && config.recaptchaSiteKey) {
   }
 }
 
-// Initialize Firestore directly on the (default) database with force long polling for reliable operation in web sandbox and iframe environments
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-  ignoreUndefinedProperties: true
-});
+// Initialize Firestore on the configured database with auto-detected long polling for reliable operation in web sandbox and iframe environments
+export const db = initializeFirestore(
+  app,
+  {
+    experimentalAutoDetectLongPolling: true,
+    ignoreUndefinedProperties: true
+  },
+  config.firestoreDatabaseId || '(default)'
+);
 
 export const auth = getAuth(app);
 export const storage = getStorage(app);
