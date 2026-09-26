@@ -14,6 +14,7 @@ import { signInAnonymously } from 'firebase/auth';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Product } from '../types';
 import { ensureAdminAuth } from './adminService';
+import { cleanupReplacedProductImages, isBrokenOrBlobUrl } from './storageService';
 import { withTimeout } from '../utils/async';
 
 const PRODUCTS_COLLECTION = 'products';
@@ -78,8 +79,19 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
       const isActive = data.isActive !== undefined ? Boolean(data.isActive) : (data.active !== undefined ? Boolean(data.active) : true);
       const isFeatured = data.isFeatured !== undefined ? Boolean(data.isFeatured) : (data.featured !== undefined ? Boolean(data.featured) : false);
       const promo = data.promoPrice !== undefined ? data.promoPrice : (data.promotionalPrice !== undefined ? data.promotionalPrice : null);
-      const images = Array.isArray(data.images) ? data.images : [];
-      const coverImage = data.coverImage || images[0] || '';
+      const rawImages: string[] = Array.isArray(data.images) ? data.images : [];
+      const validImages = rawImages.filter((u) => !isBrokenOrBlobUrl(u));
+      const validPrimary = !isBrokenOrBlobUrl(data.image)
+        ? data.image
+        : !isBrokenOrBlobUrl(data.coverImage)
+        ? data.coverImage
+        : validImages[0] || '';
+      const images = validImages.length > 0 ? validImages : validPrimary ? [validPrimary] : [];
+      const coverImage = validPrimary || images[0] || '';
+      const hadBlobUrls =
+        rawImages.some((u) => typeof u === 'string' && u.startsWith('blob:')) ||
+        (typeof data.image === 'string' && data.image.startsWith('blob:')) ||
+        (typeof data.coverImage === 'string' && data.coverImage.startsWith('blob:'));
       const rawCol = data.collectionId || data.categoryId;
       const collectionId = rawCol && String(rawCol).trim() !== '' ? String(rawCol) : null;
       const categoryId = collectionId;
@@ -97,6 +109,8 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
         lowStockThreshold: Number(data.lowStockThreshold) || 2,
         images,
         coverImage,
+        image: coverImage,
+        hasBrokenImages: hadBlobUrls || images.length === 0,
         isActive,
         active: isActive,
         isFeatured,
@@ -256,13 +270,23 @@ export async function createProduct(
   }
 
   const cleanImages = Array.isArray(productData.images)
-    ? productData.images.filter((img) => typeof img === 'string' && img.trim().length > 0)
+    ? productData.images.filter((img) => !isBrokenOrBlobUrl(img))
     : [];
+
+  if (cleanImages.length === 0 && isBrokenOrBlobUrl(productData.coverImage) && isBrokenOrBlobUrl(productData.image)) {
+    throw new Error(
+      "Aucune URL d'image permanente valide n'a été fournie (les liens blob: temporaires sont interdits)."
+    );
+  }
 
   const rawPromo = productData.promoPrice !== undefined ? productData.promoPrice : productData.promotionalPrice;
   const promoPrice = rawPromo !== null && rawPromo !== undefined && Number(rawPromo) > 0 ? Number(rawPromo) : null;
   const collectionId = productData.collectionId || productData.categoryId || null;
-  const coverImage = productData.coverImage || cleanImages[0] || '';
+  const coverImage =
+    (!isBrokenOrBlobUrl(productData.coverImage) ? productData.coverImage : '') ||
+    (!isBrokenOrBlobUrl(productData.image) ? productData.image : '') ||
+    cleanImages[0] ||
+    '';
 
   const newProduct: any = {
     id: docRef.id,
@@ -356,18 +380,43 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
   if (updates.lowStockThreshold !== undefined) normalizedUpdates.lowStockThreshold = Math.floor(Number(updates.lowStockThreshold));
 
   if (updates.images && Array.isArray(updates.images)) {
-    const cleanImgs = updates.images.filter(Boolean);
+    const cleanImgs = updates.images.filter((img) => !isBrokenOrBlobUrl(img));
     normalizedUpdates.images = cleanImgs;
-    if (!updates.coverImage && cleanImgs.length > 0) {
-      normalizedUpdates.coverImage = cleanImgs[0];
-    }
+    const primaryImg =
+      (!isBrokenOrBlobUrl(updates.coverImage) ? updates.coverImage : '') ||
+      (!isBrokenOrBlobUrl(updates.image) ? updates.image : '') ||
+      cleanImgs[0] ||
+      '';
+    normalizedUpdates.coverImage = primaryImg;
+    normalizedUpdates.image = primaryImg;
   }
 
   normalizedUpdates.updatedAt = new Date().toISOString();
 
   try {
     const docRef = doc(db, PRODUCTS_COLLECTION, id);
+
+    // If images are being updated, fetch old images so replaced Firebase Storage files are deleted via deleteObject
+    let previousUrls: string[] = [];
+    if (normalizedUpdates.images) {
+      try {
+        const oldSnap = await getDoc(docRef);
+        if (oldSnap.exists()) {
+          const oldData = oldSnap.data();
+          previousUrls = [
+            ...(Array.isArray(oldData.images) ? oldData.images : []),
+            oldData.image,
+            oldData.coverImage
+          ].filter(Boolean);
+        }
+      } catch {}
+    }
+
     await updateDoc(docRef, normalizedUpdates);
+
+    if (previousUrls.length > 0 && normalizedUpdates.images) {
+      cleanupReplacedProductImages(previousUrls, normalizedUpdates.images).catch(() => {});
+    }
   } catch (error: any) {
     console.error(
       '[ADMIN ERROR]\nproducts.update\ncode:',

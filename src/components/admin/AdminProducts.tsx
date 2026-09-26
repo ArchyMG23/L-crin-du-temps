@@ -20,6 +20,19 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Modal } from '../ui/Modal';
 import { formatPrice } from '../../utils/format';
+import { isBrokenOrBlobUrl } from '../../services/storageService';
+
+function isProductImageBroken(product: Product): boolean {
+  if ((product as any).hasBrokenImages) return true;
+  const candidates = [
+    ...(Array.isArray(product.images) ? product.images : []),
+    product.image,
+    product.coverImage
+  ].filter(Boolean);
+  if (candidates.length === 0) return true;
+  if (candidates.some((u) => typeof u === 'string' && u.startsWith('blob:'))) return true;
+  return candidates.every((u) => isBrokenOrBlobUrl(u));
+}
 
 interface AdminProductsProps {
   products: Product[];
@@ -53,6 +66,7 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
   const [deleting, setDeleting] = useState(false);
 
   const currency = settings?.currency || 'FCFA';
+  const brokenProducts = products.filter(isProductImageBroken);
 
   // Filter logic
   const filteredProducts = products.filter((product) => {
@@ -119,6 +133,37 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
           Ajouter une Montre
         </Button>
       </div>
+
+      {/* Diagnostic Banner for Broken / Blob Images (e.g. Cartier, Vacheron Constantin) */}
+      {brokenProducts.length > 0 && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/35 rounded-2xl space-y-3 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="space-y-1 flex-1">
+              <h3 className="text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-300">
+                {brokenProducts.length} montre(s) avec image expirée (blob:) ou manquante détectée(s)
+              </h3>
+              <p className="text-xs text-[var(--text-soft)]">
+                Ces produits contenaient une URL locale temporaire (<code>blob:</code>) invalide après rechargement. Cliquez sur une montre ci-dessous pour réuploader proprement ses photos vers Firebase Storage :
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            {brokenProducts.map((bp) => (
+              <button
+                key={bp.id}
+                type="button"
+                onClick={() => onEditProduct(bp)}
+                className="px-3 py-1.5 bg-[var(--carte-bg)] hover:bg-[var(--or)] hover:text-black text-[var(--text)] border border-amber-500/40 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
+              >
+                <Edit2 className="w-3.5 h-3.5 text-[var(--or)]" />
+                <span>Réparer : {bp.name} ({bp.brand})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="bg-[var(--carte-bg)] p-4 sm:p-5 rounded-2xl border border-[var(--sep)] space-y-3 shadow-sm">

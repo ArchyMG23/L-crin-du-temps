@@ -9,15 +9,21 @@ import { db, activeFirebaseConfig } from '../../lib/firebase';
 import { Product, Category, Gender, StoreSettings } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
-import { uploadProductImage, convertFileToBase64 } from '../../services/storageService';
+import {
+  uploadProductImage,
+  cleanupReplacedProductImages,
+  isBrokenOrBlobUrl
+} from '../../services/storageService';
 import { fetchCategoriesWithStatus } from '../../services/categoryService';
 import { ensureAdminAuth } from '../../services/adminService';
 
 export interface ProductModalImage {
   id: string;
   previewUrl: string;
+  permanentUrl?: string;
   file?: File;
   isNew: boolean;
+  uploading?: boolean;
 }
 
 interface AdminProductModalProps {
@@ -103,6 +109,9 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   });
 
   const [imageItems, setImageItems] = useState<ProductModalImage[]>([]);
+  const [initialExistingUrls, setInitialExistingUrls] = useState<string[]>([]);
+  const [draftProductId, setDraftProductId] = useState<string>('');
+  const [hadBrokenBlobImages, setHadBrokenBlobImages] = useState(false);
   const [loading, setLoading] = useState(false);
   const [statusStep, setStatusStep] = useState<string | null>(null);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
@@ -113,8 +122,13 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   const [urlInputValue, setUrlInputValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isUploadingImages = imageItems.some((item) => item.uploading);
+
   useEffect(() => {
     if (!isOpen) return;
+
+    setError(null);
+    setUploadNotice(null);
 
     // Synchronize or load collections from Firestore
     if (categories && categories.length > 0) {
@@ -127,6 +141,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     }
 
     if (product) {
+      setDraftProductId(product.id);
       const currentCatId = product.collectionId || product.categoryId || '';
       setFormData({
         name: product.name || '',
@@ -154,19 +169,39 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         }
       });
 
-      if (product.images && product.images.length > 0) {
+      const rawList = [
+        ...(Array.isArray(product.images) ? product.images : []),
+        product.image,
+        product.coverImage
+      ].filter((u): u is string => Boolean(u && typeof u === 'string'));
+
+      const validUrls = Array.from(new Set(rawList.filter((u) => !isBrokenOrBlobUrl(u))));
+      const detectedBroken =
+        Boolean((product as any).hasBrokenImages) ||
+        rawList.some((u) => u.startsWith('blob:')) ||
+        validUrls.length === 0;
+
+      setHadBrokenBlobImages(detectedBroken);
+      setInitialExistingUrls(validUrls);
+
+      if (validUrls.length > 0) {
         setImageItems(
-          product.images.filter(Boolean).map((url, i) => ({
+          validUrls.map((url, i) => ({
             id: `existing_${i}_${url.slice(-10)}`,
             previewUrl: url,
-            isNew: false
+            permanentUrl: url,
+            isNew: false,
+            uploading: false
           }))
         );
       } else {
         setImageItems([]);
       }
     } else {
-      // Creation: categoryId starts empty (unselected) so user explicitly selects one
+      const generatedId = doc(collection(db, 'products')).id;
+      setDraftProductId(generatedId);
+      setHadBrokenBlobImages(false);
+      setInitialExistingUrls([]);
       setFormData({
         name: '',
         slug: '',
@@ -231,35 +266,90 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
     const availableSlots = MAX_PRODUCT_IMAGES - currentCount;
     const rawFileList = Array.from(files);
     const fileList = rawFileList.slice(0, availableSlots);
+    const activeProductId = draftProductId || product?.id || doc(collection(db, 'products')).id;
 
     if (rawFileList.length > availableSlots) {
       setUploadNotice(`Seules ${availableSlots} photo(s) ont été conservées pour respecter la limite de ${MAX_PRODUCT_IMAGES} photos.`);
     } else {
-      setUploadNotice("Lecture et conversion des photos en base64...");
+      setUploadNotice(`Upload de ${fileList.length} photo(s) vers Firebase Storage en cours...`);
     }
 
-    try {
-      const newItems: ProductModalImage[] = await Promise.all(
-        fileList.map(async (file, idx) => {
-          // Conversion systématique en base64 Data URL via FileReader et readAsDataURL()
-          const base64Url = await convertFileToBase64(file);
-          return {
-            id: `new_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 7)}`,
-            previewUrl: base64Url,
-            file,
-            isNew: true
-          };
-        })
-      );
+    // 1. Créer des entrées d'aperçu temporaire avec indicateur uploading: true
+    // L'URL blob temporaire ne sert QUE pour l'aperçu visuel pendant l'upload et est révoquée dès la fin de l'upload
+    const pendingEntries = fileList.map((file, idx) => {
+      const tempPreview = URL.createObjectURL(file);
+      return {
+        id: `upload_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 7)}`,
+        previewUrl: tempPreview,
+        permanentUrl: undefined,
+        file,
+        isNew: true,
+        uploading: true
+      } as ProductModalImage;
+    });
 
-      setImageItems((prev) => [...prev, ...newItems]);
-      setUploadNotice(`${newItems.length} photo(s) ajoutée(s) avec succès (${currentCount + newItems.length}/${MAX_PRODUCT_IMAGES}).`);
-      setTimeout(() => setUploadNotice(null), 3500);
-    } catch (err: any) {
-      console.error('Erreur lecture image base64:', err);
-      setError("Impossible de lire et convertir l'image sélectionnée en base64.");
-    } finally {
-      if (fileInputRef.current) fileInputRef.current.value = '';
+    setImageItems((prev) => [...prev, ...pendingEntries]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    // 2. Uploader chaque fichier vers Firebase Storage (products/{productId}/{uuid}.{ext}) et récupérer getDownloadURL()
+    let successCount = 0;
+    const failedFiles: string[] = [];
+
+    await Promise.all(
+      pendingEntries.map(async (entry, idx) => {
+        try {
+          const downloadUrl = await uploadProductImage(entry.file!, activeProductId, currentCount + idx);
+
+          if (!downloadUrl || isBrokenOrBlobUrl(downloadUrl)) {
+            throw new Error("URL permanente invalide reçue après l'upload.");
+          }
+
+          // Remplacer l'aperçu temporaire par l'URL permanente Firebase Storage et révoquer le blob local
+          if (entry.previewUrl.startsWith('blob:')) {
+            try {
+              URL.revokeObjectURL(entry.previewUrl);
+            } catch {}
+          }
+
+          successCount++;
+          setImageItems((prev) =>
+            prev.map((item) =>
+              item.id === entry.id
+                ? {
+                    ...item,
+                    previewUrl: downloadUrl,
+                    permanentUrl: downloadUrl,
+                    file: undefined,
+                    uploading: false
+                  }
+                : item
+            )
+          );
+        } catch (uploadErr: any) {
+          console.error('[UPLOAD IMAGE ERROR]', uploadErr);
+          failedFiles.push(entry.file?.name || `Photo #${idx + 1}`);
+          if (entry.previewUrl.startsWith('blob:')) {
+            try {
+              URL.revokeObjectURL(entry.previewUrl);
+            } catch {}
+          }
+          // Supprimer l'entrée échouée pour ne JAMAIS sauvegarder un lien cassé ou blob
+          setImageItems((prev) => prev.filter((item) => item.id !== entry.id));
+        }
+      })
+    );
+
+    if (failedFiles.length > 0) {
+      setError(
+        `Échec de l'upload pour : ${failedFiles.join(', ')}. Veuillez vérifier votre connexion ou le format de l'image et réessayer.`
+      );
+      setUploadNotice(null);
+    } else if (successCount > 0) {
+      setHadBrokenBlobImages(false);
+      setUploadNotice(
+        `${successCount} photo(s) uploadée(s) et sécurisée(s) avec URL permanente (${currentCount + successCount}/${MAX_PRODUCT_IMAGES}).`
+      );
+      setTimeout(() => setUploadNotice(null), 4000);
     }
   };
 
@@ -293,6 +383,10 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
   const handleAddUrlImage = () => {
     const trimmed = urlInputValue.trim();
     if (!trimmed) return;
+    if (trimmed.startsWith('blob:')) {
+      setError("Les liens locaux temporaires (blob:) ne sont pas autorisés. Utilisez une URL https:// ou importez le fichier.");
+      return;
+    }
     if (imageItems.length >= MAX_PRODUCT_IMAGES) {
       setError(`Limite atteinte : Vous avez déjà ajouté le maximum de ${MAX_PRODUCT_IMAGES} photos autorisées.`);
       return;
@@ -302,9 +396,12 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       {
         id: `url_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         previewUrl: trimmed,
-        isNew: false
+        permanentUrl: trimmed,
+        isNew: false,
+        uploading: false
       }
     ]);
+    setHadBrokenBlobImages(false);
     setUrlInputValue('');
     setShowUrlInput(false);
   };
@@ -399,36 +496,44 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       const tVal = performance.now() - tValStart;
       console.log('[WATCH CREATE] VALIDATION:', tVal.toFixed(2), 'ms');
 
-      // 2. Target Firestore document ID
-      const targetDocId = product?.id || doc(collection(db, 'products')).id;
-
-      // 3. Image Processing & Upload (Conversion en base64 via FileReader.readAsDataURL())
-      const tImgUploadStart = performance.now();
-      const newImagesCount = imageItems.filter(item => item.isNew || item.file).length;
-      if (newImagesCount > 0) {
-        setStatusStep(`Conversion & vérification des photos (${newImagesCount})...`);
+      if (isUploadingImages) {
+        setError("Veuillez patienter quelques secondes que l'upload des photos vers Firebase Storage se termine.");
+        setLoading(false);
+        return;
       }
 
-      const uploadTasks = imageItems.map(async (item) => {
-        // 1. Si un fichier natif est présent, conversion en base64 garantie via FileReader
+      // 2. Target Firestore document ID
+      const targetDocId = draftProductId || product?.id || doc(collection(db, 'products')).id;
+
+      // 3. Vérification et finalisation des URLs permanentes Firebase Storage (aucune URL blob: autorisée)
+      const tImgUploadStart = performance.now();
+      const uploadTasks = imageItems.map(async (item, idx) => {
         if (item.file) {
-          return await convertFileToBase64(item.file);
+          setStatusStep(`Upload vers Firebase Storage (${idx + 1}/${imageItems.length})...`);
+          return await uploadProductImage(item.file, targetDocId, idx);
         }
-        // 2. Si l'image est déjà en base64 Data URL ou URL permanente (exclut tout blob)
-        if (item.previewUrl && !item.previewUrl.startsWith('blob:')) {
-          return item.previewUrl;
+        const candidateUrl = item.permanentUrl || item.previewUrl;
+        if (candidateUrl && !isBrokenOrBlobUrl(candidateUrl)) {
+          return candidateUrl;
         }
         return '';
       });
 
       const uploadedResults = await Promise.all(uploadTasks);
-      const finalImages: string[] = uploadedResults.filter(Boolean);
-      const primaryImageBase64 = finalImages[0] || '';
-      const tImgUpload = performance.now() - tImgUploadStart;
-      console.log('[WATCH SAVE] IMAGES BASE64:', tImgUpload.toFixed(2), 'ms', finalImages.length, 'images');
+      const finalImages: string[] = uploadedResults.filter((u) => !isBrokenOrBlobUrl(u));
 
-      // 4. Construction du document & écriture Firestore
-      setStatusStep('Enregistrement de la montre...');
+      if (finalImages.length === 0) {
+        setError("Aucune image valide n'a pu être enregistrée. Veuillez sélectionner au moins une photo depuis votre ordinateur.");
+        setLoading(false);
+        return;
+      }
+
+      const primaryPermanentUrl = finalImages[0];
+      const tImgUpload = performance.now() - tImgUploadStart;
+      console.log('[WATCH SAVE] PERMANENT IMAGES:', tImgUpload.toFixed(2), 'ms', finalImages.length, 'images');
+
+      // 4. Construction du document & écriture Firestore avec l'URL permanente dans image, coverImage et images[]
+      setStatusStep('Enregistrement de la montre dans Firestore...');
       const descText = formData.shortDescription.trim() || formData.description.trim() || '';
 
       const payload: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -449,8 +554,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
         shortDescription: descText,
         description: descText,
         images: finalImages,
-        coverImage: primaryImageBase64,
-        image: primaryImageBase64, // Stockage direct dans l'objet montre (champ image)
+        coverImage: primaryPermanentUrl,
+        image: primaryPermanentUrl, // URL permanente enregistrée dans le champ image du document Firestore
         productUrl: null,
         isActive: formData.active,
         active: formData.active, // Dual-key compatibility
@@ -473,6 +578,11 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       await onSave(payload, product?.id, targetDocId);
       const tWrite = performance.now() - tWriteStart;
       console.log('[WATCH CREATE] FIRESTORE WRITE:', tWrite.toFixed(2), 'ms');
+
+      // 5. Nettoyage dans Firebase Storage (deleteObject) des anciennes images remplacées ou supprimées
+      if (product && initialExistingUrls.length > 0) {
+        await cleanupReplacedProductImages(initialExistingUrls, finalImages);
+      }
 
       // 5. Data refresh in local state
       const tRefreshStart = performance.now();
@@ -838,10 +948,27 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
             </div>
           </div>
 
+          {/* Broken blob notice if editing a previously broken product */}
+          {hadBrokenBlobImages && (
+            <div className="p-3 bg-amber-500/15 border border-amber-500/35 text-amber-700 dark:text-amber-300 text-xs rounded-xl flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block">Photos temporaires (blob:) détectées et nettoyées</span>
+                <span>
+                  Cette montre utilisait d'anciens liens locaux expirés. Importez vos photos ci-dessus pour les envoyer définitivement sur Firebase Storage (<code>products/{draftProductId || 'id'}/...</code>).
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Upload notice message */}
           {uploadNotice && (
             <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              {isUploadingImages ? (
+                <Loader2 className="w-4 h-4 shrink-0 animate-spin text-[var(--or)]" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+              )}
               <span>{uploadNotice}</span>
             </div>
           )}
@@ -874,9 +1001,21 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                       <img
                         src={item.previewUrl}
                         alt={`Photo montre ${idx + 1}`}
-                        onClick={() => setPreviewImageIndex(idx)}
-                        className="w-full h-full object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
+                        onClick={() => !item.uploading && setPreviewImageIndex(idx)}
+                        className={`w-full h-full object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105 ${
+                          item.uploading ? 'opacity-40 blur-[1px]' : ''
+                        }`}
                       />
+
+                      {/* Uploading overlay indicator */}
+                      {item.uploading && (
+                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-1.5 text-white p-2 z-20">
+                          <Loader2 className="w-6 h-6 animate-spin text-[var(--or)]" />
+                          <span className="text-[10px] font-semibold text-center leading-tight">
+                            Upload Storage...
+                          </span>
+                        </div>
+                      )}
 
                       {/* Main Cover Badge */}
                       {isMain && (
@@ -1104,10 +1243,13 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
               type="submit"
               variant="gold"
               size="md"
-              loading={loading}
+              loading={loading || isUploadingImages}
+              disabled={loading || isUploadingImages}
               id="admin-product-save-btn"
             >
-              {loading
+              {isUploadingImages
+                ? 'Upload des photos en cours...'
+                : loading
                 ? statusStep || (product ? 'Enregistrement...' : 'Création...')
                 : product
                 ? 'Enregistrer les modifications'

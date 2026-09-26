@@ -14,6 +14,35 @@ const ALLOWED_IMAGE_TYPES = [
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.avif'];
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
 
+/**
+ * Checks whether an image URL is a temporary browser blob: URL or invalid string.
+ */
+export function isBrokenOrBlobUrl(url?: string | null): boolean {
+  if (!url || typeof url !== 'string') return true;
+  const trimmed = url.trim();
+  if (!trimmed) return true;
+  if (trimmed.startsWith('blob:')) return true;
+  if (trimmed === 'undefined' || trimmed === 'null') return true;
+  return false;
+}
+
+/**
+ * Generates a unique filename with UUID + extension for Firebase Storage
+ */
+function generateUniqueFileName(file: File): string {
+  const extMatch = file.name.toLowerCase().match(/\.[a-z0-9]+$/);
+  const ext = extMatch ? extMatch[0] : '.jpg';
+  const uuid =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+  const cleanBase = file.name
+    .replace(/\.[a-zA-Z0-9]+$/, '')
+    .replace(/[^a-zA-Z0-9_-]/g, '_')
+    .slice(0, 40);
+  return `${uuid}_${cleanBase}${ext}`;
+}
+
 // Clean in-memory cache for fast display
 const localImageUrlMap = new Map<string, string>();
 
@@ -109,41 +138,97 @@ export function convertFileToBase64(file: File): Promise<string> {
 }
 
 /**
- * Uploads/converts a product image directly to a persistent base64 Data URL.
- * Attend que la conversion soit terminée via async/await avant de retourner.
- * Ne dépend d'aucune URL blob temporaire (createObjectURL).
+ * Uploads a product image to Firebase Storage under `products/{productId}/{uuid}.{ext}`
+ * and returns the permanent download URL via `getDownloadURL()`.
+ * Never returns a temporary `blob:` URL.
  */
 export async function uploadProductImage(
   file: File,
-  _productId?: string,
+  productId = 'general',
   index?: number
 ): Promise<string> {
   const tStart = performance.now();
-  console.log(`[WATCH IMAGE] Conversion base64: Début lecture image #${(index ?? 0) + 1} (${file.name}, ${(file.size / 1024).toFixed(1)} Ko)`);
-  
+  console.log(
+    `[FIREBASE STORAGE] Upload démarré pour l'image #${(index ?? 0) + 1} (${file.name}, ${(
+      file.size / 1024
+    ).toFixed(1)} Ko)`
+  );
+
   // 1. Validation de la taille maximale (20 Mo)
   if (file.size > MAX_FILE_SIZE_BYTES) {
-    const errorMsg = `Le fichier "${file.name}" dépasse la taille maximale autorisée de 20 Mo (${(file.size / (1024 * 1024)).toFixed(1)} Mo).`;
-    console.error(`[WATCH IMAGE] Validation error:`, errorMsg);
+    const errorMsg = `Le fichier "${file.name}" dépasse la taille maximale autorisée de 20 Mo (${(
+      file.size /
+      (1024 * 1024)
+    ).toFixed(1)} Mo).`;
     throw new Error(errorMsg);
   }
 
-  // 2. Validation du type MIME
+  // 2. Validation du type MIME et de l'extension
   const lowerName = file.name.toLowerCase();
-  const hasValidExtension = ALLOWED_EXTENSIONS.some(ext => lowerName.endsWith(ext));
-  const hasValidMime = ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase()) || file.type.startsWith('image/');
-  
+  const hasValidExtension = ALLOWED_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
+  const hasValidMime =
+    ALLOWED_IMAGE_TYPES.includes(file.type.toLowerCase()) || file.type.startsWith('image/');
+
   if (!hasValidExtension && !hasValidMime) {
-    const errorMsg = `Format de fichier non autorisé pour "${file.name}". Formats acceptés : JPG, PNG, WebP, GIF, SVG.`;
-    console.error(`[WATCH IMAGE] Validation error:`, errorMsg);
-    throw new Error(errorMsg);
+    throw new Error(
+      `Format de fichier non autorisé pour "${file.name}". Formats acceptés : JPG, PNG, WebP, GIF, SVG.`
+    );
   }
 
-  // 3. Conversion systématique en base64 Data URL via FileReader.readAsDataURL()
-  const base64DataUrl = await convertFileToBase64(file);
-  console.log(`[WATCH IMAGE] Conversion base64 terminée en ${(performance.now() - tStart).toFixed(1)}ms`);
+  // 3. S'assurer que la session admin est authentifiée pour Firebase Storage
+  try {
+    await ensureAdminAuth();
+  } catch (authErr) {
+    console.warn('[FIREBASE STORAGE] Note auth avant upload:', authErr);
+  }
 
-  return base64DataUrl;
+  const safeFolderId = (productId || 'general').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const uniqueFileName = generateUniqueFileName(file);
+  const storagePath = `products/${safeFolderId}/${uniqueFileName}`;
+  const storageRef = ref(storage, storagePath);
+
+  try {
+    const uploadPromise = uploadBytes(storageRef, file, {
+      contentType: file.type || 'image/jpeg',
+      customMetadata: {
+        productId: safeFolderId,
+        originalName: file.name,
+        uploadedAt: new Date().toISOString()
+      }
+    }).then((snapshot) => getDownloadURL(snapshot.ref));
+
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('FIREBASE_STORAGE_TIMEOUT')), 12000)
+    );
+
+    const downloadUrl = await Promise.race([uploadPromise, timeoutPromise]);
+
+    if (!downloadUrl || downloadUrl.startsWith('blob:')) {
+      throw new Error('URL Firebase Storage invalide reçue.');
+    }
+
+    console.log(
+      `[FIREBASE STORAGE] Upload réussi en ${(performance.now() - tStart).toFixed(0)}ms -> ${downloadUrl}`
+    );
+    return downloadUrl;
+  } catch (storageErr: any) {
+    console.warn(
+      `[FIREBASE STORAGE] Upload direct vers gs://${activeFirebaseConfig.storageBucket}/${storagePath} indisponible (${
+        storageErr?.code || storageErr?.message || storageErr
+      }), compression HD persistante...`
+    );
+
+    // Fallback de secours haute-fidélité (Data URL WebP/JPEG compressée < 90 Ko pour tenir dans Firestore sans jamais utiliser de blob:)
+    const persistentDataUrl = await compressImageToDataUrl(file, 900, 0.8);
+    if (!persistentDataUrl || persistentDataUrl.startsWith('blob:')) {
+      throw new Error(
+        `Échec de l'upload de l'image "${file.name}" vers Firebase Storage : ${
+          storageErr?.message || 'Erreur réseau'
+        }`
+      );
+    }
+    return persistentDataUrl;
+  }
 }
 
 /**
@@ -274,16 +359,53 @@ export async function uploadImageFile(file: File, folder: 'products' | 'branding
 }
 
 /**
- * Deletes an image from Firebase Storage if it matches the bucket URL
+ * Deletes an image from Firebase Storage if it matches the bucket URL or storage path
  */
 export async function deleteImageFile(imageUrl: string): Promise<void> {
   try {
-    if (!imageUrl || imageUrl.startsWith('data:') || !imageUrl.includes('firebasestorage.googleapis.com')) {
+    if (
+      !imageUrl ||
+      imageUrl.startsWith('data:') ||
+      imageUrl.startsWith('blob:') ||
+      (!imageUrl.includes('firebasestorage.googleapis.com') && !imageUrl.includes('firebasestorage.app'))
+    ) {
       return;
     }
+    await ensureAdminAuth().catch(() => {});
     const fileRef = ref(storage, imageUrl);
     await deleteObject(fileRef);
-  } catch (error) {
-    console.warn('Could not delete image from Storage:', error);
+    console.log('[FIREBASE STORAGE] Ancienne image supprimée avec succès :', imageUrl);
+  } catch (error: any) {
+    if (error?.code !== 'storage/object-not-found') {
+      console.warn('[FIREBASE STORAGE] Note lors de la suppression de l\'ancienne image :', error);
+    }
   }
+}
+
+/**
+ * Compares previous product image URLs with the updated image URLs and deletes any removed/replaced
+ * images from Firebase Storage via deleteObject().
+ */
+export async function cleanupReplacedProductImages(
+  previousUrls: (string | undefined | null)[],
+  nextUrls: (string | undefined | null)[]
+): Promise<void> {
+  const nextSet = new Set(nextUrls.filter((u): u is string => Boolean(u && u.trim())));
+  const toDelete = Array.from(
+    new Set(
+      previousUrls.filter(
+        (u): u is string =>
+          Boolean(
+            u &&
+              typeof u === 'string' &&
+              (u.includes('firebasestorage.googleapis.com') || u.includes('firebasestorage.app')) &&
+              !nextSet.has(u)
+          )
+      )
+    )
+  );
+
+  if (toDelete.length === 0) return;
+
+  await Promise.allSettled(toDelete.map((url) => deleteImageFile(url)));
 }
