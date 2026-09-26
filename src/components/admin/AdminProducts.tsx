@@ -277,16 +277,25 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                   className="bg-[var(--carte-bg)] border border-[var(--sep)] rounded-2xl p-4 space-y-3.5 shadow-sm"
                 >
                   <div className="flex items-start gap-3">
-                    <img
-                      src={
-                        product.image ||
-                        product.images?.[0] ||
-                        product.coverImage ||
-                        'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=200'
-                      }
-                      alt={product.name}
-                      className="w-16 h-16 rounded-xl object-cover bg-[var(--bg-2)] border border-[var(--sep)] shrink-0"
-                    />
+                    {(() => {
+                      const imgUrl =
+                        (!isBrokenOrBlobUrl(product.image) ? product.image : '') ||
+                        (Array.isArray(product.images)
+                          ? product.images.find((u) => !isBrokenOrBlobUrl(u))
+                          : '') ||
+                        (!isBrokenOrBlobUrl(product.coverImage) ? product.coverImage : '');
+                      return imgUrl ? (
+                        <img
+                          src={imgUrl}
+                          alt={product.name}
+                          className="w-16 h-16 rounded-xl object-cover bg-[var(--bg-2)] border border-[var(--sep)] shrink-0"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-xl bg-[var(--bg-2)] border border-amber-500/40 flex items-center justify-center text-amber-500 shrink-0">
+                          <Watch className="w-6 h-6 opacity-70" />
+                        </div>
+                      );
+                    })()}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-1">
                         <span className="text-[10px] text-[var(--or)] font-bold uppercase tracking-wider">
@@ -408,16 +417,25 @@ export const AdminProducts: React.FC<AdminProductsProps> = ({
                         {/* Product identity & photo */}
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-3">
-                            <img
-                              src={
-                                product.image ||
-                                product.images?.[0] ||
-                                product.coverImage ||
-                                'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=200'
-                              }
-                              alt={product.name}
-                              className="w-12 h-12 rounded-xl object-cover bg-[var(--bg-2)] border border-[var(--sep)] shrink-0 shadow-xs"
-                            />
+                            {(() => {
+                              const imgUrl =
+                                (!isBrokenOrBlobUrl(product.image) ? product.image : '') ||
+                                (Array.isArray(product.images)
+                                  ? product.images.find((u) => !isBrokenOrBlobUrl(u))
+                                  : '') ||
+                                (!isBrokenOrBlobUrl(product.coverImage) ? product.coverImage : '');
+                              return imgUrl ? (
+                                <img
+                                  src={imgUrl}
+                                  alt={product.name}
+                                  className="w-12 h-12 rounded-xl object-cover bg-[var(--bg-2)] border border-[var(--sep)] shrink-0 shadow-xs"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-xl bg-[var(--bg-2)] border border-amber-500/40 flex items-center justify-center text-amber-500 shrink-0 shadow-xs">
+                                  <Watch className="w-5 h-5 opacity-70" />
+                                </div>
+                              );
+                            })()}
                             <div>
                               <div className="font-serif font-bold text-[var(--text)] text-sm group-hover:text-[var(--or)] transition-colors">
                                 {product.name}

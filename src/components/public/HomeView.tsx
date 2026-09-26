@@ -821,7 +821,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 product.image ||
                 product.images?.[0] ||
                 product.coverImage ||
-                'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=400';
+                '';
               const hasPromo = product.promotionalPrice && product.promotionalPrice < product.price;
               const effectivePrice = hasPromo ? product.promotionalPrice! : product.price;
 
@@ -844,13 +844,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
                   {/* Compact Watch Thumbnail */}
                   <div className="w-full h-28 sm:h-32 my-2 flex items-center justify-center relative overflow-hidden">
-                    <img
-                      src={primaryImage}
-                      alt={product.name}
-                      referrerPolicy="no-referrer"
-                      className="max-h-full max-w-full object-contain filter drop-shadow-md group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                    />
+                    {primaryImage ? (
+                      <img
+                        src={primaryImage}
+                        alt={product.name}
+                        referrerPolicy="no-referrer"
+                        className="max-h-full max-w-full object-contain filter drop-shadow-md group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-[var(--text-muted)] gap-1">
+                        <Clock className="w-6 h-6 opacity-40 text-[var(--or)]" />
+                        <span className="text-[9px] uppercase tracking-wider opacity-70">Photo indisponible</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Watch Info (Compact) */}

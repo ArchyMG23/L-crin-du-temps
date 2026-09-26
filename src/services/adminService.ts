@@ -47,11 +47,11 @@ export async function ensureAdminAuth(): Promise<void> {
       // Sign in using the established manager credentials on lecrin-da9b7
       const emailRes = await Promise.race([
         signInWithEmailAndPassword(auth, 'admin@horlogerie-prestige.com', 'AdminPrestige2026!'),
-        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 3000))
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 2000))
       ]);
       if (emailRes?.user) {
         cachedAdminUid = emailRes.user.uid;
-        await registerAdmin(
+        registerAdmin(
           emailRes.user.uid,
           'admin@horlogerie-prestige.com',
           'owner',
@@ -62,11 +62,11 @@ export async function ensureAdminAuth(): Promise<void> {
       try {
         const anonRes = await Promise.race([
           signInAnonymously(auth),
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 2000))
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Auth timeout')), 1500))
         ]);
         if (anonRes?.user) {
           cachedAdminUid = anonRes.user.uid;
-          await registerAdmin(
+          registerAdmin(
             anonRes.user.uid,
             'admin@horlogerie-prestige.com',
             'owner',
@@ -78,9 +78,9 @@ export async function ensureAdminAuth(): Promise<void> {
       }
     }
   } else {
-    // Current user is present; ensure admin document exists in /admins once
+    // Current user is present; ensure admin document exists in /admins in background without blocking
     cachedAdminUid = auth.currentUser.uid;
-    await registerAdmin(
+    registerAdmin(
       auth.currentUser.uid,
       auth.currentUser.email || 'admin@horlogerie-prestige.com',
       'owner',

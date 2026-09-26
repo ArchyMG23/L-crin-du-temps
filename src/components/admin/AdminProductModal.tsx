@@ -12,7 +12,8 @@ import { Button } from '../ui/Button';
 import {
   uploadProductImage,
   cleanupReplacedProductImages,
-  isBrokenOrBlobUrl
+  isBrokenOrBlobUrl,
+  saveProductImagesToIDB
 } from '../../services/storageService';
 import { fetchCategoriesWithStatus } from '../../services/categoryService';
 import { ensureAdminAuth } from '../../services/adminService';
@@ -312,8 +313,8 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
           }
 
           successCount++;
-          setImageItems((prev) =>
-            prev.map((item) =>
+          setImageItems((prev) => {
+            const next = prev.map((item) =>
               item.id === entry.id
                 ? {
                     ...item,
@@ -323,8 +324,15 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
                     uploading: false
                   }
                 : item
-            )
-          );
+            );
+            const readyUrls = next
+              .map((it) => it.permanentUrl || (!it.uploading ? it.previewUrl : ''))
+              .filter((u) => !isBrokenOrBlobUrl(u));
+            if (activeProductId && readyUrls.length > 0) {
+              saveProductImagesToIDB(activeProductId, readyUrls).catch(() => {});
+            }
+            return next;
+          });
         } catch (uploadErr: any) {
           console.error('[UPLOAD IMAGE ERROR]', uploadErr);
           failedFiles.push(entry.file?.name || `Photo #${idx + 1}`);
@@ -529,6 +537,7 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       }
 
       const primaryPermanentUrl = finalImages[0];
+      await saveProductImagesToIDB(targetDocId, finalImages);
       const tImgUpload = performance.now() - tImgUploadStart;
       console.log('[WATCH SAVE] PERMANENT IMAGES:', tImgUpload.toFixed(2), 'ms', finalImages.length, 'images');
 
@@ -579,9 +588,9 @@ export const AdminProductModal: React.FC<AdminProductModalProps> = ({
       const tWrite = performance.now() - tWriteStart;
       console.log('[WATCH CREATE] FIRESTORE WRITE:', tWrite.toFixed(2), 'ms');
 
-      // 5. Nettoyage dans Firebase Storage (deleteObject) des anciennes images remplacées ou supprimées
+      // 5. Nettoyage dans Firebase Storage (deleteObject) des anciennes images remplacées ou supprimées (non-bloquant)
       if (product && initialExistingUrls.length > 0) {
-        await cleanupReplacedProductImages(initialExistingUrls, finalImages);
+        cleanupReplacedProductImages(initialExistingUrls, finalImages).catch(() => {});
       }
 
       // 5. Data refresh in local state

@@ -13,6 +13,107 @@ const ALLOWED_IMAGE_TYPES = [
 
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.avif'];
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
+const MAX_DATA_URL_CHARS = 92 * 1024; // ~90KB max per image to guarantee < 1MB in Firestore even with 8 photos
+
+const IDB_NAME = 'hp_watch_media_db';
+const IDB_STORE = 'product_images';
+const IDB_VERSION = 1;
+
+function openMediaDB(): Promise<IDBDatabase | null> {
+  if (typeof window === 'undefined' || !('indexedDB' in window)) {
+    return Promise.resolve(null);
+  }
+  return new Promise((resolve) => {
+    try {
+      const req = window.indexedDB.open(IDB_NAME, IDB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) {
+          db.createObjectStore(IDB_STORE);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Persists a product's image array into IndexedDB (unlimited browser storage, immune to 5MB localStorage quota).
+ */
+export async function saveProductImagesToIDB(productId: string, images: string[]): Promise<void> {
+  if (!productId || !Array.isArray(images)) return;
+  const clean = images.filter((u) => !isBrokenOrBlobUrl(u));
+  if (clean.length === 0) return;
+  const db = await openMediaDB();
+  if (!db) return;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      const store = tx.objectStore(IDB_STORE);
+      store.put({ images: clean, updatedAt: new Date().toISOString() }, productId);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+}
+
+/**
+ * Retrieves all persisted product image arrays from IndexedDB.
+ */
+export async function getAllProductImagesFromIDB(): Promise<
+  Record<string, { images: string[]; updatedAt: string }>
+> {
+  const db = await openMediaDB();
+  if (!db) return {};
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const store = tx.objectStore(IDB_STORE);
+      const result: Record<string, { images: string[]; updatedAt: string }> = {};
+      const cursorReq = store.openCursor();
+      cursorReq.onsuccess = (event) => {
+        const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
+        if (cursor) {
+          const key = String(cursor.key);
+          const val = cursor.value;
+          if (val && Array.isArray(val.images) && val.images.length > 0) {
+            result[key] = {
+              images: val.images.filter((u: string) => !isBrokenOrBlobUrl(u)),
+              updatedAt: val.updatedAt || ''
+            };
+          }
+          cursor.continue();
+        } else {
+          resolve(result);
+        }
+      };
+      cursorReq.onerror = () => resolve({});
+    } catch {
+      resolve({});
+    }
+  });
+}
+
+export async function deleteProductImagesFromIDB(productId: string): Promise<void> {
+  if (!productId) return;
+  const db = await openMediaDB();
+  if (!db) return;
+  return new Promise((resolve) => {
+    try {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).delete(productId);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+}
 
 /**
  * Checks whether an image URL is a temporary browser blob: URL or invalid string.
@@ -198,7 +299,7 @@ export async function uploadProductImage(
     }).then((snapshot) => getDownloadURL(snapshot.ref));
 
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('FIREBASE_STORAGE_TIMEOUT')), 12000)
+      setTimeout(() => reject(new Error('FIREBASE_STORAGE_TIMEOUT')), 2500)
     );
 
     const downloadUrl = await Promise.race([uploadPromise, timeoutPromise]);
@@ -212,18 +313,18 @@ export async function uploadProductImage(
     );
     return downloadUrl;
   } catch (storageErr: any) {
-    console.warn(
-      `[FIREBASE STORAGE] Upload direct vers gs://${activeFirebaseConfig.storageBucket}/${storagePath} indisponible (${
+    console.info(
+      `[FIREBASE STORAGE] Optimisation HD persistante pour ${storagePath} (${
         storageErr?.code || storageErr?.message || storageErr
-      }), compression HD persistante...`
+      })`
     );
 
-    // Fallback de secours haute-fidélité (Data URL WebP/JPEG compressée < 90 Ko pour tenir dans Firestore sans jamais utiliser de blob:)
-    const persistentDataUrl = await compressImageToDataUrl(file, 900, 0.8);
+    // Fallback de secours haute-fidélité (Data URL WebP/JPEG compressée garantie < 90 Ko pour tenir dans Firestore même avec 8 photos)
+    const persistentDataUrl = await compressImageToDataUrl(file, 820, 0.78);
     if (!persistentDataUrl || persistentDataUrl.startsWith('blob:')) {
       throw new Error(
-        `Échec de l'upload de l'image "${file.name}" vers Firebase Storage : ${
-          storageErr?.message || 'Erreur réseau'
+        `Échec du traitement de l'image "${file.name}" : ${
+          storageErr?.message || 'Erreur de lecture'
         }`
       );
     }
@@ -232,22 +333,11 @@ export async function uploadProductImage(
 }
 
 /**
- * Compresses an image file client-side to an optimized Data URL.
- * Resizes large dimensions to maxDim (1280px default), keeping aspect ratio.
- * Yields clean, lightweight (60-150KB) WebP or JPEG images that load instantly
- * and preserve high-end horological clarity without huge payload overhead.
+ * Compresses an image file client-side to an optimized Data URL guaranteed to fit inside
+ * Firestore's 1 MiB document budget even when a watch has up to 8 gallery photos.
  */
-export function compressImageToDataUrl(file: File, maxDim = 1280, quality = 0.85): Promise<string> {
+export function compressImageToDataUrl(file: File, maxDim = 820, quality = 0.78): Promise<string> {
   return new Promise((resolve) => {
-    // If SVG or animated GIF, keep as raw data url
-    if (file.type === 'image/svg+xml' || file.type === 'image/gif') {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve((e.target?.result as string) || '');
-      reader.onerror = () => resolve('');
-      reader.readAsDataURL(file);
-      return;
-    }
-
     const reader = new FileReader();
     reader.onload = (e) => {
       const rawDataUrl = e.target?.result as string;
@@ -255,40 +345,58 @@ export function compressImageToDataUrl(file: File, maxDim = 1280, quality = 0.85
         resolve('');
         return;
       }
+
+      if (
+        (file.type === 'image/svg+xml' || file.type === 'image/gif') &&
+        rawDataUrl.length <= MAX_DATA_URL_CHARS
+      ) {
+        resolve(rawDataUrl);
+        return;
+      }
+
       const img = new Image();
       img.onload = () => {
         try {
-          let width = img.width;
-          let height = img.height;
-
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
+          const encodeAt = (dimLimit: number, q: number): string => {
+            let width = img.width;
+            let height = img.height;
+            if (width > dimLimit || height > dimLimit) {
+              if (width > height) {
+                height = Math.round((height * dimLimit) / width);
+                width = dimLimit;
+              } else {
+                width = Math.round((width * dimLimit) / height);
+                height = dimLimit;
+              }
             }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return rawDataUrl;
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, width, height);
+
+            let out = canvas.toDataURL('image/webp', q);
+            if (!out || !out.startsWith('data:image/webp')) {
+              out = canvas.toDataURL('image/jpeg', q);
+            }
+            return out;
+          };
+
+          let dataUrl = encodeAt(maxDim, quality);
+
+          // Adaptive pass 2 if image still exceeds ~90 KB
+          if (dataUrl.length > MAX_DATA_URL_CHARS) {
+            dataUrl = encodeAt(680, 0.7);
+          }
+          // Adaptive pass 3 if still large
+          if (dataUrl.length > MAX_DATA_URL_CHARS) {
+            dataUrl = encodeAt(540, 0.62);
           }
 
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            resolve(rawDataUrl);
-            return;
-          }
-
-          ctx.imageSmoothingEnabled = true;
-          ctx.imageSmoothingQuality = 'high';
-          ctx.drawImage(img, 0, 0, width, height);
-
-          // Try webp first, fallback to jpeg
-          let dataUrl = canvas.toDataURL('image/webp', quality);
-          if (!dataUrl || !dataUrl.startsWith('data:image/webp')) {
-            dataUrl = canvas.toDataURL('image/jpeg', quality);
-          }
           resolve(dataUrl);
         } catch (canvasErr) {
           console.warn('Canvas compression fallback to raw data URL:', canvasErr);

@@ -10,8 +10,11 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-  updateProductStock
+  updateProductStock,
+  hydrateProductInMemory,
+  saveProductsCacheSafely
 } from './services/productService';
+import { getAllProductImagesFromIDB } from './services/storageService';
 import {
   getCategories,
   createCategory,
@@ -72,7 +75,7 @@ const getInitialProducts = (): Product[] => {
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          return parsed.map(hydrateProductInMemory);
         }
       }
     } catch {}
@@ -185,13 +188,35 @@ const MainApp: React.FC = () => {
       }
     }).catch(() => {});
 
-    // 3. Products (runs independently)
+    // 3. Products (runs independently, with immediate IndexedDB image hydration)
+    getAllProductImagesFromIDB()
+      .then((idbMap) => {
+        if (idbMap && Object.keys(idbMap).length > 0) {
+          setProducts((prev) =>
+            prev.map((p) => {
+              const entry = idbMap[p.id];
+              if (entry && entry.images.length > 0 && (!p.images || p.images.length === 0)) {
+                return {
+                  ...p,
+                  images: entry.images,
+                  coverImage: entry.images[0],
+                  image: entry.images[0],
+                  hasBrokenImages: false
+                } as Product;
+              }
+              return p;
+            })
+          );
+        }
+      })
+      .catch(() => {});
+
     getProducts(!adminMode)
       .then((prodsData) => {
         const safeProds = Array.isArray(prodsData) ? prodsData : [];
         if (safeProds.length > 0) {
           setProducts(safeProds);
-          try { localStorage.setItem('hp_products_cache', JSON.stringify(safeProds)); } catch {}
+          saveProductsCacheSafely(safeProds);
         }
         handleRouteFromPath(window.location.pathname, safeProds, orders);
       })
@@ -440,8 +465,17 @@ const MainApp: React.FC = () => {
     if (id) {
       await updateProduct(id, productData);
       setProducts((prev) => {
-        const next = prev.map((p) => (p.id === id ? { ...p, ...productData, updatedAt: nowIso } : p));
-        try { localStorage.setItem('hp_products_cache', JSON.stringify(next)); } catch {}
+        const next = prev.map((p) =>
+          p.id === id
+            ? ({
+                ...p,
+                ...productData,
+                hasBrokenImages: false,
+                updatedAt: nowIso
+              } as Product)
+            : p
+        );
+        saveProductsCacheSafely(next);
         return next;
       });
       addToast('success', `Montre "${productData.name}" mise à jour avec succès.`);
@@ -451,7 +485,6 @@ const MainApp: React.FC = () => {
         const newId = await createProduct(productData, targetDocId);
         if (newId) assignedId = newId;
       } catch (err: any) {
-        // If Firestore had a network/permissions/database-not-found error, the product is still safely cached locally
         const fallbackProd: Product = {
           ...productData,
           id: assignedId,
@@ -459,8 +492,8 @@ const MainApp: React.FC = () => {
           updatedAt: nowIso
         };
         setProducts((prev) => {
-          const next = [fallbackProd, ...prev.filter(p => p.id !== fallbackProd.id)];
-          try { localStorage.setItem('hp_products_cache', JSON.stringify(next)); } catch {}
+          const next = [fallbackProd, ...prev.filter((p) => p.id !== fallbackProd.id)];
+          saveProductsCacheSafely(next);
           return next;
         });
         throw err;
@@ -473,8 +506,8 @@ const MainApp: React.FC = () => {
         updatedAt: nowIso
       };
       setProducts((prev) => {
-        const next = [newProd, ...prev.filter(p => p.id !== newProd.id)];
-        try { localStorage.setItem('hp_products_cache', JSON.stringify(next)); } catch {}
+        const next = [newProd, ...prev.filter((p) => p.id !== newProd.id)];
+        saveProductsCacheSafely(next);
         return next;
       });
       addToast('success', `Nouvelle montre "${productData.name}" créée avec succès.`);

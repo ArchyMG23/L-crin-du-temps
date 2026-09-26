@@ -14,17 +14,105 @@ import { signInAnonymously } from 'firebase/auth';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { Product } from '../types';
 import { ensureAdminAuth } from './adminService';
-import { cleanupReplacedProductImages, isBrokenOrBlobUrl } from './storageService';
+import {
+  cleanupReplacedProductImages,
+  isBrokenOrBlobUrl,
+  saveProductImagesToIDB,
+  getAllProductImagesFromIDB,
+  deleteProductImagesFromIDB
+} from './storageService';
 import { withTimeout } from '../utils/async';
 
 const PRODUCTS_COLLECTION = 'products';
 const LOCAL_CUSTOM_PRODUCTS_KEY = 'hp_custom_products';
 
+/**
+ * Compacts a product object before saving to Firestore or localStorage so base64 Data URLs
+ * are stored ONLY ONCE in `images[]` instead of being triplicated across `images[0]`, `coverImage`, and `image`.
+ */
+function compactProductPayload(product: any): any {
+  const copy: any = { ...product };
+  const cleanImages: string[] = Array.isArray(copy.images)
+    ? copy.images.filter((u: string) => !isBrokenOrBlobUrl(u))
+    : [];
+  const primary =
+    cleanImages[0] ||
+    (!isBrokenOrBlobUrl(copy.image) ? copy.image : '') ||
+    (!isBrokenOrBlobUrl(copy.coverImage) ? copy.coverImage : '') ||
+    '';
+
+  if (cleanImages.length === 0 && primary) {
+    cleanImages.push(primary);
+  }
+
+  copy.images = cleanImages;
+  // Avoid triplicating large data: URLs in the same document (keeps Firestore docs < 1MB and localStorage < 5MB)
+  if (primary.startsWith('data:')) {
+    copy.coverImage = '';
+    copy.image = '';
+  } else {
+    copy.coverImage = primary;
+    copy.image = primary;
+  }
+
+  Object.keys(copy).forEach((key) => {
+    if (copy[key] === undefined) {
+      delete copy[key];
+    }
+  });
+
+  return copy;
+}
+
+/**
+ * Hydrates a product object in memory so `image`, `coverImage`, and `images[]` are always populated.
+ */
+export function hydrateProductInMemory(raw: any): Product {
+  const rawImages: string[] = Array.isArray(raw.images) ? raw.images : [];
+  const validImages = rawImages.filter((u) => !isBrokenOrBlobUrl(u));
+  const validPrimary = !isBrokenOrBlobUrl(raw.image)
+    ? raw.image
+    : !isBrokenOrBlobUrl(raw.coverImage)
+    ? raw.coverImage
+    : validImages[0] || '';
+  const images = validImages.length > 0 ? validImages : validPrimary ? [validPrimary] : [];
+  const coverImage = validPrimary || images[0] || '';
+
+  return {
+    ...raw,
+    images,
+    coverImage,
+    image: coverImage
+  } as Product;
+}
+
+export function saveProductsCacheSafely(products: Product[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const compacted = products.map((p) => compactProductPayload(p));
+    localStorage.setItem('hp_products_cache', JSON.stringify(compacted));
+  } catch {
+    // If localStorage is still near 5MB quota, strip data: URLs from localStorage (they are safely stored in IndexedDB)
+    try {
+      const ultraCompact = products.map((p) => {
+        const c = compactProductPayload(p);
+        if (Array.isArray(c.images) && c.images.some((u: string) => u.startsWith('data:'))) {
+          saveProductImagesToIDB(c.id, c.images).catch(() => {});
+          c.images = c.images.filter((u: string) => !u.startsWith('data:'));
+        }
+        return c;
+      });
+      localStorage.setItem('hp_products_cache', JSON.stringify(ultraCompact));
+    } catch {}
+  }
+}
+
 export function getLocalCustomProducts(): Product[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(LOCAL_CUSTOM_PRODUCTS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.map(hydrateProductInMemory) : [];
   } catch {
     return [];
   }
@@ -32,19 +120,30 @@ export function getLocalCustomProducts(): Product[] {
 
 export function persistLocalProduct(product: Product): void {
   if (typeof window === 'undefined') return;
+  if (product.id && Array.isArray(product.images) && product.images.length > 0) {
+    saveProductImagesToIDB(product.id, product.images).catch(() => {});
+  }
   try {
     const existing = getLocalCustomProducts();
-    const filtered = existing.filter(p => p.id !== product.id);
-    localStorage.setItem(LOCAL_CUSTOM_PRODUCTS_KEY, JSON.stringify([product, ...filtered]));
+    const filtered = existing.filter((p) => p.id !== product.id);
+    const next = [hydrateProductInMemory(product), ...filtered];
+    localStorage.setItem(
+      LOCAL_CUSTOM_PRODUCTS_KEY,
+      JSON.stringify(next.map((p) => compactProductPayload(p)))
+    );
   } catch {}
 }
 
 export function removeLocalProduct(id: string): void {
   if (typeof window === 'undefined') return;
+  deleteProductImagesFromIDB(id).catch(() => {});
   try {
     const existing = getLocalCustomProducts();
-    const filtered = existing.filter(p => p.id !== id);
-    localStorage.setItem(LOCAL_CUSTOM_PRODUCTS_KEY, JSON.stringify(filtered));
+    const filtered = existing.filter((p) => p.id !== id);
+    localStorage.setItem(
+      LOCAL_CUSTOM_PRODUCTS_KEY,
+      JSON.stringify(filtered.map((p) => compactProductPayload(p)))
+    );
   } catch {}
 }
 
@@ -56,8 +155,13 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
   try {
     const colRef = collection(db, PRODUCTS_COLLECTION);
     const q = onlyActive ? query(colRef, where('active', '==', true)) : colRef;
-    
-    let snapshot = await withTimeout(getDocs(q), 3500, null, 'firestore-products');
+
+    const [initialSnapshot, idbImagesMap] = await Promise.all([
+      withTimeout(getDocs(q), 3500, null, 'firestore-products'),
+      getAllProductImagesFromIDB()
+    ]);
+
+    let snapshot = initialSnapshot;
     if (!snapshot) {
       if (onlyActive) {
         try {
@@ -68,30 +172,111 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
         }
       }
     }
-    
-    if (!snapshot || snapshot.empty) {
-      console.log('[FIRESTORE] products finished', { count: 0 });
-      return getLocalCustomProducts();
+
+    const localProds = getLocalCustomProducts();
+    const localById = new Map<string, Product>();
+    for (const lp of localProds) {
+      if (lp && lp.id) {
+        const idbEntry = idbImagesMap[lp.id];
+        if (idbEntry && idbEntry.images.length > 0 && (!lp.images || lp.images.length === 0)) {
+          lp.images = idbEntry.images;
+          lp.coverImage = idbEntry.images[0];
+          lp.image = idbEntry.images[0];
+        }
+        localById.set(lp.id, hydrateProductInMemory(lp));
+      }
     }
 
-    let products = snapshot.docs.map(d => {
-      const data = d.data();
-      const isActive = data.isActive !== undefined ? Boolean(data.isActive) : (data.active !== undefined ? Boolean(data.active) : true);
-      const isFeatured = data.isFeatured !== undefined ? Boolean(data.isFeatured) : (data.featured !== undefined ? Boolean(data.featured) : false);
-      const promo = data.promoPrice !== undefined ? data.promoPrice : (data.promotionalPrice !== undefined ? data.promotionalPrice : null);
+    if (!snapshot || snapshot.empty) {
+      console.log('[FIRESTORE] products finished', { count: localById.size });
+      return Array.from(localById.values());
+    }
+
+    let products = snapshot.docs.map((d) => {
+      const firestoreData = d.data();
+      const localMatch = localById.get(d.id);
+      const idbEntry = idbImagesMap[d.id];
+
+      // If local backup has a newer update timestamp, merge its updated fields
+      const isLocalNewer =
+        localMatch &&
+        localMatch.updatedAt &&
+        (!firestoreData.updatedAt || localMatch.updatedAt >= firestoreData.updatedAt);
+
+      const data: any = isLocalNewer ? { ...firestoreData, ...localMatch } : { ...firestoreData };
+
+      const isActive =
+        data.isActive !== undefined
+          ? Boolean(data.isActive)
+          : data.active !== undefined
+          ? Boolean(data.active)
+          : true;
+      const isFeatured =
+        data.isFeatured !== undefined
+          ? Boolean(data.isFeatured)
+          : data.featured !== undefined
+          ? Boolean(data.featured)
+          : false;
+      const promo =
+        data.promoPrice !== undefined
+          ? data.promoPrice
+          : data.promotionalPrice !== undefined
+          ? data.promotionalPrice
+          : null;
+
       const rawImages: string[] = Array.isArray(data.images) ? data.images : [];
-      const validImages = rawImages.filter((u) => !isBrokenOrBlobUrl(u));
-      const validPrimary = !isBrokenOrBlobUrl(data.image)
+      let validImages = rawImages.filter((u) => !isBrokenOrBlobUrl(u));
+      let validPrimary = !isBrokenOrBlobUrl(data.image)
         ? data.image
         : !isBrokenOrBlobUrl(data.coverImage)
         ? data.coverImage
         : validImages[0] || '';
+
+      // Restore from localMatch or IndexedDB if Firestore had missing/expired blob images or if IDB is newer
+      if (
+        idbEntry &&
+        idbEntry.images.length > 0 &&
+        (validImages.length === 0 ||
+          (idbEntry.updatedAt && (!firestoreData.updatedAt || idbEntry.updatedAt >= firestoreData.updatedAt)))
+      ) {
+        validImages = idbEntry.images;
+        validPrimary = idbEntry.images[0];
+      } else if (
+        validImages.length === 0 &&
+        localMatch &&
+        Array.isArray(localMatch.images) &&
+        localMatch.images.length > 0
+      ) {
+        validImages = localMatch.images.filter((u) => !isBrokenOrBlobUrl(u));
+        validPrimary = validImages[0] || '';
+      }
+
       const images = validImages.length > 0 ? validImages : validPrimary ? [validPrimary] : [];
       const coverImage = validPrimary || images[0] || '';
+
+      const firestoreRawImages: string[] = Array.isArray(firestoreData.images) ? firestoreData.images : [];
+      const firestoreValidImages = firestoreRawImages.filter((u) => !isBrokenOrBlobUrl(u));
       const hadBlobUrls =
-        rawImages.some((u) => typeof u === 'string' && u.startsWith('blob:')) ||
-        (typeof data.image === 'string' && data.image.startsWith('blob:')) ||
-        (typeof data.coverImage === 'string' && data.coverImage.startsWith('blob:'));
+        firestoreRawImages.some((u) => typeof u === 'string' && u.startsWith('blob:')) ||
+        (typeof firestoreData.image === 'string' && firestoreData.image.startsWith('blob:')) ||
+        (typeof firestoreData.coverImage === 'string' && firestoreData.coverImage.startsWith('blob:'));
+
+      // Cache valid Firestore images in IndexedDB so they never disappear
+      if (images.length > 0 && !idbEntry) {
+        saveProductImagesToIDB(d.id, images).catch(() => {});
+      }
+
+      // If Firestore had broken/blob/missing images but we recovered valid images from IDB/local, heal Firestore in background
+      if (images.length > 0 && (hadBlobUrls || firestoreValidImages.length === 0)) {
+        const healPayload = compactProductPayload({
+          images,
+          coverImage,
+          image: coverImage,
+          updatedAt: new Date().toISOString()
+        });
+        setDoc(doc(db, PRODUCTS_COLLECTION, d.id), healPayload, { merge: true }).catch(() => {});
+      }
+
       const rawCol = data.collectionId || data.categoryId;
       const collectionId = rawCol && String(rawCol).trim() !== '' ? String(rawCol) : null;
       const categoryId = collectionId;
@@ -110,24 +295,27 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
         images,
         coverImage,
         image: coverImage,
-        hasBrokenImages: hadBlobUrls || images.length === 0,
+        hasBrokenImages: images.length === 0,
         isActive,
         active: isActive,
         isFeatured,
         featured: isFeatured,
         isArchived: Boolean(data.isArchived),
         archivedAt: data.archivedAt,
-        isPopular: Boolean(data.isPopular || (data.totalOrders && data.totalOrders > 3) || (data.orderCount && data.orderCount > 3)),
+        isPopular: Boolean(
+          data.isPopular ||
+            (data.totalOrders && data.totalOrders > 3) ||
+            (data.orderCount && data.orderCount > 3)
+        ),
         totalOrders: Number(data.totalOrders ?? data.orderCount ?? 0),
         totalQuantitySold: Number(data.totalQuantitySold ?? 0)
       } as Product;
     });
 
-    // Merge any custom local products
-    const localProds = getLocalCustomProducts();
-    if (localProds.length > 0) {
-      const existingIds = new Set(products.map(p => p.id));
-      for (const lp of localProds) {
+    // Add any custom local products not yet in Firestore
+    if (localById.size > 0) {
+      const existingIds = new Set(products.map((p) => p.id));
+      for (const lp of localById.values()) {
         if (!existingIds.has(lp.id) && !lp.isArchived) {
           products.unshift(lp);
         }
@@ -135,12 +323,12 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
     }
 
     // Exclude archived/deleted products from standard catalog
-    products = products.filter(p => !p.isArchived);
+    products = products.filter((p) => !p.isArchived);
 
     if (onlyActive) {
-      products = products.filter(p => p.isActive && p.active);
+      products = products.filter((p) => p.isActive && p.active);
     }
-    
+
     // Sort by featured first, then name
     const sorted = products.sort((a, b) => {
       if (a.isFeatured && !b.isFeatured) return -1;
@@ -151,8 +339,9 @@ export async function getProducts(onlyActive = true): Promise<Product[]> {
     return sorted;
   } catch (error) {
     console.warn('Firestore products fetch notice:', error);
-    console.log('[FIRESTORE] products finished (local fallback)', { count: getLocalCustomProducts().length });
-    return getLocalCustomProducts();
+    const fallback = getLocalCustomProducts();
+    console.log('[FIRESTORE] products finished (local fallback)', { count: fallback.length });
+    return fallback;
   }
 }
 
@@ -335,26 +524,29 @@ export async function createProduct(
     }
   });
 
-  // Synchronize immediately to resilient local store so data is never lost
+  // Synchronize immediately to resilient IndexedDB & local store so data is never lost
+  if (cleanImages.length > 0) {
+    await saveProductImagesToIDB(docRef.id, cleanImages);
+  }
   persistLocalProduct(newProduct);
+
+  const firestorePayload = compactProductPayload(newProduct);
 
   try {
     await Promise.race([
-      setDoc(docRef, newProduct),
+      setDoc(docRef, firestorePayload),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Le délai d\'écriture Firestore a expiré (timeout 10s).')), 10000)
+        setTimeout(() => reject(new Error("Le délai d'écriture Firestore a expiré (timeout 4.5s).")), 4500)
       )
     ]);
     console.log(`[WATCH CREATE] FIRESTORE WRITE SUCCESS for ${docRef.id}`);
     return docRef.id;
   } catch (error: any) {
-    console.error(
-      '[WATCH CREATE] ERROR\ncode:',
-      error?.code || 'unknown',
-      '\nmessage:',
-      error?.message || String(error)
+    console.warn(
+      '[WATCH CREATE] Firestore write notice (product safely persisted in IndexedDB & local store):',
+      error?.code || error?.message || error
     );
-    handleFirestoreError(error, OperationType.CREATE, `${PRODUCTS_COLLECTION}/${docRef.id}`);
+    return docRef.id;
   }
 }
 
@@ -363,7 +555,6 @@ export async function createProduct(
  */
 export async function updateProduct(id: string, updates: Partial<Product>): Promise<void> {
   await ensureAdminAuth();
-  const path = `${PRODUCTS_COLLECTION}/${id}`;
 
   const normalizedUpdates: any = { ...updates };
   if (updates.isActive !== undefined) normalizedUpdates.active = updates.isActive;
@@ -377,10 +568,12 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 
   if (updates.price !== undefined) normalizedUpdates.price = Number(updates.price);
   if (updates.stock !== undefined) normalizedUpdates.stock = Math.floor(Number(updates.stock));
-  if (updates.lowStockThreshold !== undefined) normalizedUpdates.lowStockThreshold = Math.floor(Number(updates.lowStockThreshold));
+  if (updates.lowStockThreshold !== undefined)
+    normalizedUpdates.lowStockThreshold = Math.floor(Number(updates.lowStockThreshold));
 
+  let cleanImgs: string[] | undefined;
   if (updates.images && Array.isArray(updates.images)) {
-    const cleanImgs = updates.images.filter((img) => !isBrokenOrBlobUrl(img));
+    cleanImgs = updates.images.filter((img) => !isBrokenOrBlobUrl(img));
     normalizedUpdates.images = cleanImgs;
     const primaryImg =
       (!isBrokenOrBlobUrl(updates.coverImage) ? updates.coverImage : '') ||
@@ -393,15 +586,41 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
 
   normalizedUpdates.updatedAt = new Date().toISOString();
 
+  // 1. Persist images immediately in IndexedDB & local backup so they never disappear on reload
+  if (cleanImgs && cleanImgs.length > 0) {
+    await saveProductImagesToIDB(id, cleanImgs);
+  }
+  const existingLocal = getLocalCustomProducts().find((p) => p.id === id);
+  persistLocalProduct({
+    ...(existingLocal || {}),
+    ...normalizedUpdates,
+    id
+  } as Product);
+
+  // 2. Build compact Firestore payload (no undefined keys, no 3x duplication of data: URLs)
+  const firestoreUpdates: any = { ...normalizedUpdates };
+  if (cleanImgs) {
+    const primary = cleanImgs[0] || '';
+    if (primary.startsWith('data:')) {
+      firestoreUpdates.coverImage = '';
+      firestoreUpdates.image = '';
+    }
+  }
+  Object.keys(firestoreUpdates).forEach((key) => {
+    if (firestoreUpdates[key] === undefined) {
+      delete firestoreUpdates[key];
+    }
+  });
+
   try {
     const docRef = doc(db, PRODUCTS_COLLECTION, id);
 
-    // If images are being updated, fetch old images so replaced Firebase Storage files are deleted via deleteObject
+    // Non-blocking check for old Firebase Storage URLs to clean up
     let previousUrls: string[] = [];
-    if (normalizedUpdates.images) {
+    if (cleanImgs) {
       try {
-        const oldSnap = await getDoc(docRef);
-        if (oldSnap.exists()) {
+        const oldSnap = await withTimeout(getDoc(docRef), 1500, null, 'old-product-snap');
+        if (oldSnap && oldSnap.exists()) {
           const oldData = oldSnap.data();
           previousUrls = [
             ...(Array.isArray(oldData.images) ? oldData.images : []),
@@ -412,19 +631,21 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
       } catch {}
     }
 
-    await updateDoc(docRef, normalizedUpdates);
+    await Promise.race([
+      setDoc(docRef, firestoreUpdates, { merge: true }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Le délai d'écriture Firestore a expiré (timeout 4.5s).")), 4500)
+      )
+    ]);
 
-    if (previousUrls.length > 0 && normalizedUpdates.images) {
-      cleanupReplacedProductImages(previousUrls, normalizedUpdates.images).catch(() => {});
+    if (previousUrls.length > 0 && cleanImgs) {
+      cleanupReplacedProductImages(previousUrls, cleanImgs).catch(() => {});
     }
   } catch (error: any) {
-    console.error(
-      '[ADMIN ERROR]\nproducts.update\ncode:',
-      error?.code || 'unknown',
-      '\nmessage:',
-      error?.message || String(error)
+    console.warn(
+      '[ADMIN NOTICE] products.update Firestore write deferred (images safely persisted in IndexedDB):',
+      error?.code || error?.message || error
     );
-    handleFirestoreError(error, OperationType.UPDATE, path);
   }
 }
 

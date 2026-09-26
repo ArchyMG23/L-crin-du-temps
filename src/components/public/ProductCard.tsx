@@ -1,13 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { ShoppingBag, Eye, Check, AlertTriangle, XCircle, Sparkles, Flame, Shield, Image as ImageIcon } from 'lucide-react';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
 import { formatPrice } from '../../utils/format';
 import { isBrokenOrBlobUrl } from '../../services/storageService';
-
-const FALLBACK_WATCH_IMAGE =
-  'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=800';
 
 interface ProductCardProps {
   product: Product;
@@ -17,6 +14,7 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) => {
   const { addToCart } = useCart();
+  const [imgLoadFailed, setImgLoadFailed] = useState(false);
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock > 0 && product.stock <= (product.lowStockThreshold || 2);
   const hasPromo = product.promotionalPrice && product.promotionalPrice < product.price;
@@ -38,9 +36,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
     (!isBrokenOrBlobUrl(product.image) ? product.image : '') ||
     validImages[0] ||
     (!isBrokenOrBlobUrl(product.coverImage) ? product.coverImage : '') ||
-    FALLBACK_WATCH_IMAGE;
+    '';
   const secondaryImage = validImages.length > 1 ? validImages[1] : null;
-  const totalPhotosCount = validImages.length > 0 ? validImages.length : !isBrokenOrBlobUrl(product.image) ? 1 : 0;
+  const totalPhotosCount = validImages.length > 0 ? validImages.length : primaryImage ? 1 : 0;
 
   return (
     <motion.div
@@ -61,21 +59,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onSelect }) =
         {/* Subtle Ambient Radial Glow */}
         <div className="absolute inset-0 bg-radial from-[var(--or)]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-        <img
-          src={primaryImage}
-          alt={product.name}
-          referrerPolicy="no-referrer"
-          onError={(e) => {
-            const target = e.currentTarget;
-            if (target.src !== FALLBACK_WATCH_IMAGE) {
-              target.src = FALLBACK_WATCH_IMAGE;
-            }
-          }}
-          className={`w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.5)] transition-all duration-500 ease-out group-hover:scale-108 ${
-            isOutOfStock ? 'grayscale opacity-50' : ''
-          } ${secondaryImage && !isOutOfStock ? 'group-hover:opacity-0' : ''}`}
-          loading="lazy"
-        />
+        {primaryImage && !imgLoadFailed ? (
+          <img
+            src={primaryImage}
+            alt={product.name}
+            referrerPolicy="no-referrer"
+            onError={() => setImgLoadFailed(true)}
+            className={`w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.5)] transition-all duration-500 ease-out group-hover:scale-108 ${
+              isOutOfStock ? 'grayscale opacity-50' : ''
+            } ${secondaryImage && !isOutOfStock ? 'group-hover:opacity-0' : ''}`}
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-2 text-[var(--text-muted)] p-4 text-center select-none">
+            <ImageIcon className="w-8 h-8 opacity-40 text-[var(--or)]" />
+            <span className="text-[10px] uppercase tracking-wider opacity-70">Photo indisponible</span>
+          </div>
+        )}
 
         {/* Optional secondary angle on hover */}
         {secondaryImage && !isOutOfStock && (
